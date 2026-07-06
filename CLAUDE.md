@@ -27,7 +27,7 @@
 - TypeScript + React + Vite
 - 视标 / 动画 / 过渡：DOM + CSS（含 CSS filter 做模糊→清晰过渡）
 - 存储：IndexedDB（Dexie.js）
-- 语音：**迭代 0 验证后再定**（Web Speech API 走云 vs WASM 离线模型如 sherpa-onnx/vosk）
+- 语音：**方案 B vosk-browser 离线（已实测国内笔记本可用）**。方案 A（Web Speech API）走 Google 云、**国内不通**，已排除。模型需跑 `scripts/prepare-vosk-model.ps1` 生成（~42MB，不入库）。vosk 若不够准，升级路线是 **sherpa-onnx KWS**（关键词识别，对固定小词表最对口）。
 - 运行：开发期 iPad 与电脑同一 WiFi，Safari 访问局域网 Vite dev server（HTTPS，本地证书）——不依赖国外网络
 
 ## 核心训练循环（速记）
@@ -50,4 +50,8 @@
 _(迭代 0 建立代码后补充)_
 
 ## 开发命令
-_(迭代 0 建立工程后补充)_
+- `npm install` — 装依赖
+- `pwsh scripts/prepare-vosk-model.ps1` — 准备方案B的 vosk 中文离线模型（~42MB，不入库，仅首次）
+- `npm run dev` — 本机开发（http://localhost:5173，localhost 即安全上下文，可用麦克风）
+- `npm run dev:lan` — iPad 局域网（https，访问 `https://<电脑IP>:5173`，首次信任自签证书）
+- `npm test` — 跑单元测试
