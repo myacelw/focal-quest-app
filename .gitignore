@@ -2,3 +2,6 @@ node_modules
 dist
 *.local
 .DS_Store
+
+# vosk 离线模型体积大，不入库（由使用者手动放入）
+public/models/
