@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { CalibrationPage } from './calibration/CalibrationPage'
+import { SpeechTestPage } from './speech/SpeechTestPage'
 
 type View = 'home' | 'calib' | 'speech'
 
@@ -24,7 +25,7 @@ export function App() {
         </div>
       )}
       {view === 'calib' && <CalibrationPage />}
-      {view === 'speech' && <div style={{ padding: 24 }}>（语音页将在 Task 3 接入）</div>}
+      {view === 'speech' && <SpeechTestPage />}
     </div>
   )
 }
