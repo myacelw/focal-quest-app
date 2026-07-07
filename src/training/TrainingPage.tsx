@@ -13,6 +13,7 @@ import { saveSession, doCheckIn, type CheckinResult } from '../data/checkin'
 import { toDateStr } from '../data/date-utils'
 import { syncBadges } from '../badges/badge-service'
 import type { BadgeDef } from '../badges/badge-defs'
+import { getSkin, getSkinId } from '../skins/registry'
 
 const DURATION_SEC = 180
 const TRANSITION_MS = 1600
@@ -35,12 +36,15 @@ export function TrainingPage() {
   const [session, setSession] = useState<SessionState>(() => createSession('left', DURATION_SEC))
   const [checkin, setCheckin] = useState<CheckinResult | null>(null)
   const [newBadges, setNewBadges] = useState<BadgeDef[]>([])
+  const [skinId] = useState(() => getSkinId())
+  const [lastAnswer, setLastAnswer] = useState<{ dir: Direction; correct: boolean; seq: number } | null>(null)
 
   const pxPerMm = readPxPerMm()
   const sessionRef = useRef(session)
   const voskRef = useRef<VoskController | null>(null)
   const savedRef = useRef(false)
   const sizeMmRef = useRef(sizeMm)
+  const seqRef = useRef(0)
 
   useEffect(() => { sessionRef.current = session }, [session])
   useEffect(() => { setMuted(muted) }, [muted])
@@ -78,6 +82,8 @@ export function TrainingPage() {
     const s = sessionRef.current
     if (s.phase !== 'showing' || s.target === null) return
     playSfx(dir === s.target ? 'correct' : 'wrong')
+    seqRef.current += 1
+    setLastAnswer({ dir, correct: dir === s.target, seq: seqRef.current })
     setSession(answer(s, dir))
     window.setTimeout(() => {
       playSfx('flip')
@@ -204,7 +210,7 @@ export function TrainingPage() {
     )
   }
 
-  const transitioning = session.phase === 'transitioning'
+  const CurrentSkin = getSkin(skinId)
   return (
     <div style={{ display: 'flex', flexDirection: 'column', minHeight: '80vh' }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 16, padding: '12px 20px' }}>
@@ -217,16 +223,13 @@ export function TrainingPage() {
         <button onClick={() => setMutedState((m) => !m)}>{muted ? '🔇' : '🔊'}</button>
       </div>
 
-      <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#111' }}>
-        {transitioning ? (
-          <div style={{ fontSize: 24, color: '#1d9e75' }}>翻！</div>
-        ) : (
-          session.target && (
-            <div style={{ animation: 'fzpBlurIn 0.4s ease-out' }}>
-              <TumblingE direction={session.target} heightPx={heightPx} />
-            </div>
-          )
-        )}
+      <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        <CurrentSkin.Stage
+          target={session.target}
+          heightPx={heightPx}
+          phase={session.phase === 'transitioning' ? 'transitioning' : 'showing'}
+          lastAnswer={lastAnswer}
+        />
       </div>
 
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 20px' }}>
@@ -240,7 +243,6 @@ export function TrainingPage() {
         </span>
       </div>
 
-      <style>{`@keyframes fzpBlurIn { from { filter: blur(8px); opacity: 0.2 } to { filter: blur(0); opacity: 1 } }`}</style>
     </div>
   )
 }
