@@ -172,7 +172,7 @@ export function TrainingPage() {
           <input
             type="range"
             min={0.3}
-            max={15}
+            max={2}
             step={0.1}
             value={sizeMm}
             onChange={(e) => setSizeMm(Number(e.target.value))}
