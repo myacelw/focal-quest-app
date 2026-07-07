@@ -12,6 +12,10 @@ export default defineConfig(({ mode }) => {
     server: {
       host: true,
       port: 5173,
+      // iPad 只连 Vite；/api 由 Vite 转发到本地 Node 后端（server/），免 CORS
+      proxy: {
+        '/api': 'http://localhost:3001',
+      },
     },
   }
 })

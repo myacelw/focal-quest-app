@@ -1,9 +1,11 @@
 import { db, type SessionRow, type CheckinRow } from './db'
 import { nextStreak, currentStreak, type LastCheckin } from './streak'
 import { dailyPoints } from './points'
+import { pushSession, pushCheckin } from './api'
 
 export async function saveSession(row: Omit<SessionRow, 'id'>): Promise<void> {
-  await db.sessions.add(row)
+  const id = await db.sessions.add(row)
+  pushSession({ ...row, id })
 }
 
 export interface CheckinResult {
@@ -35,6 +37,7 @@ export async function doCheckIn(today: string): Promise<CheckinResult> {
 
   const row: CheckinRow = { date: today, streak, dailyPoints: dp, totalPoints }
   await db.checkins.put(row)
+  pushCheckin(row)
   return { alreadyCheckedIn: false, streak, dailyPoints: dp, totalPoints }
 }
 

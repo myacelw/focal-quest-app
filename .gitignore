@@ -5,3 +5,9 @@ dist
 
 # vosk 离线模型体积大，不入库（由使用者手动放入）
 public/models/
+
+# 本地 SQLite 数据文件（server/），不入库
+server/*.db
+server/*.db-journal
+server/*.db-wal
+server/*.db-shm

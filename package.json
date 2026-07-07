@@ -9,7 +9,8 @@
     "build": "vite build",
     "preview": "vite preview",
     "test": "vitest run",
-    "test:watch": "vitest"
+    "test:watch": "vitest",
+    "server": "node --experimental-sqlite server/index.ts"
   },
   "dependencies": {
     "dexie": "^4.4.4",
