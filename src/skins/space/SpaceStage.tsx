@@ -3,10 +3,10 @@ import { TumblingE } from '../../training/TumblingE'
 import type { StageProps } from '../types'
 
 /**
- * 太空射击皮肤：中央一个「敌人」飞碟，视标 E 清晰地印在它中心（读 E = 判断敌人朝向）。
- * 答对 → 战机射激光击中敌人爆炸；答错 → 战机闪、屏幕红一下；翻拍 → 星空加速跃迁。
- * E 是敌人的要害标记，读方向就是瞄准、答对就是击落——飞船/E/敌人三者合一。
- * 纯 DOM/CSS/SVG，emoji 占位（后续换 AI 出图）。
+ * 太空射击皮肤（真素材版）：NASA 星云背景 + Unlucky Studio CC0 战机/敌舰/爆炸帧。
+ * 视标 E 印在敌舰核心上（读 E = 判断弱点相位）。
+ * 答对 → 激光命中 → 爆炸序列帧；答错 → 红闪 + 战机抖；翻拍 → 跃迁速线。
+ * 素材来源见 public/skins/space/CREDITS.md。
  */
 export function SpaceStage({ target, heightPx, phase, lastAnswer, isEgg }: StageProps) {
   const [fx, setFx] = useState<{ correct: boolean; key: number } | null>(null)
@@ -14,13 +14,13 @@ export function SpaceStage({ target, heightPx, phase, lastAnswer, isEgg }: Stage
   useEffect(() => {
     if (!lastAnswer) return
     setFx({ correct: lastAnswer.correct, key: lastAnswer.seq })
-    const t = window.setTimeout(() => setFx(null), 600)
+    const t = window.setTimeout(() => setFx(null), 700)
     return () => window.clearTimeout(t)
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [lastAnswer?.seq])
 
   const transitioning = phase === 'transitioning'
-  const enemySize = Math.max(88, heightPx * 2.4)
+  const enemySize = Math.max(120, heightPx * 2.6)
   const hit = fx?.correct === true
   const miss = fx?.correct === false
 
@@ -34,80 +34,101 @@ export function SpaceStage({ target, heightPx, phase, lastAnswer, isEgg }: Stage
         margin: '0 auto',
         borderRadius: 16,
         overflow: 'hidden',
-        background: 'radial-gradient(circle at 50% 45%, #1b2650, #070a16)',
+        background: 'url(/skins/space/bg-nebula.jpg) center / cover, #070a16',
       }}
     >
-      {/* 星空 */}
-      <div
-        style={{
-          position: 'absolute',
-          inset: 0,
-          backgroundImage:
-            'radial-gradient(1px 1px at 20% 30%, #fff, transparent), radial-gradient(1px 1px at 70% 60%, #cfe, transparent), radial-gradient(1px 1px at 40% 80%, #fff, transparent), radial-gradient(1px 1px at 85% 20%, #9bf, transparent)',
-          animation: transitioning ? 'fzpStar 0.4s linear infinite' : 'none',
-          opacity: 0.85,
-        }}
-      />
+      {/* 暗化层：保证视标对比度 */}
+      <div style={{ position: 'absolute', inset: 0, background: 'rgba(4,6,16,0.42)' }} />
 
-      {/* 答错：屏幕红闪 */}
-      {miss && <div style={{ position: 'absolute', inset: 0, background: 'rgba(255,60,60,0.18)', animation: 'fzpFade 0.4s ease-out' }} />}
+      {/* 翻拍跃迁：速线层 */}
+      {transitioning && (
+        <div
+          style={{
+            position: 'absolute',
+            inset: 0,
+            backgroundImage:
+              'repeating-linear-gradient(180deg, transparent 0 34px, rgba(160,210,255,0.35) 34px 38px)',
+            animation: 'fzpWarp 0.35s linear infinite',
+            opacity: 0.6,
+          }}
+        />
+      )}
 
-      {/* 中央敌人（视标 E 印在它中心）——showing 且未被击碎时显示 */}
+      {/* 答错红闪 */}
+      {miss && <div style={{ position: 'absolute', inset: 0, background: 'rgba(255,60,60,0.2)', animation: 'fzpFade 0.4s ease-out' }} />}
+
+      {/* 敌舰（E 印在核心）——showing 且未被击碎时 */}
       {phase === 'showing' && target && !hit && (
         <div
           style={{
             position: 'absolute',
-            top: '42%',
+            top: '40%',
             left: '50%',
             width: enemySize,
             height: enemySize,
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            borderRadius: '50%',
-            background: isEgg ? 'radial-gradient(circle, #6a5410, #2a2205)' : 'radial-gradient(circle, #3a2a5a, #170f2e)',
-            border: isEgg ? '3px solid gold' : '3px solid #7a6ad8',
-            boxShadow: isEgg ? '0 0 22px 6px rgba(255,215,0,0.6)' : '0 0 18px 4px rgba(122,106,216,0.5)',
-            animation: miss ? 'fzpShake 0.3s' : 'fzpFloat 2.4s ease-in-out infinite',
+            transform: 'translate(-50%,-50%)',
+            animation: miss ? 'fzpShake 0.3s' : 'fzpFloat 2.8s ease-in-out infinite',
+            filter: isEgg ? 'drop-shadow(0 0 14px gold)' : 'none',
           }}
         >
-          <span style={{ color: '#f2f6ff' }}>
-            <TumblingE direction={target} heightPx={heightPx} />
-          </span>
-          {isEgg && <div style={{ position: 'absolute', top: -12, fontSize: 22 }}>✨</div>}
+          <img src="/skins/space/enemy.png" alt="" width={enemySize} height={enemySize} style={{ display: 'block' }} />
+          <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <span style={{ color: '#ffffff', filter: 'drop-shadow(0 0 3px #000) drop-shadow(0 0 1px #000)' }}>
+              <TumblingE direction={target} heightPx={heightPx} />
+            </span>
+          </div>
+          {isEgg && <div style={{ position: 'absolute', top: -14, left: '50%', transform: 'translateX(-50%)', fontSize: 20 }}>✨</div>}
         </div>
       )}
 
-      {/* 翻拍过渡：下一波来袭 */}
+      {/* 翻拍提示 */}
       {transitioning && !hit && (
-        <div style={{ position: 'absolute', top: '42%', left: '50%', transform: 'translate(-50%,-50%)', color: '#8fdfff', fontSize: 18 }}>
+        <div style={{ position: 'absolute', top: '40%', left: '50%', transform: 'translate(-50%,-50%)', color: '#9fdcff', fontSize: 16, textShadow: '0 0 8px #001' }}>
           下一波来袭…
         </div>
       )}
 
-      {/* 答对：激光 + 爆炸（在敌人位置） */}
+      {/* 答对：激光 + 白闪 + 爆炸序列帧 */}
       {hit && (
-        <div key={`laser${fx!.key}`} style={{ position: 'absolute', bottom: '13%', left: '50%', width: 5, height: '42%', background: 'linear-gradient(#ffffff, #44ddff)', transform: 'translateX(-50%)', animation: 'fzpLaser 0.3s ease-out', borderRadius: 3 }} />
+        <div key={`l${fx!.key}`} style={{ position: 'absolute', bottom: '15%', left: '50%', width: 5, height: '44%', background: 'linear-gradient(#ffffff, #46dcff)', transform: 'translateX(-50%)', animation: 'fzpLaser 0.25s ease-out', borderRadius: 3, boxShadow: '0 0 8px #46dcff' }} />
       )}
       {hit && (
-        <div key={`boom${fx!.key}`} style={{ position: 'absolute', top: '42%', left: '50%', transform: 'translate(-50%,-50%)', fontSize: 52, animation: 'fzpBoom 0.5s ease-out' }}>
-          💥
-        </div>
+        <div key={`f${fx!.key}`} style={{ position: 'absolute', top: '40%', left: '50%', width: 200, height: 200, transform: 'translate(-50%,-50%)', borderRadius: '50%', background: 'radial-gradient(circle, rgba(255,240,200,0.95), transparent 65%)', animation: 'fzpFade 0.3s ease-out forwards' }} />
+      )}
+      {hit && (
+        <div
+          key={`b${fx!.key}`}
+          style={{
+            position: 'absolute',
+            top: '40%',
+            left: '50%',
+            width: 160,
+            height: 160,
+            marginLeft: -80,
+            marginTop: -80,
+            backgroundImage: 'url(/skins/space/explosion-strip9.png)',
+            backgroundRepeat: 'no-repeat',
+            animation: 'fzpBoomStrip 0.55s steps(9) forwards',
+            transform: 'scale(1.4)',
+          }}
+        />
       )}
 
-      {/* 战机 */}
-      <div style={{ position: 'absolute', bottom: '3%', left: '50%', transform: 'translateX(-50%)', fontSize: 36, animation: miss ? 'fzpShake 0.3s' : 'none' }}>
-        🚀
+      {/* 战机：两帧引擎火焰交替 */}
+      <div style={{ position: 'absolute', bottom: '2%', left: '50%', width: 72, height: 72, transform: 'translateX(-50%)', animation: miss ? 'fzpShakeShip 0.3s' : 'none' }}>
+        <img src="/skins/space/ship-1.png" alt="" width={72} height={72} style={{ position: 'absolute', inset: 0 }} />
+        <img src="/skins/space/ship-2.png" alt="" width={72} height={72} style={{ position: 'absolute', inset: 0, animation: 'fzpEngine 0.32s steps(1) infinite' }} />
       </div>
 
       <style>{`
-        @keyframes fzpStar { from { background-position: 0 0 } to { background-position: 0 40px } }
-        @keyframes fzpFloat { 0%,100% { transform: translate(-50%,-50%) } 50% { transform: translate(-50%,-58%) } }
-        @keyframes fzpShake { 0%,100% { transform: translate(-50%,-50%) } 25% { transform: translate(-58%,-50%) rotate(-6deg) } 75% { transform: translate(-42%,-50%) rotate(6deg) } }
-        @keyframes fzpLaser { 0% { opacity: 1; height: 0 } 55% { height: 42% } 100% { opacity: 0 } }
-        @keyframes fzpBoom { 0% { transform: translate(-50%,-50%) scale(0.3); opacity: 1 } 100% { transform: translate(-50%,-50%) scale(1.9); opacity: 0 } }
+        @keyframes fzpFloat { 0%,100% { transform: translate(-50%,-50%) } 50% { transform: translate(-50%,-56%) } }
+        @keyframes fzpShake { 25% { transform: translate(-56%,-50%) rotate(-4deg) } 75% { transform: translate(-44%,-50%) rotate(4deg) } }
+        @keyframes fzpShakeShip { 25% { transform: translateX(-62%) rotate(-8deg) } 75% { transform: translateX(-38%) rotate(8deg) } }
+        @keyframes fzpLaser { 0% { opacity: 1; height: 0 } 60% { height: 44% } 100% { opacity: 0 } }
+        @keyframes fzpBoomStrip { from { background-position: 0 0 } to { background-position: -1440px 0 } }
         @keyframes fzpFade { from { opacity: 1 } to { opacity: 0 } }
-        @keyframes fzpBlurIn { from { filter: blur(8px); opacity: 0.2 } to { filter: blur(0); opacity: 1 } }
+        @keyframes fzpWarp { from { background-position: 0 0 } to { background-position: 0 38px } }
+        @keyframes fzpEngine { 0%,100% { opacity: 0 } 50% { opacity: 1 } }
       `}</style>
     </div>
   )
