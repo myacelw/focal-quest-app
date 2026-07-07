@@ -11,6 +11,8 @@ import { startVosk, type VoskController } from '../speech/vosk'
 import { parseAnswer, type Direction } from '../speech/answer-mapping'
 import { saveSession, doCheckIn, type CheckinResult } from '../data/checkin'
 import { toDateStr } from '../data/date-utils'
+import { syncBadges } from '../badges/badge-service'
+import type { BadgeDef } from '../badges/badge-defs'
 
 const DURATION_SEC = 180
 const TRANSITION_MS = 1600
@@ -29,6 +31,7 @@ export function TrainingPage() {
   const [muted, setMutedState] = useState(false)
   const [session, setSession] = useState<SessionState>(() => createSession('left', DURATION_SEC))
   const [checkin, setCheckin] = useState<CheckinResult | null>(null)
+  const [newBadges, setNewBadges] = useState<BadgeDef[]>([])
 
   const pxPerMm = readPxPerMm()
   const sessionRef = useRef(session)
@@ -105,7 +108,9 @@ export function TrainingPage() {
       setSession(createSession('right', DURATION_SEC))
     } else {
       const result = await doCheckIn(toDateStr(new Date()))
-      playSfx('checkin')
+      const unlocked = await syncBadges(Date.now())
+      playSfx(unlocked.length > 0 ? 'badge' : 'checkin')
+      setNewBadges(unlocked)
       setCheckin(result)
     }
   }
@@ -128,6 +133,19 @@ export function TrainingPage() {
           {!checkin.alreadyCheckedIn && <> · 今日 +{checkin.dailyPoints} 分</>}
         </p>
         <p style={{ color: '#1d9e75' }}>⭐ 累计 {checkin.totalPoints} 分</p>
+        {newBadges.length > 0 && (
+          <div style={{ marginTop: 16 }}>
+            <p style={{ fontWeight: 700 }}>🎉 解锁新勋章！</p>
+            <div style={{ display: 'flex', gap: 12, justifyContent: 'center', flexWrap: 'wrap' }}>
+              {newBadges.map((b) => (
+                <div key={b.id} style={{ textAlign: 'center' }}>
+                  <div style={{ fontSize: 32 }}>{b.emoji}</div>
+                  <div style={{ fontSize: 12 }}>{b.name}</div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
       </div>
     )
   }

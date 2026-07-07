@@ -1,4 +1,4 @@
-type SfxKind = 'correct' | 'wrong' | 'flip' | 'finish' | 'checkin'
+type SfxKind = 'correct' | 'wrong' | 'flip' | 'finish' | 'checkin' | 'badge'
 
 let ctx: AudioContext | null = null
 let muted = false
@@ -45,6 +45,9 @@ export function playSfx(kind: SfxKind): void {
       break
     case 'checkin':
       ;[523, 659, 784, 1047, 1319].forEach((f, i) => tone(f, i * 0.1, 0.18))
+      break
+    case 'badge':
+      ;[659, 988, 1319, 1760].forEach((f, i) => tone(f, i * 0.09, 0.2))
       break
   }
 }
