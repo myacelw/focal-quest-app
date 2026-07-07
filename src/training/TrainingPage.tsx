@@ -29,7 +29,7 @@ function readPxPerMm(): number | null {
 export function TrainingPage() {
   const [sizeMm, setSizeMm] = useState<number>(() => {
     const v = localStorage.getItem('fzp.optotypeSizeMm')
-    return v ? Number(v) : 6
+    return v ? Number(v) : 1
   })
   const [muted, setMutedState] = useState(false)
   const [session, setSession] = useState<SessionState>(() => createSession('left', DURATION_SEC))
@@ -171,9 +171,9 @@ export function TrainingPage() {
           <br />
           <input
             type="range"
-            min={2}
-            max={20}
-            step={0.5}
+            min={0.3}
+            max={15}
+            step={0.1}
             value={sizeMm}
             onChange={(e) => setSizeMm(Number(e.target.value))}
             style={{ width: 260, marginTop: 8 }}
