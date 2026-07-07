@@ -13,7 +13,7 @@ import { saveSession, doCheckIn, type CheckinResult } from '../data/checkin'
 import { toDateStr } from '../data/date-utils'
 import { syncBadges } from '../badges/badge-service'
 import type { BadgeDef } from '../badges/badge-defs'
-import { getSkin, getSkinId } from '../skins/registry'
+import { getSkin, getSkinId, setSkinId, SKINS } from '../skins/registry'
 
 const DURATION_SEC = 180
 const TRANSITION_MS = 1600
@@ -36,7 +36,7 @@ export function TrainingPage() {
   const [session, setSession] = useState<SessionState>(() => createSession('left', DURATION_SEC))
   const [checkin, setCheckin] = useState<CheckinResult | null>(null)
   const [newBadges, setNewBadges] = useState<BadgeDef[]>([])
-  const [skinId] = useState(() => getSkinId())
+  const [skinId, setSkinIdState] = useState(() => getSkinId())
   const [lastAnswer, setLastAnswer] = useState<{ dir: Direction; correct: boolean; seq: number } | null>(null)
 
   const pxPerMm = readPxPerMm()
@@ -188,6 +188,18 @@ export function TrainingPage() {
             <TumblingE direction="up" heightPx={sizeMm * pxPerMm} />
           </div>
           <p style={{ fontSize: 12, color: '#888' }}>把上面这个 E 调到孩子能看清、但要努力的大小</p>
+        </div>
+        <div style={{ margin: '12px 0' }}>
+          皮肤：
+          {SKINS.map((s) => (
+            <button
+              key={s.id}
+              onClick={() => { setSkinId(s.id); setSkinIdState(s.id) }}
+              style={{ marginLeft: 8, fontWeight: skinId === s.id ? 700 : 400 }}
+            >
+              {s.name}
+            </button>
+          ))}
         </div>
         <button onClick={beginSession} style={{ fontSize: 22, padding: '12px 28px' }}>开始</button>
       </div>
