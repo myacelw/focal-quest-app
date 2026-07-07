@@ -9,11 +9,11 @@ import { TumblingE } from './TumblingE'
 import { playSfx, setMuted } from './sfx'
 import { startVosk, type VoskController } from '../speech/vosk'
 import { parseAnswer, type Direction } from '../speech/answer-mapping'
-import { saveSession, doCheckIn, type CheckinResult } from '../data/checkin'
+import { saveSession, doCheckIn, getHomeStats, type CheckinResult } from '../data/checkin'
 import { toDateStr } from '../data/date-utils'
 import { syncBadges } from '../badges/badge-service'
 import type { BadgeDef } from '../badges/badge-defs'
-import { getSkin, getSkinId, setSkinId, SKINS } from '../skins/registry'
+import { getSkin, getSkinId, setSkinId, isSkinUnlocked, skinUnlockCost, SKINS } from '../skins/registry'
 
 const DURATION_SEC = 180
 const TRANSITION_MS = 1600
@@ -38,6 +38,7 @@ export function TrainingPage() {
   const [newBadges, setNewBadges] = useState<BadgeDef[]>([])
   const [skinId, setSkinIdState] = useState(() => getSkinId())
   const [lastAnswer, setLastAnswer] = useState<{ dir: Direction; correct: boolean; seq: number } | null>(null)
+  const [totalPoints, setTotalPoints] = useState<number | null>(null)
 
   const pxPerMm = readPxPerMm()
   const sessionRef = useRef(session)
@@ -77,6 +78,11 @@ export function TrainingPage() {
   }, [session.phase, session.eye, session.answered, session.correct, session.flips, session.elapsedSec])
 
   useEffect(() => () => { voskRef.current?.stop() }, [])
+
+  // 读累计积分用于皮肤解锁判定（只读不打卡）
+  useEffect(() => {
+    void getHomeStats(toDateStr(new Date())).then((s) => setTotalPoints(s.totalPoints))
+  }, [])
 
   function handleAnswer(dir: Direction) {
     const s = sessionRef.current
@@ -165,7 +171,11 @@ export function TrainingPage() {
 
   const heightPx = sizeMm * pxPerMm
   const progress = Math.min(1, session.elapsedSec / session.durationSec)
-  const CurrentSkin = getSkin(skinId)
+  const tp = totalPoints ?? 0
+  // 生效皮肤：选中的若未解锁（如手改存储）则回退朴素；加载中(null)信任存储值避免闪烁
+  const effectiveSkinId =
+    totalPoints === null || isSkinUnlocked(skinId, totalPoints) ? skinId : 'plain'
+  const CurrentSkin = getSkin(effectiveSkinId)
 
   if (session.phase === 'preparing') {
     return (
@@ -193,15 +203,35 @@ export function TrainingPage() {
         </div>
         <div style={{ margin: '12px 0' }}>
           皮肤：
-          {SKINS.map((s) => (
-            <button
-              key={s.id}
-              onClick={() => { setSkinId(s.id); setSkinIdState(s.id) }}
-              style={{ marginLeft: 8, fontWeight: skinId === s.id ? 700 : 400 }}
-            >
-              {s.name}
-            </button>
-          ))}
+          {SKINS.map((s) => {
+            const unlocked = isSkinUnlocked(s.id, tp)
+            const cost = skinUnlockCost(s.id)
+            return (
+              <button
+                key={s.id}
+                onClick={() => { if (!unlocked) return; setSkinId(s.id); setSkinIdState(s.id) }}
+                disabled={!unlocked}
+                title={unlocked ? s.name : `练满 ${cost} 分解锁`}
+                style={{
+                  marginLeft: 8,
+                  fontWeight: effectiveSkinId === s.id ? 700 : 400,
+                  opacity: unlocked ? 1 : 0.55,
+                  cursor: unlocked ? 'pointer' : 'not-allowed',
+                }}
+              >
+                {unlocked ? s.name : `🔒 ${s.name}`}
+              </button>
+            )
+          })}
+          <div style={{ fontSize: 12, color: '#888', marginTop: 6 }}>
+            ⭐ 累计 {tp} 分
+            {(() => {
+              const locked = SKINS.filter((s) => !isSkinUnlocked(s.id, tp))
+              if (locked.length === 0) return ' · 皮肤已全部解锁 🎉'
+              const nearest = Math.min(...locked.map((s) => skinUnlockCost(s.id)))
+              return ` · 再练 ${nearest - tp} 分解锁新皮肤`
+            })()}
+          </div>
         </div>
         <div style={{ maxWidth: 220, margin: '4px auto 8px', borderRadius: 12, overflow: 'hidden' }}>
           <CurrentSkin.Stage target="up" heightPx={30} phase="showing" lastAnswer={null} isEgg={false} />
