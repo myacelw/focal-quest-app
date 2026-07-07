@@ -13,7 +13,8 @@ import { saveSession, doCheckIn, getHomeStats, type CheckinResult } from '../dat
 import { toDateStr } from '../data/date-utils'
 import { syncBadges } from '../badges/badge-service'
 import type { BadgeDef } from '../badges/badge-defs'
-import { getSkin, getSkinId, setSkinId, isSkinUnlocked, skinUnlockCost, SKINS } from '../skins/registry'
+import { getSkin, getSkinId, setSkinId, isSkinUnlocked, skinUnlockCost, newlyUnlockedSkins, SKINS } from '../skins/registry'
+import type { Skin } from '../skins/types'
 
 const DURATION_SEC = 180
 const TRANSITION_MS = 1600
@@ -36,6 +37,7 @@ export function TrainingPage() {
   const [session, setSession] = useState<SessionState>(() => createSession('left', DURATION_SEC))
   const [checkin, setCheckin] = useState<CheckinResult | null>(null)
   const [newBadges, setNewBadges] = useState<BadgeDef[]>([])
+  const [newSkins, setNewSkins] = useState<Skin[]>([])
   const [skinId, setSkinIdState] = useState(() => getSkinId())
   const [lastAnswer, setLastAnswer] = useState<{ dir: Direction; correct: boolean; seq: number } | null>(null)
   const [totalPoints, setTotalPoints] = useState<number | null>(null)
@@ -128,8 +130,11 @@ export function TrainingPage() {
     } else {
       const result = await doCheckIn(toDateStr(new Date()))
       const unlocked = await syncBadges(Date.now())
-      playSfx(unlocked.length > 0 ? 'badge' : 'checkin')
+      const prevPoints = result.alreadyCheckedIn ? result.totalPoints : result.totalPoints - result.dailyPoints
+      const skins = newlyUnlockedSkins(prevPoints, result.totalPoints)
+      playSfx(unlocked.length > 0 || skins.length > 0 ? 'badge' : 'checkin')
       setNewBadges(unlocked)
+      setNewSkins(skins)
       setCheckin(result)
     }
   }
@@ -163,6 +168,19 @@ export function TrainingPage() {
                 </div>
               ))}
             </div>
+          </div>
+        )}
+        {newSkins.length > 0 && (
+          <div style={{ marginTop: 16 }}>
+            <p style={{ fontWeight: 700 }}>🎨 解锁新皮肤！</p>
+            <div style={{ display: 'flex', gap: 12, justifyContent: 'center', flexWrap: 'wrap' }}>
+              {newSkins.map((s) => (
+                <div key={s.id} style={{ padding: '6px 14px', border: '2px solid #ffd54a', borderRadius: 10, background: '#fff9e6' }}>
+                  {s.name}
+                </div>
+              ))}
+            </div>
+            <p style={{ fontSize: 12, color: '#888', marginTop: 6 }}>去「训练准备页」换上试试～</p>
           </div>
         )}
       </div>

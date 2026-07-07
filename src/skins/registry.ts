@@ -42,3 +42,11 @@ export function skinUnlockCost(id: string): number {
 export function isSkinUnlocked(id: string, totalPoints: number): boolean {
   return totalPoints >= skinUnlockCost(id)
 }
+
+/** 本次打卡从 prevPoints 涨到 totalPoints，跨过门槛新解锁的皮肤（用于结算页庆祝） */
+export function newlyUnlockedSkins(prevPoints: number, totalPoints: number): Skin[] {
+  return SKINS.filter((s) => {
+    const c = skinUnlockCost(s.id)
+    return c > prevPoints && c <= totalPoints
+  })
+}
