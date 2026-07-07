@@ -19,15 +19,24 @@ export interface CheckinRow {
   totalPoints: number
 }
 
+export interface BadgeRow {
+  id: string
+  unlockedAt: number
+}
+
 export class FocalQuestDB extends Dexie {
   sessions!: Table<SessionRow, number>
   checkins!: Table<CheckinRow, string>
+  badges!: Table<BadgeRow, string>
 
   constructor() {
     super('focalquest')
     this.version(1).stores({
       sessions: '++id, date',
       checkins: 'date',
+    })
+    this.version(2).stores({
+      badges: 'id',
     })
   }
 }
