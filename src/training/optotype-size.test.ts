@@ -4,6 +4,7 @@ import {
   optotypeHeightMm,
   optotypeHeightPx,
   strokeWidthPx,
+  acuityFromHeightMm,
 } from './optotype-size'
 
 describe('optotypeHeightMm', () => {
@@ -37,5 +38,22 @@ describe('optotypeHeightPx', () => {
 describe('strokeWidthPx', () => {
   it('is one fifth of the optotype height', () => {
     expect(strokeWidthPx(50)).toBe(10)
+  })
+})
+
+describe('acuityFromHeightMm', () => {
+  it('inverts optotypeHeightMm: ~0.582mm → acuity ~1.0', () => {
+    expect(acuityFromHeightMm(0.582)).toBeCloseTo(1.0, 2)
+  })
+  it('round-trips with optotypeHeightMm', () => {
+    for (const a of [0.3, 0.8, 1.0]) {
+      expect(acuityFromHeightMm(optotypeHeightMm(a))).toBeCloseTo(a, 4)
+    }
+  })
+  it('bigger optotype → smaller acuity value', () => {
+    expect(acuityFromHeightMm(6)).toBeLessThan(acuityFromHeightMm(1))
+  })
+  it('throws on non-positive height', () => {
+    expect(() => acuityFromHeightMm(0)).toThrow()
   })
 })

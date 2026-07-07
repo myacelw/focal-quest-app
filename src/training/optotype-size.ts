@@ -27,3 +27,16 @@ export function optotypeHeightPx(
 export function strokeWidthPx(heightPx: number): number {
   return heightPx / 5
 }
+
+/**
+ * optotypeHeightMm 的反函数：由视标整字高度(mm)反推等效视力级别。
+ * h = 2·D·tan(rad/2) ⇒ rad = 2·atan(h/(2D))；arcMin = rad·(180·60)/π；acuity = 5/arcMin。
+ */
+export function acuityFromHeightMm(heightMm: number, distanceMm = TRAIN_DISTANCE_MM): number {
+  if (!(heightMm > 0)) {
+    throw new Error(`heightMm must be > 0, got ${heightMm}`)
+  }
+  const rad = 2 * Math.atan(heightMm / (2 * distanceMm))
+  const arcMinutes = (rad * 180 * 60) / Math.PI
+  return 5 / arcMinutes
+}
