@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { optotypeHeightPx } from './optotype-size'
+import { acuityFromHeightMm } from './optotype-size'
 import { cpm } from './cpm'
 import {
   createSession, pickDirection, start, answer, advance, tick, accuracy,
@@ -27,7 +27,10 @@ function readPxPerMm(): number | null {
 }
 
 export function TrainingPage() {
-  const [acuity, setAcuity] = useState(0.8)
+  const [sizeMm, setSizeMm] = useState<number>(() => {
+    const v = localStorage.getItem('fzp.optotypeSizeMm')
+    return v ? Number(v) : 6
+  })
   const [muted, setMutedState] = useState(false)
   const [session, setSession] = useState<SessionState>(() => createSession('left', DURATION_SEC))
   const [checkin, setCheckin] = useState<CheckinResult | null>(null)
@@ -37,11 +40,14 @@ export function TrainingPage() {
   const sessionRef = useRef(session)
   const voskRef = useRef<VoskController | null>(null)
   const savedRef = useRef(false)
-  const acuityRef = useRef(acuity)
+  const sizeMmRef = useRef(sizeMm)
 
   useEffect(() => { sessionRef.current = session }, [session])
   useEffect(() => { setMuted(muted) }, [muted])
-  useEffect(() => { acuityRef.current = acuity }, [acuity])
+  useEffect(() => {
+    sizeMmRef.current = sizeMm
+    localStorage.setItem('fzp.optotypeSizeMm', String(sizeMm))
+  }, [sizeMm])
 
   useEffect(() => {
     if (session.phase !== 'showing' && session.phase !== 'transitioning') return
@@ -62,7 +68,7 @@ export function TrainingPage() {
       correct: session.correct,
       flips: session.flips,
       elapsedSec: session.elapsedSec,
-      acuity: acuityRef.current,
+      acuity: acuityFromHeightMm(sizeMmRef.current),
     })
   }, [session.phase, session.eye, session.answered, session.correct, session.flips, session.elapsedSec])
 
@@ -150,7 +156,7 @@ export function TrainingPage() {
     )
   }
 
-  const heightPx = optotypeHeightPx(acuity, pxPerMm)
+  const heightPx = sizeMm * pxPerMm
   const progress = Math.min(1, session.elapsedSec / session.durationSec)
 
   if (session.phase === 'preparing') {
@@ -158,15 +164,25 @@ export function TrainingPage() {
       <div style={{ padding: 24, textAlign: 'center' }}>
         <h2>准备：{EYE_LABEL[session.eye]}</h2>
         <p>遮住另一只眼，拍子正镜片面朝眼，坐直、离屏幕约 40cm。</p>
-        <p>
-          视力级别：
-          <select value={acuity} onChange={(e) => setAcuity(Number(e.target.value))}>
-            <option value={0.4}>0.4（大）</option>
-            <option value={0.6}>0.6</option>
-            <option value={0.8}>0.8</option>
-            <option value={1.0}>1.0（小）</option>
-          </select>
-        </p>
+        <div style={{ margin: '16px 0' }}>
+          <label>
+            视标大小：<b>{sizeMm.toFixed(1)} mm</b>（≈ {acuityFromHeightMm(sizeMm).toFixed(2)} 视力级别）
+          </label>
+          <br />
+          <input
+            type="range"
+            min={2}
+            max={20}
+            step={0.5}
+            value={sizeMm}
+            onChange={(e) => setSizeMm(Number(e.target.value))}
+            style={{ width: 260, marginTop: 8 }}
+          />
+          <div style={{ marginTop: 12, color: '#111' }}>
+            <TumblingE direction="up" heightPx={sizeMm * pxPerMm} />
+          </div>
+          <p style={{ fontSize: 12, color: '#888' }}>把上面这个 E 调到孩子能看清、但要努力的大小</p>
+        </div>
         <button onClick={beginSession} style={{ fontSize: 22, padding: '12px 28px' }}>开始</button>
       </div>
     )
