@@ -44,7 +44,7 @@ export function BadgeCard({ def, unlocked, current }: { def: BadgeDef; unlocked:
           width: 96,
           height: 96,
           margin: '0 auto',
-          backgroundImage: `url(/badges/sheet${sheet}.png)`,
+          backgroundImage: `url(/badges/sheet${sheet}.webp)`,
           backgroundSize: '400% 400%',
           backgroundPosition: `${(col / 3) * 100}% ${(row / 3) * 100}%`,
           backgroundRepeat: 'no-repeat',
