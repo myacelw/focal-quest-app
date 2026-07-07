@@ -7,6 +7,33 @@ import type { StageProps } from '../types'
  * 念对 → 勇者挥剑光击碎守护者 → 光之精灵 +1（10 精灵点亮一座神庙）；答错 → 守护者红光震荡。
  * 素材 ansimuz CC0（Gothicvania），见 public/skins/shrine/CREDITS.md。
  */
+/** 守护者（怪兽）池：每题轮换一只，E 始终印在核心深色圆底上（铁律：看清优先）。
+ *  sprite=CC0 精灵图（有质感）；emoji=占位大怪兽（真图渐进替换）。加怪兽只需 push 进池。 */
+type Guardian =
+  | { kind: 'sprite'; src: string; frames: number; name: string }
+  | { kind: 'emoji'; char: string; name: string }
+
+const GUARDIANS: Guardian[] = [
+  { kind: 'sprite', src: '/skins/shrine/guardian-strip8.png', frames: 8, name: '火焰骷髅' },
+  { kind: 'emoji', char: '🐉', name: '青焰龙' },
+  { kind: 'emoji', char: '👹', name: '赤角鬼' },
+  { kind: 'emoji', char: '🗿', name: '远古像' },
+  { kind: 'emoji', char: '👾', name: '虚空魔' },
+  { kind: 'emoji', char: '🦂', name: '毒尾蝎' },
+]
+
+/** 第 seq 道视标（0-based，= 已答题数）对应的守护者，循环轮换整个池。 */
+export function guardianForSeq(seq: number): Guardian {
+  const n = GUARDIANS.length
+  return GUARDIANS[((seq % n) + n) % n]
+}
+
+/** 勇者（下方角色）。换林克/四英杰只需替换这两张精灵图，或扩成英雄池按需切换。 */
+const HERO = {
+  idle: '/skins/shrine/hero-idle-strip4.png',
+  attack: '/skins/shrine/hero-attack-strip6.png',
+}
+
 export function ShrineStage({ target, heightPx, phase, lastAnswer, isEgg }: StageProps) {
   const [fx, setFx] = useState<{ correct: boolean; key: number } | null>(null)
   const [spirits, setSpirits] = useState(0)
@@ -26,6 +53,7 @@ export function ShrineStage({ target, heightPx, phase, lastAnswer, isEgg }: Stag
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [lastAnswer?.seq])
 
+  const guardian = guardianForSeq(lastAnswer?.seq ?? 0)
   const transitioning = phase === 'transitioning'
   const hit = fx?.correct === true
   const miss = fx?.correct === false
@@ -55,7 +83,7 @@ export function ShrineStage({ target, heightPx, phase, lastAnswer, isEgg }: Stag
       {/* 答错红闪 */}
       {miss && <div style={{ position: 'absolute', inset: 0, background: 'rgba(255,70,70,0.18)', animation: 'fzpFade 0.4s ease-out', zIndex: 4 }} />}
 
-      {/* 守护者火焰骷髅（8 帧循环）+ 核心符文 E */}
+      {/* 守护者（每题轮换）+ 核心符文 E */}
       {phase === 'showing' && target && !hit && (
         <div
           style={{
@@ -69,7 +97,15 @@ export function ShrineStage({ target, heightPx, phase, lastAnswer, isEgg }: Stag
             filter: isEgg ? 'drop-shadow(0 0 14px gold)' : 'drop-shadow(0 0 10px rgba(255,120,40,0.5))',
           }}
         >
-          <div style={{ position: 'absolute', inset: 0, backgroundImage: 'url(/skins/shrine/guardian-strip8.png)', backgroundRepeat: 'no-repeat', animation: 'fzpGuardian 0.9s steps(8) infinite' }} />
+          {guardian.kind === 'sprite' ? (
+            <div style={{ position: 'absolute', inset: 0, backgroundImage: `url(${guardian.src})`, backgroundRepeat: 'no-repeat', animation: `fzpGuardian 0.9s steps(${guardian.frames}) infinite` }} />
+          ) : (
+            <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 150, lineHeight: 1, filter: 'drop-shadow(0 0 10px rgba(140,50,10,0.85))' }}>
+              {guardian.char}
+            </div>
+          )}
+          {/* 怪兽名牌，强化"每题变形"的代入感 */}
+          <div style={{ position: 'absolute', top: -28, left: '50%', transform: 'translateX(-50%)', fontSize: 11, letterSpacing: 1, color: '#ffd9a0', whiteSpace: 'nowrap', textShadow: '0 0 4px #000' }}>{guardian.name}</div>
           {/* 符文 E：深色圆底保证对比（铁律一：看清优先） */}
           <div style={{ position: 'absolute', top: '52%', left: '50%', transform: 'translate(-50%,-50%)', background: 'rgba(0,0,0,0.6)', borderRadius: '50%', padding: Math.max(6, heightPx * 0.4), display: 'flex' }}>
             <span style={{ color: '#ffffff' }}>
@@ -109,7 +145,7 @@ export function ShrineStage({ target, heightPx, phase, lastAnswer, isEgg }: Stag
           width: hit ? 192 : 76,
           height: 96,
           transition: 'left 0.15s',
-          backgroundImage: hit ? 'url(/skins/shrine/hero-attack-strip6.png)' : 'url(/skins/shrine/hero-idle-strip4.png)',
+          backgroundImage: hit ? `url(${HERO.attack})` : `url(${HERO.idle})`,
           backgroundRepeat: 'no-repeat',
           animation: hit ? 'fzpHeroAtk 0.5s steps(6) forwards' : 'fzpHeroIdle 0.8s steps(4) infinite',
           zIndex: 3,
