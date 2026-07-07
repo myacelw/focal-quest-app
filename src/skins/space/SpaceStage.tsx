@@ -18,7 +18,7 @@ const LASER_ROT: Record<Direction, number> = { up: 0, down: 180, left: -90, righ
  * 答对 → 激光射向该方向 + 陨石爆炸；答错 → 战机抖动；翻拍 → 星空加速 + 跃迁提示。
  * 纯 DOM/CSS/SVG，emoji 占位（后续换 AI 出图）。
  */
-export function SpaceStage({ target, heightPx, phase, lastAnswer }: StageProps) {
+export function SpaceStage({ target, heightPx, phase, lastAnswer, isEgg }: StageProps) {
   const [fx, setFx] = useState<{ dir: Direction; correct: boolean; key: number } | null>(null)
 
   useEffect(() => {
@@ -77,7 +77,17 @@ export function SpaceStage({ target, heightPx, phase, lastAnswer }: StageProps) 
         {transitioning ? (
           <span style={{ color: '#8fdfff', fontSize: 20 }}>跃迁中…</span>
         ) : target ? (
-          <div style={{ color: '#eaf2ff', animation: 'fzpBlurIn 0.4s ease-out' }}>
+          <div
+            style={{
+              position: 'relative',
+              color: '#eaf2ff',
+              animation: 'fzpBlurIn 0.4s ease-out',
+              padding: 12,
+              borderRadius: 14,
+              boxShadow: isEgg ? '0 0 0 3px gold, 0 0 22px 5px rgba(255,215,0,0.7)' : 'none',
+            }}
+          >
+            {isEgg && <div style={{ position: 'absolute', top: -28, left: '50%', transform: 'translateX(-50%)', fontSize: 22 }}>💎</div>}
             <TumblingE direction={target} heightPx={heightPx} />
           </div>
         ) : null}

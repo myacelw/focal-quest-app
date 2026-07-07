@@ -81,9 +81,10 @@ export function TrainingPage() {
   function handleAnswer(dir: Direction) {
     const s = sessionRef.current
     if (s.phase !== 'showing' || s.target === null) return
-    playSfx(dir === s.target ? 'correct' : 'wrong')
+    const right = dir === s.target
+    playSfx(s.isEgg && right ? 'egg' : right ? 'correct' : 'wrong')
     seqRef.current += 1
-    setLastAnswer({ dir, correct: dir === s.target, seq: seqRef.current })
+    setLastAnswer({ dir, correct: right, seq: seqRef.current })
     setSession(answer(s, dir))
     window.setTimeout(() => {
       playSfx('flip')
@@ -241,6 +242,7 @@ export function TrainingPage() {
           heightPx={heightPx}
           phase={session.phase === 'transitioning' ? 'transitioning' : 'showing'}
           lastAnswer={lastAnswer}
+          isEgg={session.isEgg}
         />
       </div>
 

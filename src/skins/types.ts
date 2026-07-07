@@ -8,6 +8,8 @@ export interface StageProps {
   phase: 'showing' | 'transitioning'
   /** 最近一次作答；seq 递增用于触发一次性演出动画 */
   lastAnswer: { dir: Direction; correct: boolean; seq: number } | null
+  /** 当前视标是否彩蛋（连续答对触发的惊喜） */
+  isEgg: boolean
 }
 
 export interface Skin {
