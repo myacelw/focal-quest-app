@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest'
 import {
   createSession, pickDirection, start, answer, advance, tick, accuracy,
+  EGG_THRESHOLD, type SessionState,
 } from './session'
 
 describe('createSession', () => {
@@ -80,5 +81,31 @@ describe('accuracy', () => {
   it('is correct/answered', () => {
     const s = { ...createSession('left', 180), answered: 4, correct: 3 }
     expect(accuracy(s)).toBe(0.75)
+  })
+})
+
+describe('egg (surprise) logic', () => {
+  it('createSession has no streak and no egg', () => {
+    const s = createSession('left', 180)
+    expect(s.correctStreak).toBe(0)
+    expect(s.isEgg).toBe(false)
+  })
+  it('correct grows streak, wrong resets it', () => {
+    let s = start(createSession('left', 180), 'up')
+    s = answer(s, 'up')
+    expect(s.correctStreak).toBe(1)
+    s = advance(s, 'left')
+    s = answer(s, 'up') // wrong: target is left
+    expect(s.correctStreak).toBe(0)
+  })
+  it('advance makes next an egg at threshold, then resets streak', () => {
+    const s: SessionState = { ...createSession('left', 180), phase: 'transitioning', correctStreak: EGG_THRESHOLD }
+    const n = advance(s, 'up')
+    expect(n.isEgg).toBe(true)
+    expect(n.correctStreak).toBe(0)
+  })
+  it('advance keeps non-egg below threshold', () => {
+    const s: SessionState = { ...createSession('left', 180), phase: 'transitioning', correctStreak: 2 }
+    expect(advance(s, 'up').isEgg).toBe(false)
   })
 })

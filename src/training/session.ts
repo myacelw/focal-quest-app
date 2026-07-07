@@ -12,14 +12,20 @@ export interface SessionState {
   flips: number
   elapsedSec: number
   durationSec: number
+  correctStreak: number
+  isEgg: boolean
 }
 
 const DIRECTIONS: Direction[] = ['up', 'down', 'left', 'right']
+
+/** 连续答对达到此数，下一题变彩蛋 */
+export const EGG_THRESHOLD = 5
 
 export function createSession(eye: Eye, durationSec: number): SessionState {
   return {
     phase: 'preparing', eye, target: null,
     answered: 0, correct: 0, flips: 0, elapsedSec: 0, durationSec,
+    correctStreak: 0, isEgg: false,
   }
 }
 
@@ -43,12 +49,21 @@ export function answer(state: SessionState, dir: Direction): SessionState {
     phase: 'transitioning',
     answered: state.answered + 1,
     correct: state.correct + (isRight ? 1 : 0),
+    correctStreak: isRight ? state.correctStreak + 1 : 0,
   }
 }
 
 export function advance(state: SessionState, nextTarget: Direction): SessionState {
   if (state.phase !== 'transitioning') return state
-  return { ...state, phase: 'showing', target: nextTarget, flips: state.flips + 1 }
+  const isEgg = state.correctStreak >= EGG_THRESHOLD
+  return {
+    ...state,
+    phase: 'showing',
+    target: nextTarget,
+    flips: state.flips + 1,
+    isEgg,
+    correctStreak: isEgg ? 0 : state.correctStreak,
+  }
 }
 
 export function tick(state: SessionState, deltaSec: number): SessionState {
