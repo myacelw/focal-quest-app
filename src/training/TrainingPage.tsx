@@ -165,6 +165,7 @@ export function TrainingPage() {
 
   const heightPx = sizeMm * pxPerMm
   const progress = Math.min(1, session.elapsedSec / session.durationSec)
+  const CurrentSkin = getSkin(skinId)
 
   if (session.phase === 'preparing') {
     return (
@@ -202,6 +203,9 @@ export function TrainingPage() {
             </button>
           ))}
         </div>
+        <div style={{ maxWidth: 220, margin: '4px auto 8px', borderRadius: 12, overflow: 'hidden' }}>
+          <CurrentSkin.Stage target="up" heightPx={30} phase="showing" lastAnswer={null} isEgg={false} />
+        </div>
         <button onClick={beginSession} style={{ fontSize: 22, padding: '12px 28px' }}>开始</button>
       </div>
     )
@@ -223,7 +227,6 @@ export function TrainingPage() {
     )
   }
 
-  const CurrentSkin = getSkin(skinId)
   return (
     <div style={{ display: 'flex', flexDirection: 'column', minHeight: '80vh' }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 16, padding: '12px 20px' }}>
