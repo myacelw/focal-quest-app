@@ -2,8 +2,8 @@ import { describe, it, expect } from 'vitest'
 import { SKINS, getSkin } from './registry'
 
 describe('skin registry', () => {
-  it('has plain and space', () => {
-    expect(SKINS.map((s) => s.id)).toEqual(['plain', 'space'])
+  it('has plain, space and shrine', () => {
+    expect(SKINS.map((s) => s.id)).toEqual(['plain', 'space', 'shrine'])
   })
   it('getSkin returns the matching skin', () => {
     expect(getSkin('space').name).toBe('太空射击')

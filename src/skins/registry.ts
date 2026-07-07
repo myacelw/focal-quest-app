@@ -1,10 +1,12 @@
 import type { Skin } from './types'
 import { PlainStage } from './PlainStage'
 import { SpaceStage } from './space/SpaceStage'
+import { ShrineStage } from './shrine/ShrineStage'
 
 export const SKINS: Skin[] = [
   { id: 'plain', name: '朴素', Stage: PlainStage },
   { id: 'space', name: '太空射击', Stage: SpaceStage },
+  { id: 'shrine', name: '神庙勇者', Stage: ShrineStage },
 ]
 
 const STORAGE_KEY = 'fzp.skinId'
