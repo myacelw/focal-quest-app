@@ -26,7 +26,7 @@ function progressText(def: BadgeDef, current: number): string {
  * sheet1 = BADGES[0..15]（顺序）；sheet2 行1-3 = BADGES[16..27]，
  * 行4 前 2 格是 AI 多画的废格，五百智慧星/千题大博士在第 14/15 格。
  */
-function spritePos(id: string): { sheet: 1 | 2; row: number; col: number } {
+export function spritePos(id: string): { sheet: 1 | 2; row: number; col: number } {
   const i = BADGES.findIndex((b) => b.id === id)
   if (i < 16) return { sheet: 1, row: Math.floor(i / 4), col: i % 4 }
   const j = i - 16
