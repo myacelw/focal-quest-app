@@ -9,6 +9,8 @@ import { TumblingE } from './TumblingE'
 import { playSfx, setMuted } from './sfx'
 import { startVosk, type VoskController } from '../speech/vosk'
 import { parseAnswer, type Direction } from '../speech/answer-mapping'
+import { saveSession, doCheckIn, type CheckinResult } from '../data/checkin'
+import { toDateStr } from '../data/date-utils'
 
 const DURATION_SEC = 180
 const TRANSITION_MS = 1600
@@ -26,14 +28,17 @@ export function TrainingPage() {
   const [acuity, setAcuity] = useState(0.8)
   const [muted, setMutedState] = useState(false)
   const [session, setSession] = useState<SessionState>(() => createSession('left', DURATION_SEC))
-  const [allDone, setAllDone] = useState(false)
+  const [checkin, setCheckin] = useState<CheckinResult | null>(null)
 
   const pxPerMm = readPxPerMm()
   const sessionRef = useRef(session)
   const voskRef = useRef<VoskController | null>(null)
+  const savedRef = useRef(false)
+  const acuityRef = useRef(acuity)
 
   useEffect(() => { sessionRef.current = session }, [session])
   useEffect(() => { setMuted(muted) }, [muted])
+  useEffect(() => { acuityRef.current = acuity }, [acuity])
 
   useEffect(() => {
     if (session.phase !== 'showing' && session.phase !== 'transitioning') return
@@ -41,9 +46,22 @@ export function TrainingPage() {
     return () => window.clearInterval(id)
   }, [session.phase])
 
+  // 节结束：落库一次（savedRef 防重复），并播结算音
   useEffect(() => {
-    if (session.phase === 'finished') playSfx('finish')
-  }, [session.phase])
+    if (session.phase !== 'finished' || savedRef.current) return
+    savedRef.current = true
+    playSfx('finish')
+    void saveSession({
+      date: toDateStr(new Date()),
+      startedAtMs: Date.now() - session.elapsedSec * 1000,
+      eye: session.eye,
+      answered: session.answered,
+      correct: session.correct,
+      flips: session.flips,
+      elapsedSec: session.elapsedSec,
+      acuity: acuityRef.current,
+    })
+  }, [session.phase, session.eye, session.answered, session.correct, session.flips, session.elapsedSec])
 
   useEffect(() => () => { voskRef.current?.stop() }, [])
 
@@ -77,14 +95,18 @@ export function TrainingPage() {
         // 语音起不来不阻塞，触控兜底仍可用
       }
     }
+    savedRef.current = false
     setSession((s) => start(s, pickDirection(null, Math.random())))
   }
 
-  function nextEyeOrFinish() {
+  async function nextEyeOrFinish() {
     if (session.eye === 'left') {
+      savedRef.current = false
       setSession(createSession('right', DURATION_SEC))
     } else {
-      setAllDone(true)
+      const result = await doCheckIn(toDateStr(new Date()))
+      playSfx('checkin')
+      setCheckin(result)
     }
   }
 
@@ -97,11 +119,15 @@ export function TrainingPage() {
     )
   }
 
-  if (allDone) {
+  if (checkin) {
     return (
       <div style={{ padding: 24, textAlign: 'center' }}>
-        <h2>今天的训练完成啦 🎉</h2>
-        <p>左右眼都练好了。</p>
+        <h2>{checkin.alreadyCheckedIn ? '今天已经打过卡啦' : '打卡成功 🎉'}</h2>
+        <p style={{ fontSize: 20 }}>
+          🔥 连续 {checkin.streak} 天
+          {!checkin.alreadyCheckedIn && <> · 今日 +{checkin.dailyPoints} 分</>}
+        </p>
+        <p style={{ color: '#1d9e75' }}>⭐ 累计 {checkin.totalPoints} 分</p>
       </div>
     )
   }
@@ -138,7 +164,7 @@ export function TrainingPage() {
           平均 CPM {Math.round(cpm(session.flips, session.elapsedSec))}
         </p>
         <button onClick={nextEyeOrFinish} style={{ fontSize: 20, padding: '12px 24px' }}>
-          {session.eye === 'left' ? '换右眼继续' : '完成'}
+          {session.eye === 'left' ? '换右眼继续' : '完成并打卡'}
         </button>
       </div>
     )
