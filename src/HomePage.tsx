@@ -3,6 +3,7 @@ import { getHomeStats, type HomeStats } from './data/checkin'
 import { toDateStr } from './data/date-utils'
 import { SKINS, skinUnlockCost, isSkinUnlocked } from './skins/registry'
 import { useCountUp } from './useCountUp'
+import { asset } from './data/asset'
 
 export function HomePage({ onStart }: { onStart: () => void }) {
   const [stats, setStats] = useState<HomeStats | null>(null)
@@ -32,28 +33,21 @@ export function HomePage({ onStart }: { onStart: () => void }) {
         textAlign: 'center',
       }}
     >
-      {/* 英雄区：主视觉 + 品牌 */}
+      {/* 英雄区：主视觉 banner + 标语 */}
       <div>
-        <div
-          className="fq-float"
+        <img
+          src={asset('/hero.webp')}
+          alt="变焦大冒险 · FocalQuest"
           style={{
-            width: 108,
-            height: 108,
-            margin: '0 auto 14px',
-            borderRadius: '50%',
-            background: 'radial-gradient(circle at 50% 38%, #ffffff, #efe9ff 72%)',
-            boxShadow: '0 14px 34px -10px rgba(124,108,240,.45)',
-            display: 'grid',
-            placeItems: 'center',
-            fontSize: 58,
+            width: '100%',
+            maxWidth: 360,
+            display: 'block',
+            margin: '0 auto 12px',
+            borderRadius: 22,
+            boxShadow: '0 16px 36px -12px rgba(124,108,240,.42)',
           }}
-        >
-          🚀
-        </div>
-        <div style={{ fontSize: 30, fontWeight: 800, letterSpacing: -0.5 }}>
-          变焦<span style={{ color: 'var(--coral)' }}>大冒险</span>
-        </div>
-        <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--muted)', marginTop: 3 }}>
+        />
+        <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--muted)', marginTop: 2 }}>
           每天几分钟，练出好视力 ✨
         </div>
       </div>

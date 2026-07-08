@@ -38,8 +38,8 @@ export default defineConfig(({ mode }) => {
         registerType: 'autoUpdate', // 新版本自动接管：孩子联网打开一次即更新
         injectRegister: 'auto',
         injectManifest: {
-          // 预缓存首屏 shell + 勋章图；排除 42MB 模型和皮肤大图（由 SW 运行时按需缓存）
-          globPatterns: ['**/*.{js,css,html}', 'badges/*.webp'],
+          // 预缓存首屏 shell + 勋章图 + 首页主视觉/图标；排除 42MB 模型和皮肤大图（SW 运行时按需缓存）
+          globPatterns: ['**/*.{js,css,html}', 'badges/*.webp', 'hero.webp', 'icon-*.png', 'apple-touch-icon.png'],
           globIgnores: ['**/models/**', '**/skins/**'],
           maximumFileSizeToCacheInBytes: 8 * 1024 * 1024, // 容纳 vosk 那个 5.7MB 动态 chunk
         },

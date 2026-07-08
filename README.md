@@ -189,11 +189,18 @@ fzp/
 
 ---
 
-## 🙏 素材与许可
+## 🙏 素材来源
 
 - 太空皮肤：NASA 公共领域图 + CC0 素材（见 `public/skins/space/CREDITS.md`）
 - 神庙皮肤：ansimuz「Gothicvania」CC0 像素素材（见 `public/skins/shrine/CREDITS.md`）
 - 勋章：AI 生成的成套图标（`public/badges/sheet1.webp`、`sheet2.webp`，30 枚切片）
+- App 图标 / 启动图：AI 生成（`public/icon-*.png`、`public/hero.webp`）
 - 部分皮肤怪兽：emoji 占位，待出正式图
 
-本项目为家庭自用；远期若效果好再考虑商业化。
+## 📄 许可
+
+本项目采用 **[PolyForm Noncommercial License 1.0.0](LICENSE)**：源码公开，欢迎个人、
+学习、研究等**非商业**用途自由使用与修改；但**不得用于任何商业目的**（包括直接售卖、
+作为付费产品或服务的一部分等）。商业授权请联系作者。
+
+Copyright © 2026 liuwei
