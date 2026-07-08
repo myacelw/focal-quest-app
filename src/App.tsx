@@ -9,21 +9,29 @@ import { pushAll } from './data/api'
 
 type View = 'home' | 'train' | 'stats' | 'badges' | 'calib' | 'speech'
 
+const NAV: { key: View; label: string; icon: string }[] = [
+  { key: 'home', label: '首页', icon: '🏠' },
+  { key: 'train', label: '训练', icon: '🎯' },
+  { key: 'stats', label: '统计', icon: '📊' },
+  { key: 'badges', label: '勋章', icon: '🏅' },
+  { key: 'calib', label: '标定', icon: '📐' },
+  { key: 'speech', label: '语音', icon: '🎤' },
+]
+
 export function App() {
   const [view, setView] = useState<View>('home')
   // 启动时把本地数据回填到后端（best-effort，后端没开则忽略）
   useEffect(() => { void pushAll() }, [])
   return (
     <div>
-      <nav style={{ display: 'flex', gap: 8, padding: 12, borderBottom: '1px solid #ccc', flexWrap: 'wrap' }}>
-        <button onClick={() => setView('home')}>首页</button>
-        <button onClick={() => setView('train')}>训练</button>
-        <button onClick={() => setView('stats')}>统计</button>
-        <button onClick={() => setView('badges')}>勋章墙</button>
-        <button onClick={() => setView('calib')}>标定</button>
-        <button onClick={() => setView('speech')}>语音</button>
+      <nav className="fq-nav">
+        {NAV.map((n) => (
+          <button key={n.key} className={view === n.key ? 'on' : ''} onClick={() => setView(n.key)}>
+            <span aria-hidden>{n.icon}</span>{n.label}
+          </button>
+        ))}
       </nav>
-      {view === 'home' && <HomePage />}
+      {view === 'home' && <HomePage onStart={() => setView('train')} />}
       {view === 'train' && <TrainingPage />}
       {view === 'stats' && <StatsPage />}
       {view === 'badges' && <BadgeWall />}

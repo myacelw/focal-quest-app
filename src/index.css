@@ -1,0 +1,90 @@
+/* FocalQuest 全局视觉系统 —— 风格 B「糖果能量」：明亮渐变 + 圆润彩色卡片，活力不低幼 */
+:root {
+  --violet: #6c4bf0;
+  --violet-2: #8b6cff;
+  --coral: #ff6b6b;
+  --coral-2: #ff8a5b;
+  --lemon: #ffd93d;
+  --mint: #4ecdc4;
+  --ink: #33285a;
+  --muted: #9a8fc0;
+  --card: #ffffff;
+  --line: #efe7fb;
+  --chip-bg: #efeafe;
+  --radius: 16px;
+  --radius-lg: 22px;
+  --shadow: 0 10px 22px -10px rgba(124, 108, 240, 0.28);
+  --shadow-coral: 0 14px 26px -10px rgba(255, 92, 134, 0.42);
+  --page-grad: linear-gradient(175deg, #efe9ff 0%, #ffffff 46%, #fff4ec 100%);
+}
+
+* { box-sizing: border-box; }
+html, body, #root { height: 100%; }
+body {
+  margin: 0;
+  font-family: -apple-system, "SF Pro Text", "Segoe UI", "PingFang SC", "Microsoft YaHei", system-ui, sans-serif;
+  color: var(--ink);
+  background: var(--page-grad) fixed;
+  -webkit-font-smoothing: antialiased;
+  -webkit-text-size-adjust: 100%;
+}
+h1, h2, h3, h4, p { margin: 0; }
+
+/* 通用卡片 */
+.fq-card {
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow);
+  padding: 18px;
+}
+
+/* 主行动按钮 / CTA */
+.fq-cta {
+  display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+  border: none; cursor: pointer; font-family: inherit;
+  font-weight: 800; font-size: 17px; color: #fff;
+  padding: 15px 22px; border-radius: var(--radius);
+  background: linear-gradient(90deg, var(--violet), var(--violet-2));
+  box-shadow: var(--shadow);
+  transition: transform 0.12s ease, box-shadow 0.12s ease;
+}
+.fq-cta:active { transform: translateY(1px) scale(0.99); }
+.fq-cta.coral { background: linear-gradient(90deg, var(--coral-2), var(--coral)); box-shadow: var(--shadow-coral); }
+
+/* 次级按钮 */
+.fq-btn {
+  font-family: inherit; font-weight: 600; font-size: 15px; cursor: pointer;
+  color: var(--violet); background: #fff; border: 1.5px solid var(--line);
+  padding: 9px 16px; border-radius: 12px; transition: transform 0.12s ease;
+}
+.fq-btn:active { transform: translateY(1px); }
+
+/* 胶囊标签 */
+.fq-chip {
+  display: inline-flex; align-items: center; gap: 5px;
+  font-size: 13px; font-weight: 600; padding: 6px 12px;
+  border-radius: 999px; background: var(--chip-bg); color: var(--violet);
+}
+
+/* 进度条 */
+.fq-bar { height: 9px; border-radius: 999px; background: var(--line); overflow: hidden; }
+.fq-bar > i { display: block; height: 100%; background: linear-gradient(90deg, var(--lemon), var(--coral)); border-radius: 999px; }
+
+/* 顶部导航 */
+.fq-nav {
+  position: sticky; top: 0; z-index: 20;
+  display: flex; gap: 6px; padding: 10px 12px; flex-wrap: wrap;
+  background: rgba(255, 255, 255, 0.72);
+  backdrop-filter: blur(10px);
+  border-bottom: 1px solid var(--line);
+}
+.fq-nav button {
+  font-family: inherit; font-size: 14px; font-weight: 600; cursor: pointer;
+  border: none; background: transparent; color: var(--muted);
+  padding: 8px 13px; border-radius: 12px;
+  display: inline-flex; align-items: center; gap: 6px;
+  transition: background 0.12s ease, color 0.12s ease;
+}
+.fq-nav button.on { background: var(--violet); color: #fff; box-shadow: var(--shadow); }
+.fq-nav button:not(.on):active { background: var(--chip-bg); }
