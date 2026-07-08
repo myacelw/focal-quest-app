@@ -8,6 +8,26 @@ import type { StageProps } from '../types'
  * 答对 → 激光命中 → 爆炸序列帧；答错 → 红闪 + 战机抖；翻拍 → 跃迁速线。
  * 素材来源见 public/skins/space/CREDITS.md。
  */
+/** 敌人池：每题轮换一个承载视标 E。img=CC0 敌舰精灵（有质感）；emoji=占位敌人（真图渐进）。 */
+type Enemy =
+  | { kind: 'img'; src: string; name: string }
+  | { kind: 'emoji'; char: string; name: string }
+
+const ENEMIES: Enemy[] = [
+  { kind: 'img', src: '/skins/space/enemy.png', name: '敌方战舰' },
+  { kind: 'emoji', char: '🛸', name: '幽灵飞碟' },
+  { kind: 'emoji', char: '👾', name: '外星兵' },
+  { kind: 'emoji', char: '☄️', name: '烈焰陨星' },
+  { kind: 'emoji', char: '🤖', name: '机械哨兵' },
+  { kind: 'emoji', char: '🪐', name: '暗环星' },
+]
+
+/** 第 seq 道视标（=已答题数）对应的敌人，循环轮换整个池 */
+export function enemyForSeq(seq: number): Enemy {
+  const n = ENEMIES.length
+  return ENEMIES[((seq % n) + n) % n]
+}
+
 export function SpaceStage({ target, heightPx, phase, lastAnswer, isEgg }: StageProps) {
   const [fx, setFx] = useState<{ correct: boolean; key: number } | null>(null)
 
@@ -21,6 +41,7 @@ export function SpaceStage({ target, heightPx, phase, lastAnswer, isEgg }: Stage
 
   const transitioning = phase === 'transitioning'
   const enemySize = Math.max(120, heightPx * 2.6)
+  const enemy = enemyForSeq(lastAnswer?.seq ?? 0)
   const hit = fx?.correct === true
   const miss = fx?.correct === false
 
@@ -71,12 +92,19 @@ export function SpaceStage({ target, heightPx, phase, lastAnswer, isEgg }: Stage
             filter: isEgg ? 'drop-shadow(0 0 14px gold)' : 'none',
           }}
         >
-          <img src="/skins/space/enemy.png" alt="" width={enemySize} height={enemySize} style={{ display: 'block' }} />
+          {enemy.kind === 'img' ? (
+            <img src={enemy.src} alt="" width={enemySize} height={enemySize} style={{ display: 'block' }} />
+          ) : (
+            <div style={{ width: enemySize, height: enemySize, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: enemySize * 0.72, lineHeight: 1, filter: 'drop-shadow(0 0 12px rgba(120,180,255,0.6))' }}>
+              {enemy.char}
+            </div>
+          )}
           <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
             <span style={{ color: '#ffffff', filter: 'drop-shadow(0 0 3px #000) drop-shadow(0 0 1px #000)' }}>
               <TumblingE direction={target} heightPx={heightPx} />
             </span>
           </div>
+          <div style={{ position: 'absolute', top: -22, left: '50%', transform: 'translateX(-50%)', fontSize: 11, letterSpacing: 1, color: '#bfe4ff', whiteSpace: 'nowrap', textShadow: '0 0 4px #001' }}>{enemy.name}</div>
           {isEgg && <div style={{ position: 'absolute', top: -14, left: '50%', transform: 'translateX(-50%)', fontSize: 20 }}>✨</div>}
         </div>
       )}
