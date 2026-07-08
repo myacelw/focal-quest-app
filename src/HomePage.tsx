@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { getHomeStats, type HomeStats } from './data/checkin'
 import { toDateStr } from './data/date-utils'
 import { SKINS, skinUnlockCost, isSkinUnlocked } from './skins/registry'
+import { useCountUp } from './useCountUp'
 
 export function HomePage({ onStart }: { onStart: () => void }) {
   const [stats, setStats] = useState<HomeStats | null>(null)
@@ -11,6 +12,8 @@ export function HomePage({ onStart }: { onStart: () => void }) {
   }, [])
 
   const tp = stats?.totalPoints ?? 0
+  const streakN = useCountUp(stats?.streak ?? 0)
+  const pointsN = useCountUp(tp)
   const locked = SKINS.filter((s) => !isSkinUnlocked(s.id, tp))
   const nextCost = locked.length ? Math.min(...locked.map((s) => skinUnlockCost(s.id))) : 0
   const progress = nextCost ? Math.min(1, tp / nextCost) : 1
@@ -32,6 +35,7 @@ export function HomePage({ onStart }: { onStart: () => void }) {
       {/* 英雄区：主视觉 + 品牌 */}
       <div>
         <div
+          className="fq-float"
           style={{
             width: 108,
             height: 108,
@@ -73,12 +77,12 @@ export function HomePage({ onStart }: { onStart: () => void }) {
             </div>
             <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: 26 }}>
               <div>
-                <div style={{ fontSize: 34, fontWeight: 800, lineHeight: 1 }}>{stats.streak}</div>
+                <div style={{ fontSize: 34, fontWeight: 800, lineHeight: 1 }}>{streakN}</div>
                 <div style={{ fontSize: 12, opacity: 0.92, marginTop: 6 }}>🔥 连续天数</div>
               </div>
               <div style={{ width: 1, height: 42, background: '#ffffff55' }} />
               <div>
-                <div style={{ fontSize: 34, fontWeight: 800, lineHeight: 1 }}>{stats.totalPoints}</div>
+                <div style={{ fontSize: 34, fontWeight: 800, lineHeight: 1 }}>{pointsN}</div>
                 <div style={{ fontSize: 12, opacity: 0.92, marginTop: 6 }}>⭐ 累计积分</div>
               </div>
             </div>

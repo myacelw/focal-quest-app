@@ -122,8 +122,11 @@ h1, h2, h3, h4, p { margin: 0; }
   .fq-seg button:not(.on):hover { color: var(--violet); }
 }
 
+@keyframes fqFloat { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-8px); } }
+.fq-float { animation: fqFloat 3.2s ease-in-out infinite; }
+
 @media (prefers-reduced-motion: reduce) {
-  .fq-rise { animation: none; }
+  .fq-rise, .fq-float { animation: none; }
   .fq-bar > i { transition: none; }
   .fq-cta, .fq-btn { transition: none; }
 }
