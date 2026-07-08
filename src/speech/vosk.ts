@@ -1,5 +1,3 @@
-import { createModel } from 'vosk-browser'
-
 export interface VoskController {
   stop: () => void
 }
@@ -17,6 +15,8 @@ export interface StartVoskOpts {
  * 返回的 stop() 释放麦克风与音频资源。
  */
 export async function startVosk(opts: StartVoskOpts): Promise<VoskController> {
+  // 动态 import：vosk-browser（含 wasm）只在真正开始训练时才加载，不拖累首屏
+  const { createModel } = await import('vosk-browser')
   const model = await createModel(opts.modelUrl)
 
   const stream = await navigator.mediaDevices.getUserMedia({
