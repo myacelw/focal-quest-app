@@ -4,7 +4,6 @@ import {
   createSession, pickDirection, start, answer, advance, tick, accuracy,
   type SessionState, type Eye,
 } from './session'
-import { TumblingE } from './TumblingE'
 import { playSfx, setMuted } from './sfx'
 import { startVosk, type VoskController } from '../speech/vosk'
 import { parseAnswer, type Direction } from '../speech/answer-mapping'
@@ -12,7 +11,7 @@ import { saveSession, doCheckIn, getHomeStats, type CheckinResult } from '../dat
 import { toDateStr } from '../data/date-utils'
 import { syncBadges } from '../badges/badge-service'
 import type { BadgeDef } from '../badges/badge-defs'
-import { getSkin, getSkinId, setSkinId, isSkinUnlocked, skinUnlockCost, newlyUnlockedSkins, SKINS } from '../skins/registry'
+import { getSkin, getSkinId, isSkinUnlocked, newlyUnlockedSkins } from '../skins/registry'
 import type { Skin } from '../skins/types'
 
 const DURATION_SEC = 180
@@ -33,17 +32,11 @@ function readDurationSec(): number {
 }
 
 export function TrainingPage() {
-  const [sizeMm, setSizeMm] = useState<number>(() => {
-    const v = localStorage.getItem('fzp.optotypeSizeMm')
-    return v ? Number(v) : 1
-  })
   const [muted, setMutedState] = useState(false)
-  const [durationSec, setDurationSec] = useState<number>(readDurationSec)
   const [session, setSession] = useState<SessionState>(() => createSession('left', readDurationSec()))
   const [checkin, setCheckin] = useState<CheckinResult | null>(null)
   const [newBadges, setNewBadges] = useState<BadgeDef[]>([])
   const [newSkins, setNewSkins] = useState<Skin[]>([])
-  const [skinId, setSkinIdState] = useState(() => getSkinId())
   const [lastAnswer, setLastAnswer] = useState<{ dir: Direction; correct: boolean; seq: number } | null>(null)
   const [totalPoints, setTotalPoints] = useState<number | null>(null)
   const [voskStatus, setVoskStatus] = useState<'idle' | 'loading' | 'ready' | 'failed'>('idle')
@@ -53,7 +46,7 @@ export function TrainingPage() {
   const sessionRef = useRef(session)
   const voskRef = useRef<VoskController | null>(null)
   const savedRef = useRef(false)
-  const sizeMmRef = useRef(sizeMm)
+  const sizeMmRef = useRef(1)
   const seqRef = useRef(0)
   const targetShownAtRef = useRef(0)
   const sumReactionRef = useRef(0)
@@ -62,10 +55,6 @@ export function TrainingPage() {
 
   useEffect(() => { sessionRef.current = session }, [session])
   useEffect(() => { setMuted(muted) }, [muted])
-  useEffect(() => {
-    sizeMmRef.current = sizeMm
-    localStorage.setItem('fzp.optotypeSizeMm', String(sizeMm))
-  }, [sizeMm])
 
   useEffect(() => { pausedRef.current = paused }, [paused])
 
@@ -159,7 +148,7 @@ export function TrainingPage() {
   async function nextEyeOrFinish() {
     if (session.eye === 'left') {
       savedRef.current = false
-      setSession(createSession('right', durationSec))
+      setSession(createSession('right', readDurationSec()))
     } else {
       const result = await doCheckIn(toDateStr(new Date()))
       const unlocked = await syncBadges(Date.now())
@@ -229,9 +218,11 @@ export function TrainingPage() {
     )
   }
 
+  const sizeMm = Number(localStorage.getItem('fzp.optotypeSizeMm') ?? '1')
+  sizeMmRef.current = sizeMm
+  const skinId = getSkinId()
   const heightPx = sizeMm * pxPerMm
   const progress = Math.min(1, session.elapsedSec / session.durationSec)
-  const tp = totalPoints ?? 0
   // 生效皮肤：选中的若未解锁（如手改存储）则回退朴素；加载中(null)信任存储值避免闪烁
   const effectiveSkinId =
     totalPoints === null || isSkinUnlocked(skinId, totalPoints) ? skinId : 'plain'
@@ -239,93 +230,31 @@ export function TrainingPage() {
 
   if (session.phase === 'preparing') {
     return (
-      <div style={{ maxWidth: 460, margin: '0 auto', padding: '24px 20px 40px', textAlign: 'center' }}>
-        <h2 style={{ fontSize: 22, fontWeight: 800 }}>准备：{EYE_LABEL[session.eye]}</h2>
-        <p style={{ color: 'var(--muted)', fontSize: 14, marginTop: 6, lineHeight: 1.6 }}>
-          遮住另一只眼，拍子正镜片面朝眼，坐直、离屏幕约 40cm。
-        </p>
-
-        <div className="fq-card" style={{ marginTop: 18 }}>
-          <label style={{ fontSize: 14, fontWeight: 600 }}>
-            视标大小：<b style={{ color: 'var(--violet)' }}>{sizeMm.toFixed(1)} mm</b>
-            <span style={{ color: 'var(--muted)', fontWeight: 400 }}>（≈ {acuityFromHeightMm(sizeMm).toFixed(2)} 视力）</span>
-          </label>
-          <input
-            type="range"
-            min={0.3}
-            max={2}
-            step={0.1}
-            value={sizeMm}
-            onChange={(e) => setSizeMm(Number(e.target.value))}
-            style={{ width: '100%', marginTop: 12, accentColor: 'var(--violet)' }}
-          />
-          <div style={{ marginTop: 14, display: 'grid', placeItems: 'center', minHeight: 56 }}>
-            <TumblingE direction="up" heightPx={sizeMm * pxPerMm} />
-          </div>
-          <p style={{ fontSize: 12, color: 'var(--muted)', marginTop: 8 }}>调到孩子能看清、但要努力的大小</p>
+      <div
+        style={{
+          maxWidth: 420,
+          margin: '0 auto',
+          padding: '40px 20px',
+          textAlign: 'center',
+          minHeight: 'calc(100vh - 57px)',
+          display: 'flex',
+          flexDirection: 'column',
+          justifyContent: 'center',
+        }}
+      >
+        <div style={{ fontSize: 56 }}>👁️</div>
+        <h2 style={{ fontSize: 24, fontWeight: 800, marginTop: 10 }}>准备好了吗？</h2>
+        <div
+          className="fq-card"
+          style={{ marginTop: 18, background: 'linear-gradient(135deg, #7c6cf0, #8b6cff)', border: 'none', color: '#fff', boxShadow: 'var(--shadow)' }}
+        >
+          <div style={{ fontSize: 19, fontWeight: 800 }}>{EYE_LABEL[session.eye]}</div>
+          <p style={{ fontSize: 13, opacity: 0.92, marginTop: 8, lineHeight: 1.6 }}>拍子正镜片面朝眼，坐直、离屏幕约 40cm</p>
         </div>
-
-        <div className="fq-card" style={{ marginTop: 14, display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 8 }}>
-          <span style={{ fontSize: 14, fontWeight: 700 }}>单眼时长</span>
-          <div className="fq-seg">
-            {[60, 120, 180, 300].map((sec) => (
-              <button
-                key={sec}
-                className={durationSec === sec ? 'on' : ''}
-                onClick={() => {
-                  setDurationSec(sec)
-                  localStorage.setItem('fzp.durationSec', String(sec))
-                  setSession((s) => ({ ...s, durationSec: sec }))
-                }}
-              >
-                {sec / 60}分
-              </button>
-            ))}
-          </div>
-        </div>
-
-        <div className="fq-card" style={{ marginTop: 14, textAlign: 'left' }}>
-          <div style={{ fontSize: 14, fontWeight: 700, marginBottom: 10 }}>选择皮肤</div>
-          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-            {SKINS.map((s) => {
-              const unlocked = isSkinUnlocked(s.id, tp)
-              const cost = skinUnlockCost(s.id)
-              const sel = effectiveSkinId === s.id
-              return (
-                <button
-                  key={s.id}
-                  className="fq-btn"
-                  onClick={() => { if (!unlocked) return; setSkinId(s.id); setSkinIdState(s.id) }}
-                  disabled={!unlocked}
-                  title={unlocked ? s.name : `练满 ${cost} 分解锁`}
-                  style={{
-                    background: sel ? 'var(--violet)' : '#fff',
-                    color: sel ? '#fff' : 'var(--violet)',
-                    borderColor: sel ? 'var(--violet)' : 'var(--line)',
-                    opacity: unlocked ? 1 : 0.5,
-                    cursor: unlocked ? 'pointer' : 'not-allowed',
-                  }}
-                >
-                  {unlocked ? '' : '🔒 '}{s.name}
-                </button>
-              )
-            })}
-          </div>
-          <div style={{ fontSize: 12, color: 'var(--muted)', marginTop: 10 }}>
-            ⭐ 累计 {tp} 分
-            {(() => {
-              const locked = SKINS.filter((s) => !isSkinUnlocked(s.id, tp))
-              if (locked.length === 0) return ' · 皮肤已全部解锁 🎉'
-              const nearest = Math.min(...locked.map((s) => skinUnlockCost(s.id)))
-              return ` · 再练 ${nearest - tp} 分解锁新皮肤`
-            })()}
-          </div>
-          <div style={{ maxWidth: 200, margin: '12px auto 0', borderRadius: 14, overflow: 'hidden' }}>
-            <CurrentSkin.Stage target="up" heightPx={28} phase="showing" lastAnswer={null} isEgg={false} />
-          </div>
-        </div>
-
-        <button className="fq-cta" style={{ width: '100%', marginTop: 16 }} onClick={beginSession}>▶ 开始</button>
+        <button className="fq-cta" style={{ width: '100%', marginTop: 22, fontSize: 21, padding: '18px' }} onClick={beginSession}>
+          ▶ 开始
+        </button>
+        <p style={{ fontSize: 12, color: 'var(--muted)', marginTop: 16 }}>视标大小 / 时长 / 皮肤 可在「⚙️ 设置」里调</p>
       </div>
     )
   }

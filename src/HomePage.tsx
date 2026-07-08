@@ -114,7 +114,7 @@ export function HomePage({ onStart }: { onStart: () => void }) {
             </div>
           </div>
 
-          <button className="fq-cta" style={{ width: '100%' }} onClick={onStart}>
+          <button className="fq-cta" style={{ width: '100%', fontSize: 20, padding: '20px' }} onClick={onStart}>
             ▶ 开始今日训练
           </button>
 

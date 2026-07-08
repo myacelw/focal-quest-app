@@ -7,8 +7,9 @@ import { StatsPage } from './stats/StatsPage'
 import { BadgeWall } from './badges/BadgeWall'
 import { pushAll } from './data/api'
 import { Onboarding } from './Onboarding'
+import { SettingsPage } from './SettingsPage'
 
-type View = 'home' | 'train' | 'stats' | 'badges' | 'calib' | 'speech'
+type View = 'home' | 'train' | 'stats' | 'badges' | 'calib' | 'speech' | 'settings'
 
 const NAV: { key: View; label: string; icon: string }[] = [
   { key: 'home', label: '首页', icon: '🏠' },
@@ -16,7 +17,7 @@ const NAV: { key: View; label: string; icon: string }[] = [
   { key: 'stats', label: '统计', icon: '📊' },
   { key: 'badges', label: '勋章', icon: '🏅' },
   { key: 'calib', label: '标定', icon: '📐' },
-  { key: 'speech', label: '语音', icon: '🎤' },
+  { key: 'settings', label: '设置', icon: '⚙️' },
 ]
 
 export function App() {
@@ -42,6 +43,9 @@ export function App() {
       {view === 'badges' && <BadgeWall />}
       {view === 'calib' && <CalibrationPage />}
       {view === 'speech' && <SpeechTestPage />}
+      {view === 'settings' && (
+        <SettingsPage onReplayGuide={() => setShowOnboard(true)} onOpenSpeech={() => setView('speech')} />
+      )}
     </div>
   )
 }
