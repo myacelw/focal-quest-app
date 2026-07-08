@@ -17,9 +17,9 @@ const NAV: { key: View; label: string; icon: string }[] = [
   { key: 'train', label: '训练', icon: '🎯' },
   { key: 'stats', label: '统计', icon: '📊' },
   { key: 'badges', label: '勋章', icon: '🏅' },
-  { key: 'calib', label: '标定', icon: '📐' },
   { key: 'settings', label: '设置', icon: '⚙️' },
 ]
+// 标定/语音不进常驻导航——都是一次性配置，从「设置」页进入
 
 export function App() {
   const [view, setView] = useState<View>('home')
@@ -45,7 +45,11 @@ export function App() {
       {view === 'calib' && <CalibrationPage />}
       {view === 'speech' && <SpeechTestPage />}
       {view === 'settings' && (
-        <SettingsPage onReplayGuide={() => setShowOnboard(true)} onOpenSpeech={() => setView('speech')} />
+        <SettingsPage
+          onReplayGuide={() => setShowOnboard(true)}
+          onOpenSpeech={() => setView('speech')}
+          onOpenCalib={() => setView('calib')}
+        />
       )}
     </div>
   )

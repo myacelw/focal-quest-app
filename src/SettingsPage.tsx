@@ -12,7 +12,7 @@ function readPxPerMm(): number | null {
 }
 
 /** 家长设置页：所有训练配置集中在此，配一次即可，孩子训练路径不再碰这些 */
-export function SettingsPage({ onReplayGuide, onOpenSpeech }: { onReplayGuide: () => void; onOpenSpeech: () => void }) {
+export function SettingsPage({ onReplayGuide, onOpenSpeech, onOpenCalib }: { onReplayGuide: () => void; onOpenSpeech: () => void; onOpenCalib: () => void }) {
   const [sizeMm, setSizeMm] = useState(() => {
     const v = lsGet('fzp.optotypeSizeMm')
     return v ? Number(v) : 1
@@ -45,7 +45,19 @@ export function SettingsPage({ onReplayGuide, onOpenSpeech }: { onReplayGuide: (
       <h2 className="fq-h2">⚙️ 设置</h2>
       <p className="fq-sub">家长在这里配一次，孩子训练时就不用管这些了。</p>
 
-      <div className="fq-card" style={{ marginTop: 16 }}>
+      <div className="fq-card" style={{ marginTop: 16, display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 8 }}>
+        <div>
+          <div className="fq-card-title" style={{ marginBottom: 4 }}>📐 屏幕标定</div>
+          <div style={{ fontSize: 12, color: 'var(--muted)' }}>
+            {pxPerMm !== null
+              ? `已标定（${pxPerMm.toFixed(1)} px/mm）——视标物理尺寸才准`
+              : '未标定——用银行卡校准一次，视标尺寸才准（先做这步）'}
+          </div>
+        </div>
+        <button className="fq-btn" onClick={onOpenCalib}>{pxPerMm !== null ? '重新标定' : '去标定'}</button>
+      </div>
+
+      <div className="fq-card" style={{ marginTop: 14 }}>
         <div className="fq-card-title">👁️ 视标大小</div>
         {pxPerMm !== null ? (
           <>
@@ -68,7 +80,7 @@ export function SettingsPage({ onReplayGuide, onOpenSpeech }: { onReplayGuide: (
             <p style={{ fontSize: 12, color: 'var(--muted)', marginTop: 6 }}>调到孩子透过负镜片要努力才看清的大小——太大没训练强度，太小易放弃（实测约 0.7mm）</p>
           </>
         ) : (
-          <p style={{ fontSize: 13, color: 'var(--muted)' }}>请先到「📐 标定」完成屏幕标定，才能设视标大小。</p>
+          <p style={{ fontSize: 13, color: 'var(--muted)' }}>请先用上方「📐 屏幕标定」完成校准，才能设视标大小。</p>
         )}
       </div>
 
