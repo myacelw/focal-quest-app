@@ -6,6 +6,7 @@
   "scripts": {
     "dev": "vite",
     "dev:lan": "vite --mode lan",
+    "start": "node scripts/dev-all.mjs",
     "build": "vite build",
     "preview": "vite preview",
     "test": "vitest run",

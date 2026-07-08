@@ -101,11 +101,14 @@ pwsh scripts/prepare-vosk-model.ps1
 npm run dev          # → http://localhost:5173
 ```
 
-**iPad 实机训练**（局域网 https + 数据后端）——开两个终端：
+**iPad 实机训练** —— 一键启动（推荐）：
 ```bash
-npm run server       # 终端1：本机 SQLite 数据后端 :3001
-npm run dev:lan      # 终端2：Vite（iPad 访问 https://<电脑IP>:5173，首次信任自签证书）
+npm start            # 同时拉起 后端 + Vite(局域网 https)，打印 iPad 访问地址；Ctrl+C 一起停
 ```
+然后 iPad 打开脚本打印的 `https://<电脑IP>:5173`（首次需信任自签证书）。脚本会自动
+清理上次残留、选对局域网 IP、Ctrl+C 时把两个服务一起干净停掉。
+
+> 想分开跑也行：`npm run server`（后端 :3001）+ `npm run dev:lan`（Vite）各开一个终端。
 
 ### 首次使用流程
 1. 首次打开有 5 步引导，教怎么正确训练；
