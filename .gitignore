@@ -3,8 +3,10 @@ dist
 *.local
 .DS_Store
 
-# vosk 离线模型体积大，不入库（由使用者手动放入）
-public/models/
+# vosk 模型：完整 tar.gz 不入库（41MB，超 EdgeOne 单文件 25MiB 上限）；
+# 改为入库 <25MB 的分片（*.part00/01/02 + *.parts.json），前端 vosk.ts 拼回。
+public/models/*.tar.gz
+public/models/vosk-model-small-cn-0.22/
 
 # 本地 SQLite 数据文件（server/），不入库
 server/*.db
