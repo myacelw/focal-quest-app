@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { TumblingE } from '../../training/TumblingE'
 import type { StageProps } from '../types'
+import { asset } from '../../data/asset'
 
 /**
  * 神庙勇者皮肤（塞尔达风，像素艺术）：古神庙里火焰骷髅守护者的核心符文（视标 E）指示弱点。
@@ -14,7 +15,7 @@ type Guardian =
   | { kind: 'emoji'; char: string; name: string }
 
 const GUARDIANS: Guardian[] = [
-  { kind: 'sprite', src: '/skins/shrine/guardian-strip8.png', frames: 8, name: '火焰骷髅' },
+  { kind: 'sprite', src: asset('/skins/shrine/guardian-strip8.png'), frames: 8, name: '火焰骷髅' },
   { kind: 'emoji', char: '🐉', name: '青焰龙' },
   { kind: 'emoji', char: '👹', name: '赤角鬼' },
   { kind: 'emoji', char: '🗿', name: '远古像' },
@@ -30,8 +31,8 @@ export function guardianForSeq(seq: number): Guardian {
 
 /** 勇者（下方角色）。换林克/四英杰只需替换这两张精灵图，或扩成英雄池按需切换。 */
 const HERO = {
-  idle: '/skins/shrine/hero-idle-strip4.png',
-  attack: '/skins/shrine/hero-attack-strip6.png',
+  idle: asset('/skins/shrine/hero-idle-strip4.png'),
+  attack: asset('/skins/shrine/hero-attack-strip6.png'),
 }
 
 export function ShrineStage({ target, heightPx, phase, lastAnswer, isEgg }: StageProps) {
@@ -68,7 +69,7 @@ export function ShrineStage({ target, heightPx, phase, lastAnswer, isEgg }: Stag
         margin: '0 auto',
         borderRadius: 16,
         overflow: 'hidden',
-        background: 'url(/skins/shrine/bg.png) center / cover, #0b1a18',
+        background: `url(${asset('/skins/shrine/bg.png')}) center / cover, #0b1a18`,
         imageRendering: 'pixelated',
       }}
     >

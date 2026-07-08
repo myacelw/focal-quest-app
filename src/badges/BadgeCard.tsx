@@ -1,5 +1,6 @@
 import type { BadgeDef } from './badge-defs'
 import { BADGES } from './badge-defs'
+import { asset } from '../data/asset'
 
 const METRIC_SUFFIX: Record<BadgeDef['metric'], string> = {
   maxStreak: '天',
@@ -55,7 +56,7 @@ export function BadgeCard({ def, unlocked, current }: { def: BadgeDef; unlocked:
           width: 96,
           height: 96,
           margin: '0 auto',
-          backgroundImage: `url(/badges/sheet${sheet}.webp)`,
+          backgroundImage: `url(${asset(`/badges/sheet${sheet}.webp`)})`,
           backgroundSize: '400% 400%',
           backgroundPosition: `${(col / 3) * 100}% ${(row / 3) * 100}%`,
           backgroundRepeat: 'no-repeat',

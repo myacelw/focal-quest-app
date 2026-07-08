@@ -10,6 +10,7 @@ import { parseAnswer, type Direction } from '../speech/answer-mapping'
 import { saveSession, doCheckIn, getHomeStats, type CheckinResult } from '../data/checkin'
 import { toDateStr } from '../data/date-utils'
 import { lsGet } from '../data/storage'
+import { asset } from '../data/asset'
 import { syncBadges } from '../badges/badge-service'
 import type { BadgeDef } from '../badges/badge-defs'
 import { getSkin, getSkinId, isSkinUnlocked, newlyUnlockedSkins } from '../skins/registry'
@@ -17,7 +18,7 @@ import type { Skin } from '../skins/types'
 
 const DURATION_SEC = 180
 const TRANSITION_MS = 1600
-const VOSK_MODEL_URL = '/models/vosk-model-small-cn-0.22.tar.gz'
+const VOSK_MODEL_URL = asset('/models/vosk-model-small-cn-0.22.tar.gz')
 const VOSK_GRAMMAR = ['上 下 左 右']
 const EYE_LABEL: Record<Eye, string> = { left: '左眼 · 遮右眼', right: '右眼 · 遮左眼' }
 const ARROW: Record<Direction, string> = { up: '↑', down: '↓', left: '←', right: '→' }

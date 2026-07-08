@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { TumblingE } from '../../training/TumblingE'
 import type { StageProps } from '../types'
+import { asset } from '../../data/asset'
 
 /**
  * 太空射击皮肤（真素材版）：NASA 星云背景 + Unlucky Studio CC0 战机/敌舰/爆炸帧。
@@ -14,7 +15,7 @@ type Enemy =
   | { kind: 'emoji'; char: string; name: string }
 
 const ENEMIES: Enemy[] = [
-  { kind: 'img', src: '/skins/space/enemy.png', name: '敌方战舰' },
+  { kind: 'img', src: asset('/skins/space/enemy.png'), name: '敌方战舰' },
   { kind: 'emoji', char: '🛸', name: '幽灵飞碟' },
   { kind: 'emoji', char: '👾', name: '外星兵' },
   { kind: 'emoji', char: '☄️', name: '烈焰陨星' },
@@ -55,7 +56,7 @@ export function SpaceStage({ target, heightPx, phase, lastAnswer, isEgg }: Stage
         margin: '0 auto',
         borderRadius: 16,
         overflow: 'hidden',
-        background: 'url(/skins/space/bg-nebula.jpg) center / cover, #070a16',
+        background: `url(${asset('/skins/space/bg-nebula.jpg')}) center / cover, #070a16`,
       }}
     >
       {/* 暗化层：保证视标对比度 */}
@@ -134,7 +135,7 @@ export function SpaceStage({ target, heightPx, phase, lastAnswer, isEgg }: Stage
             height: 160,
             marginLeft: -80,
             marginTop: -80,
-            backgroundImage: 'url(/skins/space/explosion-strip9.png)',
+            backgroundImage: `url(${asset('/skins/space/explosion-strip9.png')})`,
             backgroundRepeat: 'no-repeat',
             animation: 'fzpBoomStrip 0.55s steps(9) forwards',
             transform: 'scale(1.4)',
@@ -144,8 +145,8 @@ export function SpaceStage({ target, heightPx, phase, lastAnswer, isEgg }: Stage
 
       {/* 战机：两帧引擎火焰交替 */}
       <div style={{ position: 'absolute', bottom: '2%', left: '50%', width: 72, height: 72, transform: 'translateX(-50%)', animation: miss ? 'fzpShakeShip 0.3s' : 'none' }}>
-        <img src="/skins/space/ship-1.png" alt="" width={72} height={72} style={{ position: 'absolute', inset: 0 }} />
-        <img src="/skins/space/ship-2.png" alt="" width={72} height={72} style={{ position: 'absolute', inset: 0, animation: 'fzpEngine 0.32s steps(1) infinite' }} />
+        <img src={asset('/skins/space/ship-1.png')} alt="" width={72} height={72} style={{ position: 'absolute', inset: 0 }} />
+        <img src={asset('/skins/space/ship-2.png')} alt="" width={72} height={72} style={{ position: 'absolute', inset: 0, animation: 'fzpEngine 0.32s steps(1) infinite' }} />
       </div>
 
       <style>{`

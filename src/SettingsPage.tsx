@@ -170,6 +170,9 @@ export function SettingsPage({ onReplayGuide, onOpenSpeech, onOpenCalib }: { onR
           🎤 语音识别测试（调试用）
         </button>
       </p>
+      <p style={{ textAlign: 'center', marginTop: 4, color: 'var(--muted)', fontSize: 11 }}>
+        版本 {__APP_VERSION__}
+      </p>
     </div>
   )
 }

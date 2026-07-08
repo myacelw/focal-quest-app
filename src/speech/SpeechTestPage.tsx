@@ -2,6 +2,7 @@ import { useRef, useState } from 'react'
 import { parseAnswer, isCorrect, labelOf, type Answer } from './answer-mapping'
 import { recognizeOnce, isWebSpeechSupported } from './webspeech'
 import { startVosk, type VoskController } from './vosk'
+import { asset } from '../data/asset'
 
 type Engine = 'A' | 'B'
 
@@ -14,7 +15,7 @@ const TARGETS: Answer[] = [
   { kind: 'direction', value: 'down' },
 ]
 
-const VOSK_MODEL_URL = '/models/vosk-model-small-cn-0.22.tar.gz'
+const VOSK_MODEL_URL = asset('/models/vosk-model-small-cn-0.22.tar.gz')
 const VOSK_GRAMMAR = ['一 二 三 四 五 六 七 八 九 上 下 左 右']
 
 export function SpeechTestPage() {

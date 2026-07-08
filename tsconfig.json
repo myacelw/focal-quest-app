@@ -18,5 +18,7 @@
     "noFallthroughCasesInSwitch": true,
     "types": ["vitest/globals"]
   },
-  "include": ["src", "vite.config.ts"]
+  "include": ["src", "vite.config.ts"],
+  "comment": "sw.ts 是 Service Worker（WebWorker 环境），由 vite-plugin-pwa 单独 esbuild 打包，故排除出 app 的 tsc",
+  "exclude": ["src/sw.ts"]
 }

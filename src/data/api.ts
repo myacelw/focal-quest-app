@@ -5,9 +5,13 @@ import { db, type SessionRow, type CheckinRow, type BadgeRow } from './db'
  * 双写策略：本地 Dexie 是可靠数据源，这里 best-effort 把数据同步到 SQLite；
  * 后端没启动就静默失败——训练/统计照常走本地，完全不受影响。
  */
+// 纯前端 PWA 部署（GitHub Pages 等）没有本机后端，构建时置 VITE_BACKEND=off，
+// 直接不发 /api 请求——避免每次存档都打一个必然 404 的请求。dev 不设此值→默认开。
+const BACKEND_ENABLED = import.meta.env.VITE_BACKEND !== 'off'
+
 async function post(path: string, body: unknown): Promise<void> {
   // 测试环境不发网络请求（避免 vitest 挂在无服务器的 fetch 上）
-  if (import.meta.env.MODE === 'test') return
+  if (import.meta.env.MODE === 'test' || !BACKEND_ENABLED) return
   try {
     await fetch(`/api${path}`, {
       method: 'POST',
