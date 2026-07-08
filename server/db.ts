@@ -17,7 +17,8 @@ db.exec(`
     correct     INTEGER NOT NULL,
     flips       INTEGER NOT NULL,
     elapsedSec  INTEGER NOT NULL,
-    acuity      REAL    NOT NULL
+    acuity      REAL    NOT NULL,
+    avgReactionMs REAL DEFAULT 0
   );
   CREATE INDEX IF NOT EXISTS idx_sessions_date ON sessions(date);
   CREATE TABLE IF NOT EXISTS checkins (
@@ -32,6 +33,13 @@ db.exec(`
   );
 `)
 
+// 轻量迁移：给早于本字段的旧库补列（新库 CREATE 已含，此处会报"列已存在"被忽略）
+try {
+  db.exec('ALTER TABLE sessions ADD COLUMN avgReactionMs REAL DEFAULT 0')
+} catch {
+  /* 列已存在 */
+}
+
 export interface SessionRow {
   id: number
   date: string
@@ -42,6 +50,7 @@ export interface SessionRow {
   flips: number
   elapsedSec: number
   acuity: number
+  avgReactionMs?: number
 }
 export interface CheckinRow {
   date: string
@@ -57,12 +66,12 @@ export interface BadgeRow {
 /** session 以前端 Dexie 的 id 为主键 upsert，重复推送/回填幂等（DO NOTHING） */
 export function upsertSession(r: SessionRow): void {
   db.prepare(
-    'INSERT INTO sessions (id,date,startedAtMs,eye,answered,correct,flips,elapsedSec,acuity) VALUES (?,?,?,?,?,?,?,?,?) ON CONFLICT(id) DO NOTHING',
-  ).run(r.id, r.date, r.startedAtMs, r.eye, r.answered, r.correct, r.flips, r.elapsedSec, r.acuity)
+    'INSERT INTO sessions (id,date,startedAtMs,eye,answered,correct,flips,elapsedSec,acuity,avgReactionMs) VALUES (?,?,?,?,?,?,?,?,?,?) ON CONFLICT(id) DO NOTHING',
+  ).run(r.id, r.date, r.startedAtMs, r.eye, r.answered, r.correct, r.flips, r.elapsedSec, r.acuity, r.avgReactionMs ?? 0)
 }
 export function allSessions(): SessionRow[] {
   return db
-    .prepare('SELECT id,date,startedAtMs,eye,answered,correct,flips,elapsedSec,acuity FROM sessions ORDER BY id')
+    .prepare('SELECT id,date,startedAtMs,eye,answered,correct,flips,elapsedSec,acuity,avgReactionMs FROM sessions ORDER BY id')
     .all() as unknown as SessionRow[]
 }
 

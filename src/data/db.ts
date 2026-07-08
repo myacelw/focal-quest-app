@@ -10,6 +10,7 @@ export interface SessionRow {
   flips: number
   elapsedSec: number
   acuity: number
+  avgReactionMs?: number
 }
 
 export interface CheckinRow {

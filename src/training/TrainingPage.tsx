@@ -1,6 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
 import { acuityFromHeightMm } from './optotype-size'
-import { cpm } from './cpm'
 import {
   createSession, pickDirection, start, answer, advance, tick, accuracy,
   type SessionState, type Eye,
@@ -49,6 +48,9 @@ export function TrainingPage() {
   const savedRef = useRef(false)
   const sizeMmRef = useRef(sizeMm)
   const seqRef = useRef(0)
+  const targetShownAtRef = useRef(0)
+  const sumReactionRef = useRef(0)
+  const reactionCountRef = useRef(0)
 
   useEffect(() => { sessionRef.current = session }, [session])
   useEffect(() => { setMuted(muted) }, [muted])
@@ -77,10 +79,16 @@ export function TrainingPage() {
       flips: session.flips,
       elapsedSec: session.elapsedSec,
       acuity: acuityFromHeightMm(sizeMmRef.current),
+      avgReactionMs: reactionCountRef.current ? Math.round(sumReactionRef.current / reactionCountRef.current) : 0,
     })
   }, [session.phase, session.eye, session.answered, session.correct, session.flips, session.elapsedSec])
 
   useEffect(() => () => { voskRef.current?.stop() }, [])
+
+  // 记录每个视标出现的时刻，用于算"看清→答对"的反应时间（调节速度的直接指标）
+  useEffect(() => {
+    if (session.phase === 'showing') targetShownAtRef.current = Date.now()
+  }, [session.phase, session.target, session.flips])
 
   // 读累计积分用于皮肤解锁判定（只读不打卡）
   useEffect(() => {
@@ -91,6 +99,10 @@ export function TrainingPage() {
     const s = sessionRef.current
     if (s.phase !== 'showing' || s.target === null) return
     const right = dir === s.target
+    if (right && targetShownAtRef.current) {
+      sumReactionRef.current += Date.now() - targetShownAtRef.current
+      reactionCountRef.current += 1
+    }
     playSfx(s.isEgg && right ? 'egg' : right ? 'correct' : 'wrong')
     seqRef.current += 1
     setLastAnswer({ dir, correct: right, seq: seqRef.current })
@@ -108,6 +120,8 @@ export function TrainingPage() {
   function beginSession() {
     // 立即出视标（触控就能玩），vosk 后台异步加载——不让用户干等 42MB 模型
     savedRef.current = false
+    sumReactionRef.current = 0
+    reactionCountRef.current = 0
     setSession((s) => start(s, pickDirection(null, Math.random())))
     if (voskRef.current) {
       setVoskStatus('ready')
@@ -301,8 +315,11 @@ export function TrainingPage() {
             <div style={{ fontSize: 12, color: 'var(--muted)', marginTop: 4 }}>正确率</div>
           </div>
           <div>
-            <div style={{ fontSize: 26, fontWeight: 800, color: 'var(--violet)' }}>{Math.round(cpm(session.flips, session.elapsedSec))}</div>
-            <div style={{ fontSize: 12, color: 'var(--muted)', marginTop: 4 }}>CPM</div>
+            <div style={{ fontSize: 26, fontWeight: 800, color: 'var(--violet)' }}>
+              {reactionCountRef.current ? (sumReactionRef.current / reactionCountRef.current / 1000).toFixed(1) : '—'}
+              <span style={{ fontSize: 14 }}>s</span>
+            </div>
+            <div style={{ fontSize: 12, color: 'var(--muted)', marginTop: 4 }}>平均反应</div>
           </div>
         </div>
         <button className="fq-cta coral" style={{ width: '100%', marginTop: 16 }} onClick={nextEyeOrFinish}>
