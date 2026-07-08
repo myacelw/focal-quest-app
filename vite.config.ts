@@ -25,5 +25,14 @@ export default defineConfig(({ mode }) => {
         '/api': 'http://localhost:3001',
       },
     },
+    // npm run preview（预览生产 build）也要这三个头，否则 build 后 vosk 又加载失败。
+    // 真正部署时，部署服务器同样需要下发这三个响应头。
+    preview: {
+      headers: {
+        'Cross-Origin-Opener-Policy': 'same-origin',
+        'Cross-Origin-Embedder-Policy': 'require-corp',
+        'Cross-Origin-Resource-Policy': 'cross-origin',
+      },
+    },
   }
 })
