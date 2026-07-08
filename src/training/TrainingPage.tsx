@@ -95,6 +95,14 @@ export function TrainingPage() {
     void getHomeStats(toDateStr(new Date())).then((s) => setTotalPoints(s.totalPoints))
   }, [])
 
+  // 进入准备阶段后自动开始（留 1.5s 遮眼时间），免去再点一次"开始"
+  useEffect(() => {
+    if (session.phase !== 'preparing') return
+    const t = window.setTimeout(() => beginSession(), 1500)
+    return () => window.clearTimeout(t)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [session.phase])
+
   function handleAnswer(dir: Direction) {
     const s = sessionRef.current
     if (pausedRef.current) return
@@ -251,10 +259,8 @@ export function TrainingPage() {
           <div style={{ fontSize: 19, fontWeight: 800 }}>{EYE_LABEL[session.eye]}</div>
           <p style={{ fontSize: 13, opacity: 0.92, marginTop: 8, lineHeight: 1.6 }}>拍子正镜片面朝眼，坐直、离屏幕约 40cm</p>
         </div>
-        <button className="fq-cta" style={{ width: '100%', marginTop: 22, fontSize: 21, padding: '18px' }} onClick={beginSession}>
-          ▶ 开始
-        </button>
-        <p style={{ fontSize: 12, color: 'var(--muted)', marginTop: 16 }}>视标大小 / 时长 / 皮肤 可在「⚙️ 设置」里调</p>
+        <p style={{ fontSize: 15, color: 'var(--violet)', fontWeight: 800, marginTop: 22 }}>准备中，马上开始…</p>
+        <p style={{ fontSize: 12, color: 'var(--muted)', marginTop: 10 }}>配置可在「⚙️ 设置」里调</p>
       </div>
     )
   }
