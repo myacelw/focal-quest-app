@@ -41,6 +41,7 @@ export function TrainingPage() {
   const [skinId, setSkinIdState] = useState(() => getSkinId())
   const [lastAnswer, setLastAnswer] = useState<{ dir: Direction; correct: boolean; seq: number } | null>(null)
   const [totalPoints, setTotalPoints] = useState<number | null>(null)
+  const [voskStatus, setVoskStatus] = useState<'idle' | 'loading' | 'ready' | 'failed'>('idle')
 
   const pxPerMm = readPxPerMm()
   const sessionRef = useRef(session)
@@ -104,23 +105,28 @@ export function TrainingPage() {
     }, TRANSITION_MS)
   }
 
-  async function beginSession() {
-    if (!voskRef.current) {
-      try {
-        voskRef.current = await startVosk({
-          modelUrl: VOSK_MODEL_URL,
-          grammar: VOSK_GRAMMAR,
-          onResult: (text) => {
-            const parsed = parseAnswer(text)
-            if (parsed?.kind === 'direction') handleAnswer(parsed.value)
-          },
-        })
-      } catch {
-        // 语音起不来不阻塞，触控兜底仍可用
-      }
-    }
+  function beginSession() {
+    // 立即出视标（触控就能玩），vosk 后台异步加载——不让用户干等 42MB 模型
     savedRef.current = false
     setSession((s) => start(s, pickDirection(null, Math.random())))
+    if (voskRef.current) {
+      setVoskStatus('ready')
+      return
+    }
+    setVoskStatus('loading')
+    startVosk({
+      modelUrl: VOSK_MODEL_URL,
+      grammar: VOSK_GRAMMAR,
+      onResult: (text) => {
+        const parsed = parseAnswer(text)
+        if (parsed?.kind === 'direction') handleAnswer(parsed.value)
+      },
+    })
+      .then((c) => {
+        voskRef.current = c
+        setVoskStatus('ready')
+      })
+      .catch(() => setVoskStatus('failed')) // 语音起不来不阻塞，触控兜底仍可用
   }
 
   async function nextEyeOrFinish() {
@@ -141,46 +147,55 @@ export function TrainingPage() {
 
   if (pxPerMm === null) {
     return (
-      <div style={{ padding: 24 }}>
-        <h2>训练</h2>
-        <p>请先到「标定」页完成屏幕标定，视标才能按正确大小显示。</p>
+      <div style={{ maxWidth: 420, margin: '0 auto', padding: '48px 20px', textAlign: 'center' }}>
+        <div style={{ fontSize: 46 }}>📐</div>
+        <h2 style={{ fontSize: 20, fontWeight: 800, marginTop: 10 }}>先完成屏幕标定</h2>
+        <p style={{ color: 'var(--muted)', marginTop: 8, lineHeight: 1.6 }}>
+          请先到「📐 标定」页完成一次屏幕标定，视标才能按正确的物理大小显示。
+        </p>
       </div>
     )
   }
 
   if (checkin) {
     return (
-      <div style={{ padding: 24, textAlign: 'center' }}>
-        <h2>{checkin.alreadyCheckedIn ? '今天已经打过卡啦' : '打卡成功 🎉'}</h2>
-        <p style={{ fontSize: 20 }}>
-          🔥 连续 {checkin.streak} 天
-          {!checkin.alreadyCheckedIn && <> · 今日 +{checkin.dailyPoints} 分</>}
-        </p>
-        <p style={{ color: '#1d9e75' }}>⭐ 累计 {checkin.totalPoints} 分</p>
+      <div style={{ maxWidth: 420, margin: '0 auto', padding: '40px 20px', textAlign: 'center' }}>
+        <div style={{ fontSize: 54 }}>{checkin.alreadyCheckedIn ? '✓' : '🎉'}</div>
+        <h2 style={{ fontSize: 22, fontWeight: 800, marginTop: 6 }}>
+          {checkin.alreadyCheckedIn ? '今天已经打过卡啦' : '打卡成功！'}
+        </h2>
+        <div
+          className="fq-card"
+          style={{ marginTop: 18, background: 'linear-gradient(135deg,#ff8a5b,#ff5c86)', border: 'none', color: '#fff', boxShadow: 'var(--shadow-coral)' }}
+        >
+          <div style={{ fontSize: 22, fontWeight: 800 }}>🔥 连续 {checkin.streak} 天</div>
+          {!checkin.alreadyCheckedIn && <div style={{ fontSize: 14, marginTop: 8, opacity: 0.95 }}>今日 +{checkin.dailyPoints} 分</div>}
+          <div style={{ fontSize: 14, marginTop: 6, opacity: 0.95 }}>⭐ 累计 {checkin.totalPoints} 分</div>
+        </div>
         {newBadges.length > 0 && (
-          <div style={{ marginTop: 16 }}>
-            <p style={{ fontWeight: 700 }}>🎉 解锁新勋章！</p>
-            <div style={{ display: 'flex', gap: 12, justifyContent: 'center', flexWrap: 'wrap' }}>
+          <div className="fq-card" style={{ marginTop: 14 }}>
+            <p style={{ fontWeight: 700, marginBottom: 12 }}>🎉 解锁新勋章！</p>
+            <div style={{ display: 'flex', gap: 14, justifyContent: 'center', flexWrap: 'wrap' }}>
               {newBadges.map((b) => (
                 <div key={b.id} style={{ textAlign: 'center' }}>
-                  <div style={{ fontSize: 32 }}>{b.emoji}</div>
-                  <div style={{ fontSize: 12 }}>{b.name}</div>
+                  <div style={{ fontSize: 34 }}>{b.emoji}</div>
+                  <div style={{ fontSize: 12, color: 'var(--muted)', marginTop: 2 }}>{b.name}</div>
                 </div>
               ))}
             </div>
           </div>
         )}
         {newSkins.length > 0 && (
-          <div style={{ marginTop: 16 }}>
-            <p style={{ fontWeight: 700 }}>🎨 解锁新皮肤！</p>
-            <div style={{ display: 'flex', gap: 12, justifyContent: 'center', flexWrap: 'wrap' }}>
+          <div className="fq-card" style={{ marginTop: 14 }}>
+            <p style={{ fontWeight: 700, marginBottom: 12 }}>🎨 解锁新皮肤！</p>
+            <div style={{ display: 'flex', gap: 10, justifyContent: 'center', flexWrap: 'wrap' }}>
               {newSkins.map((s) => (
-                <div key={s.id} style={{ padding: '6px 14px', border: '2px solid #ffd54a', borderRadius: 10, background: '#fff9e6' }}>
+                <span key={s.id} className="fq-chip" style={{ background: '#fff9e6', color: '#b8860b', border: '1.5px solid var(--lemon)' }}>
                   {s.name}
-                </div>
+                </span>
               ))}
             </div>
-            <p style={{ fontSize: 12, color: '#888', marginTop: 6 }}>去「训练准备页」换上试试～</p>
+            <p style={{ fontSize: 12, color: 'var(--muted)', marginTop: 10 }}>去准备页换上试试～</p>
           </div>
         )}
       </div>
@@ -197,14 +212,17 @@ export function TrainingPage() {
 
   if (session.phase === 'preparing') {
     return (
-      <div style={{ padding: 24, textAlign: 'center' }}>
-        <h2>准备：{EYE_LABEL[session.eye]}</h2>
-        <p>遮住另一只眼，拍子正镜片面朝眼，坐直、离屏幕约 40cm。</p>
-        <div style={{ margin: '16px 0' }}>
-          <label>
-            视标大小：<b>{sizeMm.toFixed(1)} mm</b>（≈ {acuityFromHeightMm(sizeMm).toFixed(2)} 视力级别）
+      <div style={{ maxWidth: 460, margin: '0 auto', padding: '24px 20px 40px', textAlign: 'center' }}>
+        <h2 style={{ fontSize: 22, fontWeight: 800 }}>准备：{EYE_LABEL[session.eye]}</h2>
+        <p style={{ color: 'var(--muted)', fontSize: 14, marginTop: 6, lineHeight: 1.6 }}>
+          遮住另一只眼，拍子正镜片面朝眼，坐直、离屏幕约 40cm。
+        </p>
+
+        <div className="fq-card" style={{ marginTop: 18 }}>
+          <label style={{ fontSize: 14, fontWeight: 600 }}>
+            视标大小：<b style={{ color: 'var(--violet)' }}>{sizeMm.toFixed(1)} mm</b>
+            <span style={{ color: 'var(--muted)', fontWeight: 400 }}>（≈ {acuityFromHeightMm(sizeMm).toFixed(2)} 视力）</span>
           </label>
-          <br />
           <input
             type="range"
             min={0.3}
@@ -212,36 +230,42 @@ export function TrainingPage() {
             step={0.1}
             value={sizeMm}
             onChange={(e) => setSizeMm(Number(e.target.value))}
-            style={{ width: 260, marginTop: 8 }}
+            style={{ width: '100%', marginTop: 12, accentColor: 'var(--violet)' }}
           />
-          <div style={{ marginTop: 12, color: '#111' }}>
+          <div style={{ marginTop: 14, display: 'grid', placeItems: 'center', minHeight: 56 }}>
             <TumblingE direction="up" heightPx={sizeMm * pxPerMm} />
           </div>
-          <p style={{ fontSize: 12, color: '#888' }}>把上面这个 E 调到孩子能看清、但要努力的大小</p>
+          <p style={{ fontSize: 12, color: 'var(--muted)', marginTop: 8 }}>调到孩子能看清、但要努力的大小</p>
         </div>
-        <div style={{ margin: '12px 0' }}>
-          皮肤：
-          {SKINS.map((s) => {
-            const unlocked = isSkinUnlocked(s.id, tp)
-            const cost = skinUnlockCost(s.id)
-            return (
-              <button
-                key={s.id}
-                onClick={() => { if (!unlocked) return; setSkinId(s.id); setSkinIdState(s.id) }}
-                disabled={!unlocked}
-                title={unlocked ? s.name : `练满 ${cost} 分解锁`}
-                style={{
-                  marginLeft: 8,
-                  fontWeight: effectiveSkinId === s.id ? 700 : 400,
-                  opacity: unlocked ? 1 : 0.55,
-                  cursor: unlocked ? 'pointer' : 'not-allowed',
-                }}
-              >
-                {unlocked ? s.name : `🔒 ${s.name}`}
-              </button>
-            )
-          })}
-          <div style={{ fontSize: 12, color: '#888', marginTop: 6 }}>
+
+        <div className="fq-card" style={{ marginTop: 14, textAlign: 'left' }}>
+          <div style={{ fontSize: 14, fontWeight: 700, marginBottom: 10 }}>选择皮肤</div>
+          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+            {SKINS.map((s) => {
+              const unlocked = isSkinUnlocked(s.id, tp)
+              const cost = skinUnlockCost(s.id)
+              const sel = effectiveSkinId === s.id
+              return (
+                <button
+                  key={s.id}
+                  className="fq-btn"
+                  onClick={() => { if (!unlocked) return; setSkinId(s.id); setSkinIdState(s.id) }}
+                  disabled={!unlocked}
+                  title={unlocked ? s.name : `练满 ${cost} 分解锁`}
+                  style={{
+                    background: sel ? 'var(--violet)' : '#fff',
+                    color: sel ? '#fff' : 'var(--violet)',
+                    borderColor: sel ? 'var(--violet)' : 'var(--line)',
+                    opacity: unlocked ? 1 : 0.5,
+                    cursor: unlocked ? 'pointer' : 'not-allowed',
+                  }}
+                >
+                  {unlocked ? '' : '🔒 '}{s.name}
+                </button>
+              )
+            })}
+          </div>
+          <div style={{ fontSize: 12, color: 'var(--muted)', marginTop: 10 }}>
             ⭐ 累计 {tp} 分
             {(() => {
               const locked = SKINS.filter((s) => !isSkinUnlocked(s.id, tp))
@@ -250,44 +274,63 @@ export function TrainingPage() {
               return ` · 再练 ${nearest - tp} 分解锁新皮肤`
             })()}
           </div>
+          <div style={{ maxWidth: 200, margin: '12px auto 0', borderRadius: 14, overflow: 'hidden' }}>
+            <CurrentSkin.Stage target="up" heightPx={28} phase="showing" lastAnswer={null} isEgg={false} />
+          </div>
         </div>
-        <div style={{ maxWidth: 220, margin: '4px auto 8px', borderRadius: 12, overflow: 'hidden' }}>
-          <CurrentSkin.Stage target="up" heightPx={30} phase="showing" lastAnswer={null} isEgg={false} />
-        </div>
-        <button onClick={beginSession} style={{ fontSize: 22, padding: '12px 28px' }}>开始</button>
+
+        <button className="fq-cta" style={{ width: '100%', marginTop: 16 }} onClick={beginSession}>▶ 开始</button>
       </div>
     )
   }
 
   if (session.phase === 'finished') {
     return (
-      <div style={{ padding: 24, textAlign: 'center' }}>
-        <h2>{session.eye === 'left' ? '左眼' : '右眼'} · 本节完成</h2>
-        <p style={{ fontSize: 18 }}>
-          答对 {session.correct}/{session.answered} ·
-          正确率 {Math.round(accuracy(session) * 100)}% ·
-          平均 CPM {Math.round(cpm(session.flips, session.elapsedSec))}
-        </p>
-        <button onClick={nextEyeOrFinish} style={{ fontSize: 20, padding: '12px 24px' }}>
-          {session.eye === 'left' ? '换右眼继续' : '完成并打卡'}
+      <div style={{ maxWidth: 420, margin: '0 auto', padding: '40px 20px', textAlign: 'center' }}>
+        <div style={{ fontSize: 50 }}>🎊</div>
+        <h2 style={{ fontSize: 22, fontWeight: 800, marginTop: 6 }}>
+          {session.eye === 'left' ? '左眼' : '右眼'} · 本节完成
+        </h2>
+        <div className="fq-card" style={{ marginTop: 18, display: 'flex', justifyContent: 'space-around' }}>
+          <div>
+            <div style={{ fontSize: 26, fontWeight: 800, color: 'var(--violet)' }}>{session.correct}/{session.answered}</div>
+            <div style={{ fontSize: 12, color: 'var(--muted)', marginTop: 4 }}>答对</div>
+          </div>
+          <div>
+            <div style={{ fontSize: 26, fontWeight: 800, color: 'var(--violet)' }}>{Math.round(accuracy(session) * 100)}%</div>
+            <div style={{ fontSize: 12, color: 'var(--muted)', marginTop: 4 }}>正确率</div>
+          </div>
+          <div>
+            <div style={{ fontSize: 26, fontWeight: 800, color: 'var(--violet)' }}>{Math.round(cpm(session.flips, session.elapsedSec))}</div>
+            <div style={{ fontSize: 12, color: 'var(--muted)', marginTop: 4 }}>CPM</div>
+          </div>
+        </div>
+        <button className="fq-cta coral" style={{ width: '100%', marginTop: 16 }} onClick={nextEyeOrFinish}>
+          {session.eye === 'left' ? '换右眼继续 →' : '完成并打卡 🎊'}
         </button>
       </div>
     )
   }
 
+  const voskHint =
+    voskStatus === 'loading' ? '🎤 语音加载中…（可先用按钮）'
+    : voskStatus === 'ready' ? '🎧 在听…说出方向'
+    : voskStatus === 'failed' ? '🔇 语音没启动，用按钮答'
+    : '👇 用下方按钮答'
+
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', minHeight: '80vh' }}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 16, padding: '12px 20px' }}>
-        <span style={{ padding: '4px 10px', background: '#e6f1fb', borderRadius: 8 }}>
-          {EYE_LABEL[session.eye]}
-        </span>
-        <div style={{ flex: 1, height: 6, background: '#eee', borderRadius: 3 }}>
-          <div style={{ width: `${progress * 100}%`, height: '100%', background: '#1d9e75', borderRadius: 3 }} />
+    <div style={{ display: 'flex', flexDirection: 'column', minHeight: 'calc(100vh - 57px)' }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '12px 16px' }}>
+        <span className="fq-chip">{EYE_LABEL[session.eye]}</span>
+        <div className="fq-bar" style={{ flex: 1 }}>
+          <i style={{ width: `${progress * 100}%` }} />
         </div>
-        <button onClick={() => setMutedState((m) => !m)}>{muted ? '🔇' : '🔊'}</button>
+        <button className="fq-btn" style={{ padding: '7px 11px' }} onClick={() => setMutedState((m) => !m)}>
+          {muted ? '🔇' : '🔊'}
+        </button>
       </div>
 
-      <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+      <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '8px 0' }}>
         <CurrentSkin.Stage
           target={session.target}
           heightPx={heightPx}
@@ -297,17 +340,20 @@ export function TrainingPage() {
         />
       </div>
 
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 20px' }}>
-        <span style={{ color: '#1d9e75' }}>在听…说出方向</span>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, padding: '12px 16px 22px' }}>
+        <span style={{ color: 'var(--muted)', fontSize: 13, fontWeight: 600 }}>{voskHint}</span>
         <span style={{ display: 'inline-flex', gap: 8 }}>
           {(['up', 'down', 'left', 'right'] as Direction[]).map((d) => (
-            <button key={d} onClick={() => handleAnswer(d)} style={{ width: 48, height: 48, fontSize: 20 }}>
+            <button
+              key={d}
+              onClick={() => handleAnswer(d)}
+              style={{ width: 52, height: 52, fontSize: 22, fontWeight: 700, borderRadius: 14, border: '1.5px solid var(--line)', background: '#fff', color: 'var(--violet)', cursor: 'pointer', boxShadow: 'var(--shadow)' }}
+            >
               {ARROW[d]}
             </button>
           ))}
         </span>
       </div>
-
     </div>
   )
 }
