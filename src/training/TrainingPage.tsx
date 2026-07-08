@@ -41,6 +41,7 @@ export function TrainingPage() {
   const [totalPoints, setTotalPoints] = useState<number | null>(null)
   const [voskStatus, setVoskStatus] = useState<'idle' | 'loading' | 'ready' | 'failed'>('idle')
   const [paused, setPaused] = useState(false)
+  const [comboFx, setComboFx] = useState<{ n: number; key: number } | null>(null)
 
   const pxPerMm = readPxPerMm()
   const sessionRef = useRef(session)
@@ -114,6 +115,7 @@ export function TrainingPage() {
     }
     playSfx(s.isEgg && right ? 'egg' : right ? 'correct' : 'wrong')
     seqRef.current += 1
+    if (right && s.correctStreak + 1 >= 3) setComboFx({ n: s.correctStreak + 1, key: seqRef.current })
     setLastAnswer({ dir, correct: right, seq: seqRef.current })
     setSession(answer(s, dir))
     window.setTimeout(() => {
@@ -327,6 +329,14 @@ export function TrainingPage() {
           lastAnswer={lastAnswer}
           isEgg={session.isEgg}
         />
+        {comboFx && (
+          <div
+            key={comboFx.key}
+            style={{ position: 'absolute', top: '12%', left: '50%', fontSize: 28, fontWeight: 800, color: '#ff5c7a', textShadow: '0 2px 8px rgba(0,0,0,0.3)', animation: 'fzpCombo 0.9s ease-out forwards', pointerEvents: 'none', zIndex: 6, whiteSpace: 'nowrap' }}
+          >
+            🔥 连击 ×{comboFx.n}
+          </div>
+        )}
         {session.phase === 'transitioning' && (
           <div style={{ position: 'absolute', inset: 0, display: 'grid', placeItems: 'center', background: 'rgba(51,40,90,0.4)', backdropFilter: 'blur(2px)' }}>
             <div style={{ textAlign: 'center' }}>
