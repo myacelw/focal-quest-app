@@ -75,13 +75,13 @@ h1, h2, h3, h4, p { margin: 0; }
 .fq-nav {
   position: sticky; top: 0; z-index: 20;
   display: flex; gap: 6px; padding: 10px 12px; flex-wrap: wrap;
-  background: rgba(255, 255, 255, 0.72);
+  background: rgba(255, 255, 255, 0.88);
   backdrop-filter: blur(10px);
   border-bottom: 1px solid var(--line);
 }
 .fq-nav button {
-  font-family: inherit; font-size: 14px; font-weight: 600; cursor: pointer;
-  border: none; background: transparent; color: var(--muted);
+  font-family: inherit; font-size: 15px; font-weight: 700; cursor: pointer;
+  border: none; background: transparent; color: #5f5685;
   padding: 8px 13px; border-radius: 12px;
   display: inline-flex; align-items: center; gap: 6px;
   transition: background 0.12s ease, color 0.12s ease;
