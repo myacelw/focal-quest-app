@@ -20,6 +20,10 @@ export function SettingsPage({ onReplayGuide, onOpenSpeech }: { onReplayGuide: (
     const v = localStorage.getItem('fzp.durationSec')
     return v ? Number(v) : 180
   })
+  const [flipperD, setFlipperD] = useState(() => {
+    const v = localStorage.getItem('fzp.flipperD')
+    return v ? Number(v) : 2
+  })
   const [skinId, setSkinIdState] = useState(() => getSkinId())
   const [totalPoints, setTotalPoints] = useState<number | null>(null)
 
@@ -28,6 +32,7 @@ export function SettingsPage({ onReplayGuide, onOpenSpeech }: { onReplayGuide: (
   }, [])
   useEffect(() => { localStorage.setItem('fzp.optotypeSizeMm', String(sizeMm)) }, [sizeMm])
   useEffect(() => { localStorage.setItem('fzp.durationSec', String(durationSec)) }, [durationSec])
+  useEffect(() => { localStorage.setItem('fzp.flipperD', String(flipperD)) }, [flipperD])
 
   const pxPerMm = readPxPerMm()
   const tp = totalPoints ?? 0
@@ -59,7 +64,7 @@ export function SettingsPage({ onReplayGuide, onOpenSpeech }: { onReplayGuide: (
             <div style={{ marginTop: 12, display: 'grid', placeItems: 'center', minHeight: 56, color: 'var(--ink)' }}>
               <TumblingE direction="up" heightPx={sizeMm * pxPerMm} />
             </div>
-            <p style={{ fontSize: 12, color: 'var(--muted)', marginTop: 6 }}>调到孩子能看清、但要努力的大小（实测约 0.7mm）</p>
+            <p style={{ fontSize: 12, color: 'var(--muted)', marginTop: 6 }}>调到孩子透过负镜片要努力才看清的大小——太大没训练强度，太小易放弃（实测约 0.7mm）</p>
           </>
         ) : (
           <p style={{ fontSize: 13, color: 'var(--muted)' }}>请先到「📐 标定」完成屏幕标定，才能设视标大小。</p>
@@ -72,6 +77,17 @@ export function SettingsPage({ onReplayGuide, onOpenSpeech }: { onReplayGuide: (
           {[60, 120, 180, 300].map((sec) => (
             <button key={sec} className={durationSec === sec ? 'on' : ''} onClick={() => setDurationSec(sec)}>
               {sec / 60}分
+            </button>
+          ))}
+        </div>
+      </div>
+
+      <div className="fq-card" style={{ marginTop: 14, display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 8 }}>
+        <span style={{ fontSize: 14, fontWeight: 700 }}>🔵 拍子度数</span>
+        <div className="fq-seg">
+          {[1.5, 2, 2.5].map((d) => (
+            <button key={d} className={flipperD === d ? 'on' : ''} onClick={() => setFlipperD(d)}>
+              ±{d.toFixed(2)}
             </button>
           ))}
         </div>
@@ -121,6 +137,16 @@ export function SettingsPage({ onReplayGuide, onOpenSpeech }: { onReplayGuide: (
       <div className="fq-card" style={{ marginTop: 14, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
         <span style={{ fontSize: 14, fontWeight: 700 }}>📖 怎么正确训练</span>
         <button className="fq-btn" onClick={onReplayGuide}>重看引导</button>
+      </div>
+
+      <div className="fq-card" style={{ marginTop: 14 }}>
+        <div className="fq-card-title">📋 关于训练（家长必读）</div>
+        <ul style={{ fontSize: 13, color: 'var(--muted)', lineHeight: 1.75, paddingLeft: 18, margin: 0 }}>
+          <li>软件负责节奏引导和记录；真正的调节训练靠孩子透过拍子<b>努力看清</b>再翻转。</li>
+          <li>坐正、离屏幕约 <b>40cm</b>、遮好单眼——距离和遮眼直接影响效果。</li>
+          <li>坚持<b>每天练</b>，调节训练通常 <b>4–6 周</b>才逐渐见效，别几天没效果就放弃。</li>
+          <li>CPM / 反应时间是<b>趋势参考</b>（和自己比、在变快就是进步），不是医学诊断；需专业评估请找视光师。</li>
+        </ul>
       </div>
 
       <p style={{ textAlign: 'center', marginTop: 20 }}>
