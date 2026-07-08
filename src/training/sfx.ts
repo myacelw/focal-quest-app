@@ -8,11 +8,11 @@ function audioCtx(): AudioContext {
   return ctx
 }
 
-function tone(freq: number, startOffset: number, dur: number, gain = 0.2): void {
+function tone(freq: number, startOffset: number, dur: number, gain = 0.2, type: OscillatorType = 'sine'): void {
   const c = audioCtx()
   const osc = c.createOscillator()
   const g = c.createGain()
-  osc.type = 'sine'
+  osc.type = type
   osc.frequency.value = freq
   osc.connect(g)
   g.connect(c.destination)
@@ -38,7 +38,8 @@ export function playSfx(kind: SfxKind): void {
       tone(300, 0, 0.22, 0.15)
       break
     case 'flip':
-      tone(520, 0, 0.06, 0.12)
+      tone(400, 0, 0.05, 0.17, 'square')
+      tone(600, 0.055, 0.06, 0.14, 'square')
       break
     case 'finish':
       ;[523, 659, 784, 1047].forEach((f, i) => tone(f, i * 0.12, 0.16))

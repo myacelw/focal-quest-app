@@ -319,7 +319,7 @@ export function TrainingPage() {
         </button>
       </div>
 
-      <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '8px 0' }}>
+      <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '8px 0', position: 'relative' }}>
         <CurrentSkin.Stage
           target={session.target}
           heightPx={heightPx}
@@ -327,6 +327,17 @@ export function TrainingPage() {
           lastAnswer={lastAnswer}
           isEgg={session.isEgg}
         />
+        {session.phase === 'transitioning' && (
+          <div style={{ position: 'absolute', inset: 0, display: 'grid', placeItems: 'center', background: 'rgba(51,40,90,0.4)', backdropFilter: 'blur(2px)' }}>
+            <div style={{ textAlign: 'center' }}>
+              <div style={{ fontSize: 72, animation: 'fzpFlipSpin 0.8s ease-in-out infinite' }}>🔄</div>
+              <div style={{ fontSize: 26, fontWeight: 800, color: '#fff', marginTop: 6, textShadow: '0 2px 8px rgba(0,0,0,0.45)' }}>翻转拍子！</div>
+              <div style={{ width: 150, height: 6, background: 'rgba(255,255,255,0.3)', borderRadius: 99, margin: '16px auto 0', overflow: 'hidden' }}>
+                <div style={{ height: '100%', background: '#fff', animation: 'fzpFlipBar 1.6s linear forwards' }} />
+              </div>
+            </div>
+          </div>
+        )}
       </div>
 
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, padding: '12px 16px 22px' }}>

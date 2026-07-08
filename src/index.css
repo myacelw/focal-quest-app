@@ -125,6 +125,9 @@ h1, h2, h3, h4, p { margin: 0; }
 @keyframes fqFloat { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-8px); } }
 .fq-float { animation: fqFloat 3.2s ease-in-out infinite; }
 
+@keyframes fzpFlipSpin { from { transform: rotateY(0); } to { transform: rotateY(360deg); } }
+@keyframes fzpFlipBar { from { width: 0; } to { width: 100%; } }
+
 @media (prefers-reduced-motion: reduce) {
   .fq-rise, .fq-float { animation: none; }
   .fq-bar > i { transition: none; }
