@@ -27,13 +27,19 @@ function readPxPerMm(): number | null {
   return v ? Number(v) : null
 }
 
+function readDurationSec(): number {
+  const v = localStorage.getItem('fzp.durationSec')
+  return v ? Number(v) : DURATION_SEC
+}
+
 export function TrainingPage() {
   const [sizeMm, setSizeMm] = useState<number>(() => {
     const v = localStorage.getItem('fzp.optotypeSizeMm')
     return v ? Number(v) : 1
   })
   const [muted, setMutedState] = useState(false)
-  const [session, setSession] = useState<SessionState>(() => createSession('left', DURATION_SEC))
+  const [durationSec, setDurationSec] = useState<number>(readDurationSec)
+  const [session, setSession] = useState<SessionState>(() => createSession('left', readDurationSec()))
   const [checkin, setCheckin] = useState<CheckinResult | null>(null)
   const [newBadges, setNewBadges] = useState<BadgeDef[]>([])
   const [newSkins, setNewSkins] = useState<Skin[]>([])
@@ -41,6 +47,7 @@ export function TrainingPage() {
   const [lastAnswer, setLastAnswer] = useState<{ dir: Direction; correct: boolean; seq: number } | null>(null)
   const [totalPoints, setTotalPoints] = useState<number | null>(null)
   const [voskStatus, setVoskStatus] = useState<'idle' | 'loading' | 'ready' | 'failed'>('idle')
+  const [paused, setPaused] = useState(false)
 
   const pxPerMm = readPxPerMm()
   const sessionRef = useRef(session)
@@ -51,6 +58,7 @@ export function TrainingPage() {
   const targetShownAtRef = useRef(0)
   const sumReactionRef = useRef(0)
   const reactionCountRef = useRef(0)
+  const pausedRef = useRef(false)
 
   useEffect(() => { sessionRef.current = session }, [session])
   useEffect(() => { setMuted(muted) }, [muted])
@@ -59,11 +67,14 @@ export function TrainingPage() {
     localStorage.setItem('fzp.optotypeSizeMm', String(sizeMm))
   }, [sizeMm])
 
+  useEffect(() => { pausedRef.current = paused }, [paused])
+
   useEffect(() => {
+    if (paused) return
     if (session.phase !== 'showing' && session.phase !== 'transitioning') return
     const id = window.setInterval(() => setSession((s) => tick(s, 1)), 1000)
     return () => window.clearInterval(id)
-  }, [session.phase])
+  }, [session.phase, paused])
 
   // 节结束：落库一次（savedRef 防重复），并播结算音
   useEffect(() => {
@@ -97,6 +108,7 @@ export function TrainingPage() {
 
   function handleAnswer(dir: Direction) {
     const s = sessionRef.current
+    if (pausedRef.current) return
     if (s.phase !== 'showing' || s.target === null) return
     const right = dir === s.target
     if (right && targetShownAtRef.current) {
@@ -122,6 +134,7 @@ export function TrainingPage() {
     savedRef.current = false
     sumReactionRef.current = 0
     reactionCountRef.current = 0
+    setPaused(false)
     setSession((s) => start(s, pickDirection(null, Math.random())))
     if (voskRef.current) {
       setVoskStatus('ready')
@@ -146,7 +159,7 @@ export function TrainingPage() {
   async function nextEyeOrFinish() {
     if (session.eye === 'left') {
       savedRef.current = false
-      setSession(createSession('right', DURATION_SEC))
+      setSession(createSession('right', durationSec))
     } else {
       const result = await doCheckIn(toDateStr(new Date()))
       const unlocked = await syncBadges(Date.now())
@@ -252,6 +265,25 @@ export function TrainingPage() {
           <p style={{ fontSize: 12, color: 'var(--muted)', marginTop: 8 }}>调到孩子能看清、但要努力的大小</p>
         </div>
 
+        <div className="fq-card" style={{ marginTop: 14, display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 8 }}>
+          <span style={{ fontSize: 14, fontWeight: 700 }}>单眼时长</span>
+          <div className="fq-seg">
+            {[60, 120, 180, 300].map((sec) => (
+              <button
+                key={sec}
+                className={durationSec === sec ? 'on' : ''}
+                onClick={() => {
+                  setDurationSec(sec)
+                  localStorage.setItem('fzp.durationSec', String(sec))
+                  setSession((s) => ({ ...s, durationSec: sec }))
+                }}
+              >
+                {sec / 60}分
+              </button>
+            ))}
+          </div>
+        </div>
+
         <div className="fq-card" style={{ marginTop: 14, textAlign: 'left' }}>
           <div style={{ fontSize: 14, fontWeight: 700, marginBottom: 10 }}>选择皮肤</div>
           <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
@@ -335,14 +367,19 @@ export function TrainingPage() {
     : voskStatus === 'failed' ? '🔇 语音没启动，用按钮答'
     : '👇 用下方按钮答'
 
+  const remainSec = Math.max(0, session.durationSec - session.elapsedSec)
+  const mmss = `${Math.floor(remainSec / 60)}:${String(remainSec % 60).padStart(2, '0')}`
+
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', minHeight: 'calc(100vh - 57px)' }}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '12px 16px' }}>
+    <div style={{ position: 'relative', display: 'flex', flexDirection: 'column', minHeight: 'calc(100vh - 57px)' }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '12px 16px' }}>
         <span className="fq-chip">{EYE_LABEL[session.eye]}</span>
         <div className="fq-bar" style={{ flex: 1 }}>
           <i style={{ width: `${progress * 100}%` }} />
         </div>
-        <button className="fq-btn" style={{ padding: '7px 11px' }} onClick={() => setMutedState((m) => !m)}>
+        <span style={{ fontVariantNumeric: 'tabular-nums', fontWeight: 800, color: 'var(--violet)', fontSize: 15, minWidth: 40, textAlign: 'right' }}>{mmss}</span>
+        <button className="fq-btn" style={{ padding: '7px 10px' }} onClick={() => setPaused(true)} aria-label="暂停">⏸️</button>
+        <button className="fq-btn" style={{ padding: '7px 10px' }} onClick={() => setMutedState((m) => !m)}>
           {muted ? '🔇' : '🔊'}
         </button>
       </div>
@@ -371,6 +408,17 @@ export function TrainingPage() {
           ))}
         </span>
       </div>
+
+      {paused && (
+        <div style={{ position: 'absolute', inset: 0, zIndex: 10, background: 'rgba(51,40,90,0.72)', backdropFilter: 'blur(6px)', display: 'grid', placeItems: 'center', padding: 20 }}>
+          <div className="fq-card fq-rise" style={{ textAlign: 'center', maxWidth: 300 }}>
+            <div style={{ fontSize: 52 }}>⏸️</div>
+            <div style={{ fontSize: 20, fontWeight: 800, marginTop: 6 }}>已暂停</div>
+            <p style={{ color: 'var(--muted)', fontSize: 13, marginTop: 6 }}>剩余 {mmss}，休息好了继续～</p>
+            <button className="fq-cta" style={{ width: '100%', marginTop: 14 }} onClick={() => setPaused(false)}>▶ 继续</button>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
