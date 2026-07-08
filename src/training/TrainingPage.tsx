@@ -339,12 +339,29 @@ export function TrainingPage() {
           </div>
         )}
         {session.phase === 'transitioning' && (
-          <div style={{ position: 'absolute', inset: 0, display: 'grid', placeItems: 'center', background: 'rgba(51,40,90,0.4)', backdropFilter: 'blur(2px)' }}>
-            <div style={{ textAlign: 'center' }}>
-              <div style={{ fontSize: 72, animation: 'fzpFlipSpin 0.8s ease-in-out infinite' }}>🔄</div>
-              <div style={{ fontSize: 26, fontWeight: 800, color: '#fff', marginTop: 6, textShadow: '0 2px 8px rgba(0,0,0,0.45)' }}>翻转拍子！</div>
-              <div style={{ width: 150, height: 6, background: 'rgba(255,255,255,0.3)', borderRadius: 99, margin: '16px auto 0', overflow: 'hidden' }}>
-                <div style={{ height: '100%', background: '#fff', animation: 'fzpFlipBar 1.6s linear forwards' }} />
+          <div
+            style={{
+              position: 'absolute',
+              inset: 0,
+              display: 'grid',
+              placeItems: 'center',
+              // 柔和的糖果渐变光晕，融进画面、轻推背景，而非不透明糊屏
+              background: 'radial-gradient(circle at 50% 46%, rgba(108,75,240,0.13), rgba(255,138,138,0.05) 46%, transparent 72%)',
+              backdropFilter: 'blur(2.5px)',
+            }}
+          >
+            <div style={{ textAlign: 'center', animation: 'fzpGuideIn 0.35s cubic-bezier(0.2,0.8,0.2,1) both' }}>
+              <div
+                className="fzp-flip-icon"
+                style={{ fontSize: 68, animation: 'fzpFlip3d 1.4s ease-in-out infinite', filter: 'drop-shadow(0 4px 10px rgba(108,75,240,0.28))' }}
+              >
+                🔄
+              </div>
+              <div style={{ fontSize: 24, fontWeight: 800, color: 'var(--violet)', marginTop: 8, letterSpacing: 1, textShadow: '0 1px 6px rgba(255,255,255,0.85)' }}>
+                翻转拍子
+              </div>
+              <div style={{ width: 168, height: 7, background: 'rgba(108,75,240,0.15)', borderRadius: 99, margin: '16px auto 0', overflow: 'hidden' }}>
+                <div style={{ height: '100%', background: 'linear-gradient(90deg, var(--violet), var(--coral))', borderRadius: 99, animation: 'fzpFlipBar 1.6s linear forwards' }} />
               </div>
             </div>
           </div>

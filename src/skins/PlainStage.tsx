@@ -3,9 +3,8 @@ import type { StageProps } from './types'
 
 /** 朴素皮肤：复刻原训练页的视标舞台；彩蛋时视标外加金光 */
 export function PlainStage({ target, heightPx, phase, isEgg }: StageProps) {
-  if (phase === 'transitioning') {
-    return <div style={{ fontSize: 24, color: '#1d9e75' }}>翻！</div>
-  }
+  // 过渡态不再画突兀的绿字，交给上层柔和的「翻转拍子」引导层，画面更干净
+  if (phase === 'transitioning') return null
   if (!target) return null
   return (
     <div
