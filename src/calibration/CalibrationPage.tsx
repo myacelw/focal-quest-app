@@ -25,16 +25,18 @@ export function CalibrationPage() {
       </p>
 
       <div className="fq-card" style={{ marginTop: 16 }}>
-        <div
-          style={{
-            height: 56,
-            width: barPx,
-            maxWidth: '100%',
-            background: 'linear-gradient(90deg, var(--violet), var(--violet-2))',
-            borderRadius: 10,
-            boxShadow: 'var(--shadow)',
-          }}
-        />
+        {/* 条必须能显示真实像素宽度以对齐银行卡；超出卡片时容器内横向滚动，不加 maxWidth 裁切 */}
+        <div style={{ overflowX: 'auto', margin: '0 -18px', padding: '4px 18px' }}>
+          <div
+            style={{
+              height: 56,
+              width: barPx,
+              background: 'linear-gradient(90deg, var(--violet), var(--violet-2))',
+              borderRadius: 10,
+              boxShadow: 'var(--shadow)',
+            }}
+          />
+        </div>
         <input
           type="range"
           min={100}
