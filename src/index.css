@@ -88,3 +88,42 @@ h1, h2, h3, h4, p { margin: 0; }
 }
 .fq-nav button.on { background: var(--violet); color: #fff; box-shadow: var(--shadow); }
 .fq-nav button:not(.on):active { background: var(--chip-bg); }
+
+/* ---------- 页面通用骨架 ---------- */
+.fq-page { max-width: 460px; margin: 0 auto; padding: 22px 18px 44px; }
+.fq-h2 { font-size: 22px; font-weight: 800; letter-spacing: -0.3px; }
+.fq-sub { color: var(--muted); font-size: 14px; margin-top: 4px; line-height: 1.6; }
+.fq-card-title { font-size: 14px; font-weight: 700; margin-bottom: 12px; display: flex; align-items: center; gap: 6px; }
+
+/* 分段控制器（日/周/月、方案A/B 这类 tab） */
+.fq-seg { display: inline-flex; background: var(--chip-bg); padding: 4px; border-radius: 14px; gap: 2px; }
+.fq-seg button {
+  font-family: inherit; font-size: 14px; font-weight: 700; cursor: pointer;
+  border: none; background: transparent; color: var(--muted);
+  padding: 7px 18px; border-radius: 10px; transition: background 0.15s ease, color 0.15s ease;
+}
+.fq-seg button.on { background: #fff; color: var(--violet); box-shadow: 0 2px 8px -2px rgba(124, 108, 240, 0.3); }
+
+/* 数据统计小卡 */
+.fq-stat { flex: 1; text-align: center; }
+.fq-stat .n { font-size: 26px; font-weight: 800; color: var(--violet); line-height: 1; }
+.fq-stat .l { font-size: 12px; color: var(--muted); margin-top: 6px; }
+
+/* ---------- 动效 ---------- */
+@keyframes fqRise { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: none; } }
+.fq-rise { animation: fqRise 0.42s cubic-bezier(0.2, 0.8, 0.2, 1) both; }
+.fq-bar > i { transition: width 0.6s cubic-bezier(0.2, 0.8, 0.2, 1); }
+
+/* hover 微交互（仅非触摸设备，iPad 上不受影响） */
+@media (hover: hover) {
+  .fq-cta:hover { transform: translateY(-1px); filter: brightness(1.04); }
+  .fq-btn:hover { border-color: var(--violet); }
+  .fq-nav button:not(.on):hover { background: var(--chip-bg); color: var(--violet); }
+  .fq-seg button:not(.on):hover { color: var(--violet); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .fq-rise { animation: none; }
+  .fq-bar > i { transition: none; }
+  .fq-cta, .fq-btn { transition: none; }
+}

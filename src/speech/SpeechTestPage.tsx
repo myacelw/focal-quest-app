@@ -106,50 +106,66 @@ export function SpeechTestPage() {
   const acc = stats.total ? ((stats.correct / stats.total) * 100).toFixed(0) : '—'
 
   return (
-    <div style={{ padding: 24 }}>
-      <h2>语音测试</h2>
-      <div style={{ marginBottom: 12 }}>
-        <label style={{ marginRight: 16 }}>
-          <input type="radio" checked={engine === 'A'} onChange={() => switchEngine('A')} /> 方案A
-          Web Speech（走云）
-        </label>
-        <label>
-          <input type="radio" checked={engine === 'B'} onChange={() => switchEngine('B')} /> 方案B
-          vosk 离线
-        </label>
+    <div className="fq-page fq-rise">
+      <h2 className="fq-h2">🎤 语音测试</h2>
+      <p className="fq-sub">开发调试用：对比两种语音识别方案的准确率和延迟。</p>
+
+      <div className="fq-seg" style={{ marginTop: 14, display: 'flex' }}>
+        <button className={engine === 'A' ? 'on' : ''} onClick={() => switchEngine('A')} style={{ flex: 1 }}>
+          方案A · 云
+        </button>
+        <button className={engine === 'B' ? 'on' : ''} onClick={() => switchEngine('B')} style={{ flex: 1 }}>
+          方案B · 离线
+        </button>
       </div>
 
       {engine === 'A' && !isWebSpeechSupported() && (
-        <p style={{ color: 'red' }}>此浏览器不支持 Web Speech API。</p>
+        <p style={{ color: 'var(--coral)', marginTop: 10, fontSize: 13 }}>此浏览器不支持 Web Speech API。</p>
       )}
 
-      <p style={{ fontSize: 48, margin: '16px 0' }}>
-        请说：<b>{labelOf(target)}</b>
-      </p>
+      <div className="fq-card" style={{ marginTop: 14, textAlign: 'center' }}>
+        <div style={{ fontSize: 13, color: 'var(--muted)' }}>请说出</div>
+        <div style={{ fontSize: 52, fontWeight: 800, color: 'var(--violet)', margin: '4px 0 16px' }}>{labelOf(target)}</div>
+        {engine === 'A' ? (
+          <button className="fq-cta" style={{ width: '100%' }} onClick={listenA} disabled={busy}>
+            {busy ? '识别中…' : '🎙️ 开始说'}
+          </button>
+        ) : !voskReady ? (
+          <button className="fq-cta" style={{ width: '100%' }} onClick={loadVosk} disabled={busy}>
+            {busy ? '加载模型中…' : '⬇️ 加载离线模型（首次较慢）'}
+          </button>
+        ) : (
+          <button className="fq-cta" style={{ width: '100%' }} onClick={listenB}>
+            🎙️ 开始说
+          </button>
+        )}
+      </div>
 
-      {engine === 'A' ? (
-        <button onClick={listenA} disabled={busy} style={{ fontSize: 24, padding: '12px 24px' }}>
-          {busy ? '识别中…' : '开始说'}
-        </button>
-      ) : !voskReady ? (
-        <button onClick={loadVosk} disabled={busy} style={{ fontSize: 20, padding: '12px 24px' }}>
-          {busy ? '加载模型中…' : '加载离线模型（首次较慢）'}
-        </button>
-      ) : (
-        <button onClick={listenB} style={{ fontSize: 24, padding: '12px 24px' }}>
-          开始说
-        </button>
+      <div className="fq-card" style={{ marginTop: 14, display: 'flex', alignItems: 'center' }}>
+        <div className="fq-stat"><div className="n">{acc}%</div><div className="l">准确率</div></div>
+        <div style={{ width: 1, height: 36, background: 'var(--line)' }} />
+        <div className="fq-stat"><div className="n">{avg}</div><div className="l">延迟 ms</div></div>
+        <div style={{ width: 1, height: 36, background: 'var(--line)' }} />
+        <div className="fq-stat"><div className="n">{stats.total}</div><div className="l">样本</div></div>
+      </div>
+      {engine === 'B' && voskLoadMs !== null && (
+        <p style={{ fontSize: 12, color: 'var(--muted)', textAlign: 'center', marginTop: 8 }}>
+          模型加载 {voskLoadMs.toFixed(0)}ms
+        </p>
       )}
 
-      <p style={{ marginTop: 16 }}>
-        准确率 <b>{acc}%</b> | 平均延迟 <b>{avg}ms</b> | 样本 {stats.total}
-        {engine === 'B' && voskLoadMs !== null && <> | 模型加载 {voskLoadMs.toFixed(0)}ms</>}
-      </p>
-      <ul style={{ fontFamily: 'monospace', fontSize: 13 }}>
-        {log.map((line, i) => (
-          <li key={i}>{line}</li>
-        ))}
-      </ul>
+      {log.length > 0 && (
+        <div className="fq-card" style={{ marginTop: 14 }}>
+          <div className="fq-card-title">📋 识别日志</div>
+          <ul style={{ fontFamily: 'ui-monospace, monospace', fontSize: 12, margin: 0, padding: 0, listStyle: 'none', color: 'var(--muted)' }}>
+            {log.map((line, i) => (
+              <li key={i} style={{ padding: '5px 0', borderBottom: i < log.length - 1 ? '1px solid var(--line)' : 'none' }}>
+                {line}
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
     </div>
   )
 }

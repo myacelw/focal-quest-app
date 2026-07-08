@@ -31,15 +31,25 @@ export function BadgeWall() {
     })()
   }, [])
 
-  if (unlocked === null || stats === null) return <div style={{ padding: 24 }}>加载中…</div>
+  if (unlocked === null || stats === null) return <div className="fq-page">加载中…</div>
+
+  const pct = Math.round((unlocked.size / BADGES.length) * 100)
 
   return (
-    <div style={{ padding: 24 }}>
-      <h2>勋章墙</h2>
-      <p style={{ color: '#666' }}>已解锁 {unlocked.size}/{BADGES.length}</p>
+    <div className="fq-page fq-rise">
+      <h2 className="fq-h2">🏅 勋章墙</h2>
+
+      <div className="fq-card" style={{ marginTop: 14 }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 14, fontWeight: 700, marginBottom: 10 }}>
+          <span>已解锁 {unlocked.size} / {BADGES.length}</span>
+          <span style={{ color: 'var(--violet)' }}>{pct}%</span>
+        </div>
+        <div className="fq-bar"><i style={{ width: `${pct}%` }} /></div>
+      </div>
+
       {GROUPS.map((g) => (
-        <section key={g.metric} style={{ marginBottom: 24 }}>
-          <h3 style={{ margin: '8px 0' }}>{g.title}</h3>
+        <section key={g.metric} style={{ marginTop: 22 }}>
+          <div className="fq-card-title" style={{ fontSize: 15 }}>{g.title}</div>
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 12 }}>
             {BADGES.filter((b) => b.metric === g.metric).map((def) => (
               <BadgeCard key={def.id} def={def} unlocked={unlocked.has(def.id)} current={stats[def.metric]} />

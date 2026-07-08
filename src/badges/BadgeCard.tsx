@@ -37,7 +37,18 @@ export function spritePos(id: string): { sheet: 1 | 2; row: number; col: number 
 export function BadgeCard({ def, unlocked, current }: { def: BadgeDef; unlocked: boolean; current: number }) {
   const { sheet, row, col } = spritePos(def.id)
   return (
-    <div style={{ width: 132, padding: 12, borderRadius: 16, textAlign: 'center', background: '#fff' }} title={def.name}>
+    <div
+      style={{
+        width: 132,
+        padding: '14px 10px',
+        borderRadius: 18,
+        textAlign: 'center',
+        background: '#fff',
+        border: unlocked ? '1.5px solid #ffd93d' : '1px solid var(--line)',
+        boxShadow: unlocked ? '0 8px 18px -8px rgba(255,180,0,0.4)' : '0 6px 14px -8px rgba(124,108,240,0.2)',
+      }}
+      title={def.name}
+    >
       {/* 96×96 图标：从 4×4 宫格图切片，圆环边框是图自带的 */}
       <div
         style={{
@@ -52,8 +63,8 @@ export function BadgeCard({ def, unlocked, current }: { def: BadgeDef; unlocked:
           filter: unlocked ? 'none' : 'grayscale(1)',
         }}
       />
-      <div style={{ fontSize: 14, marginTop: 8, fontWeight: 600, color: unlocked ? '#222' : '#999' }}>{def.name}</div>
-      {!unlocked && <div style={{ fontSize: 12, color: '#888', marginTop: 3 }}>{progressText(def, current)}</div>}
+      <div style={{ fontSize: 14, marginTop: 8, fontWeight: 700, color: unlocked ? 'var(--ink)' : 'var(--muted)' }}>{def.name}</div>
+      {!unlocked && <div style={{ fontSize: 12, color: 'var(--muted)', marginTop: 3 }}>{progressText(def, current)}</div>}
     </div>
   )
 }
