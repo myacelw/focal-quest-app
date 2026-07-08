@@ -9,6 +9,7 @@ import { startVosk, type VoskController } from '../speech/vosk'
 import { parseAnswer, type Direction } from '../speech/answer-mapping'
 import { saveSession, doCheckIn, getHomeStats, type CheckinResult } from '../data/checkin'
 import { toDateStr } from '../data/date-utils'
+import { lsGet } from '../data/storage'
 import { syncBadges } from '../badges/badge-service'
 import type { BadgeDef } from '../badges/badge-defs'
 import { getSkin, getSkinId, isSkinUnlocked, newlyUnlockedSkins } from '../skins/registry'
@@ -22,12 +23,12 @@ const EYE_LABEL: Record<Eye, string> = { left: '左眼 · 遮右眼', right: '�
 const ARROW: Record<Direction, string> = { up: '↑', down: '↓', left: '←', right: '→' }
 
 function readPxPerMm(): number | null {
-  const v = localStorage.getItem('fzp.cssPxPerMm')
+  const v = lsGet('fzp.cssPxPerMm')
   return v ? Number(v) : null
 }
 
 function readDurationSec(): number {
-  const v = localStorage.getItem('fzp.durationSec')
+  const v = lsGet('fzp.durationSec')
   return v ? Number(v) : DURATION_SEC
 }
 
@@ -228,7 +229,7 @@ export function TrainingPage() {
     )
   }
 
-  const sizeMm = Number(localStorage.getItem('fzp.optotypeSizeMm') ?? '1')
+  const sizeMm = Number(lsGet('fzp.optotypeSizeMm') ?? '1')
   sizeMmRef.current = sizeMm
   const skinId = getSkinId()
   const heightPx = sizeMm * pxPerMm

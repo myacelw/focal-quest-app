@@ -48,11 +48,16 @@ export interface HomeStats {
 }
 
 export async function getHomeStats(today: string): Promise<HomeStats> {
-  const last = await db.checkins.orderBy('date').last()
-  const lastCk: LastCheckin | null = last ? { date: last.date, streak: last.streak } : null
-  return {
-    checkedInToday: last?.date === today,
-    streak: currentStreak(lastCk, today),
-    totalPoints: last ? last.totalPoints : 0,
+  try {
+    const last = await db.checkins.orderBy('date').last()
+    const lastCk: LastCheckin | null = last ? { date: last.date, streak: last.streak } : null
+    return {
+      checkedInToday: last?.date === today,
+      streak: currentStreak(lastCk, today),
+      totalPoints: last ? last.totalPoints : 0,
+    }
+  } catch {
+    // IndexedDB 不可用（隐私模式/storage 受限）时降级，不崩
+    return { checkedInToday: false, streak: 0, totalPoints: 0 }
   }
 }

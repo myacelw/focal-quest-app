@@ -1,19 +1,20 @@
 import { useState } from 'react'
 import { cssPxPerMm, mmToCssPx, CARD_WIDTH_MM } from './calibration-math'
+import { lsGet, lsSet } from '../data/storage'
 
 const STORAGE_KEY = 'fzp.cssPxPerMm'
 
 export function CalibrationPage() {
   const [barPx, setBarPx] = useState(300)
   const [saved, setSaved] = useState<number | null>(() => {
-    const v = localStorage.getItem(STORAGE_KEY)
+    const v = lsGet(STORAGE_KEY)
     return v ? Number(v) : null
   })
 
   const ratio = cssPxPerMm(barPx)
 
   function save() {
-    localStorage.setItem(STORAGE_KEY, String(ratio))
+    lsSet(STORAGE_KEY, String(ratio))
     setSaved(ratio)
   }
 

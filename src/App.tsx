@@ -8,6 +8,7 @@ import { BadgeWall } from './badges/BadgeWall'
 import { pushAll } from './data/api'
 import { Onboarding } from './Onboarding'
 import { SettingsPage } from './SettingsPage'
+import { lsGet, lsSet } from './data/storage'
 
 type View = 'home' | 'train' | 'stats' | 'badges' | 'calib' | 'speech' | 'settings'
 
@@ -22,13 +23,13 @@ const NAV: { key: View; label: string; icon: string }[] = [
 
 export function App() {
   const [view, setView] = useState<View>('home')
-  const [showOnboard, setShowOnboard] = useState(() => !localStorage.getItem('fzp.onboarded'))
+  const [showOnboard, setShowOnboard] = useState(() => !lsGet('fzp.onboarded'))
   // 启动时把本地数据回填到后端（best-effort，后端没开则忽略）
   useEffect(() => { void pushAll() }, [])
   return (
     <div>
       {showOnboard && (
-        <Onboarding onDone={() => { localStorage.setItem('fzp.onboarded', '1'); setShowOnboard(false) }} />
+        <Onboarding onDone={() => { lsSet('fzp.onboarded', '1'); setShowOnboard(false) }} />
       )}
       <nav className="fq-nav">
         {NAV.map((n) => (

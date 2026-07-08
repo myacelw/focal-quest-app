@@ -2,26 +2,27 @@ import { useEffect, useState } from 'react'
 import { TumblingE } from './training/TumblingE'
 import { acuityFromHeightMm } from './training/optotype-size'
 import { getHomeStats } from './data/checkin'
+import { lsGet, lsSet } from './data/storage'
 import { toDateStr } from './data/date-utils'
 import { getSkin, getSkinId, setSkinId, isSkinUnlocked, skinUnlockCost, SKINS } from './skins/registry'
 
 function readPxPerMm(): number | null {
-  const v = localStorage.getItem('fzp.cssPxPerMm')
+  const v = lsGet('fzp.cssPxPerMm')
   return v ? Number(v) : null
 }
 
 /** 家长设置页：所有训练配置集中在此，配一次即可，孩子训练路径不再碰这些 */
 export function SettingsPage({ onReplayGuide, onOpenSpeech }: { onReplayGuide: () => void; onOpenSpeech: () => void }) {
   const [sizeMm, setSizeMm] = useState(() => {
-    const v = localStorage.getItem('fzp.optotypeSizeMm')
+    const v = lsGet('fzp.optotypeSizeMm')
     return v ? Number(v) : 1
   })
   const [durationSec, setDurationSec] = useState(() => {
-    const v = localStorage.getItem('fzp.durationSec')
+    const v = lsGet('fzp.durationSec')
     return v ? Number(v) : 180
   })
   const [flipperD, setFlipperD] = useState(() => {
-    const v = localStorage.getItem('fzp.flipperD')
+    const v = lsGet('fzp.flipperD')
     return v ? Number(v) : 2
   })
   const [skinId, setSkinIdState] = useState(() => getSkinId())
@@ -30,9 +31,9 @@ export function SettingsPage({ onReplayGuide, onOpenSpeech }: { onReplayGuide: (
   useEffect(() => {
     void getHomeStats(toDateStr(new Date())).then((s) => setTotalPoints(s.totalPoints))
   }, [])
-  useEffect(() => { localStorage.setItem('fzp.optotypeSizeMm', String(sizeMm)) }, [sizeMm])
-  useEffect(() => { localStorage.setItem('fzp.durationSec', String(durationSec)) }, [durationSec])
-  useEffect(() => { localStorage.setItem('fzp.flipperD', String(flipperD)) }, [flipperD])
+  useEffect(() => { lsSet('fzp.optotypeSizeMm', String(sizeMm)) }, [sizeMm])
+  useEffect(() => { lsSet('fzp.durationSec', String(durationSec)) }, [durationSec])
+  useEffect(() => { lsSet('fzp.flipperD', String(flipperD)) }, [flipperD])
 
   const pxPerMm = readPxPerMm()
   const tp = totalPoints ?? 0
