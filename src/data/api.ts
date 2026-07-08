@@ -37,9 +37,10 @@ export async function pushAll(): Promise<void> {
       db.checkins.toArray(),
       db.badges.toArray(),
     ])
-    for (const s of sessions) void post('/sessions', s)
-    for (const c of checkins) void post('/checkins', c)
-    if (badges.length > 0) void post('/badges', badges)
+    // 串行回填：避免一次并发几十个请求压后端，页面切换时也只影响当前一个
+    for (const s of sessions) await post('/sessions', s)
+    for (const c of checkins) await post('/checkins', c)
+    if (badges.length > 0) await post('/badges', badges)
   } catch {
     // 忽略
   }
