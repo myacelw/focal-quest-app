@@ -20,8 +20,22 @@ if (Test-Path $targz) {
   exit 0
 }
 
-Write-Host "下载模型（~42MB）..."
-curl.exe -L $url -o $zip
+if (Test-Path $zip) {
+  Write-Host "已有 zip，跳过下载，直接解压打包。"
+} else {
+  Write-Host "下载模型（~42MB，来自国外源 alphacephei.com，国内可能很慢/失败）..."
+  curl.exe -L --fail $url -o $zip
+  if ($LASTEXITCODE -ne 0) {
+    Remove-Item $zip -Force -ErrorAction SilentlyContinue
+    Write-Host ''
+    Write-Host '下载失败 —— 国内访问 alphacephei.com 常不稳。二选一：' -ForegroundColor Yellow
+    Write-Host '  A) 最省事：从已有模型的电脑，把 public/models/vosk-model-small-cn-0.22.tar.gz'
+    Write-Host '     直接拷到本机同目录（42MB，U盘/微信/局域网都行），根本不用跑本脚本。'
+    Write-Host "  B) 手动下载 $url ，把 zip 放进 public/models/ 后重跑本脚本"
+    Write-Host '     （脚本会自动跳过下载、继续解压打包）。'
+    exit 1
+  }
+}
 
 Write-Host "解压..."
 Expand-Archive -Path $zip -DestinationPath $modelDir -Force
