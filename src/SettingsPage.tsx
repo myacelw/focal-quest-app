@@ -5,6 +5,7 @@ import { getHomeStats } from './data/checkin'
 import { lsGet, lsSet } from './data/storage'
 import { toDateStr } from './data/date-utils'
 import { getSkin, getSkinId, setSkinId, isSkinUnlocked, skinUnlockCost, SKINS } from './skins/registry'
+import { useT, useLang, setLang, type Lang } from './i18n'
 
 function readPxPerMm(): number | null {
   const v = lsGet('fzp.cssPxPerMm')
@@ -13,6 +14,8 @@ function readPxPerMm(): number | null {
 
 /** 家长设置页：所有训练配置集中在此，配一次即可，孩子训练路径不再碰这些 */
 export function SettingsPage({ onReplayGuide, onOpenSpeech, onOpenCalib }: { onReplayGuide: () => void; onOpenSpeech: () => void; onOpenCalib: () => void }) {
+  const t = useT()
+  const lang = useLang()
   const [sizeMm, setSizeMm] = useState(() => {
     const v = lsGet('fzp.optotypeSizeMm')
     return v ? Number(v) : 1
@@ -47,23 +50,30 @@ export function SettingsPage({ onReplayGuide, onOpenSpeech, onOpenCalib }: { onR
 
   return (
     <div className="fq-page fq-rise">
-      <h2 className="fq-h2">⚙️ 设置</h2>
-      <p className="fq-sub">家长在这里配一次，孩子训练时就不用管这些了。</p>
+      <h2 className="fq-h2">{t('settings.title')}</h2>
+      <p className="fq-sub">{t('settings.sub')}</p>
 
       <div className="fq-card" style={{ marginTop: 16, display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 8 }}>
+        <span style={{ fontSize: 14, fontWeight: 700 }}>{t('settings.language')}</span>
+        <div className="fq-seg">
+          {([['zh', '中文'], ['en', 'English']] as [Lang, string][]).map(([code, label]) => (
+            <button key={code} className={lang === code ? 'on' : ''} onClick={() => setLang(code)}>{label}</button>
+          ))}
+        </div>
+      </div>
+
+      <div className="fq-card" style={{ marginTop: 14, display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 8 }}>
         <div>
-          <div className="fq-card-title" style={{ marginBottom: 4 }}>📐 屏幕标定</div>
+          <div className="fq-card-title" style={{ marginBottom: 4 }}>{t('settings.calib')}</div>
           <div style={{ fontSize: 12, color: 'var(--muted)' }}>
-            {pxPerMm !== null
-              ? `已标定（${pxPerMm.toFixed(1)} px/mm）——视标物理尺寸才准`
-              : '未标定——用银行卡校准一次，视标尺寸才准（先做这步）'}
+            {pxPerMm !== null ? t('settings.calibDone', { v: pxPerMm.toFixed(1) }) : t('settings.calibTodo')}
           </div>
         </div>
-        <button className="fq-btn" onClick={onOpenCalib}>{pxPerMm !== null ? '重新标定' : '去标定'}</button>
+        <button className="fq-btn" onClick={onOpenCalib}>{pxPerMm !== null ? t('settings.recalib') : t('settings.goCalib')}</button>
       </div>
 
       <div className="fq-card" style={{ marginTop: 14 }}>
-        <div className="fq-card-title">👁️ 视标大小</div>
+        <div className="fq-card-title">{t('settings.optotype')}</div>
         {pxPerMm !== null ? (
           <>
             <div style={{ fontSize: 14 }}>
@@ -90,29 +100,29 @@ export function SettingsPage({ onReplayGuide, onOpenSpeech, onOpenCalib }: { onR
       </div>
 
       <div className="fq-card" style={{ marginTop: 14, display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 8 }}>
-        <span style={{ fontSize: 14, fontWeight: 700 }}>⏱️ 单眼时长</span>
+        <span style={{ fontSize: 14, fontWeight: 700 }}>{t('settings.duration')}</span>
         <div className="fq-seg">
           {[60, 120, 180, 300].map((sec) => (
             <button key={sec} className={durationSec === sec ? 'on' : ''} onClick={() => setDurationSec(sec)}>
-              {sec / 60}分
+              {sec / 60}{t('settings.minute')}
             </button>
           ))}
         </div>
       </div>
 
       <div className="fq-card" style={{ marginTop: 14, display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 8 }}>
-        <span style={{ fontSize: 14, fontWeight: 700 }}>🔄 翻拍速度</span>
+        <span style={{ fontSize: 14, fontWeight: 700 }}>{t('settings.flipSpeed')}</span>
         <div className="fq-seg">
-          {[{ ms: 1000, label: '快' }, { ms: 1600, label: '适中' }, { ms: 2200, label: '慢' }].map((o) => (
+          {[{ ms: 1000, k: 'settings.flipFast' }, { ms: 1600, k: 'settings.flipMid' }, { ms: 2200, k: 'settings.flipSlow' }].map((o) => (
             <button key={o.ms} className={flipMs === o.ms ? 'on' : ''} onClick={() => setFlipMs(o.ms)}>
-              {o.label}
+              {t(o.k)}
             </button>
           ))}
         </div>
       </div>
 
       <div className="fq-card" style={{ marginTop: 14, display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 8 }}>
-        <span style={{ fontSize: 14, fontWeight: 700 }}>🔵 拍子度数</span>
+        <span style={{ fontSize: 14, fontWeight: 700 }}>{t('settings.flipperD')}</span>
         <div className="fq-seg">
           {[1.5, 2, 2.5].map((d) => (
             <button key={d} className={flipperD === d ? 'on' : ''} onClick={() => setFlipperD(d)}>
@@ -123,7 +133,7 @@ export function SettingsPage({ onReplayGuide, onOpenSpeech, onOpenCalib }: { onR
       </div>
 
       <div className="fq-card" style={{ marginTop: 14 }}>
-        <div className="fq-card-title">🎨 皮肤</div>
+        <div className="fq-card-title">{t('settings.skin')}</div>
         <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
           {SKINS.map((s) => {
             const unlocked = isSkinUnlocked(s.id, tp)
@@ -164,12 +174,12 @@ export function SettingsPage({ onReplayGuide, onOpenSpeech, onOpenCalib }: { onR
       </div>
 
       <div className="fq-card" style={{ marginTop: 14, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-        <span style={{ fontSize: 14, fontWeight: 700 }}>📖 怎么正确训练</span>
-        <button className="fq-btn" onClick={onReplayGuide}>重看引导</button>
+        <span style={{ fontSize: 14, fontWeight: 700 }}>{t('settings.guide')}</span>
+        <button className="fq-btn" onClick={onReplayGuide}>{t('settings.replayGuide')}</button>
       </div>
 
       <div className="fq-card" style={{ marginTop: 14 }}>
-        <div className="fq-card-title">📋 关于训练（家长必读）</div>
+        <div className="fq-card-title">{t('settings.about')}</div>
         <ul style={{ fontSize: 13, color: 'var(--muted)', lineHeight: 1.75, paddingLeft: 18, margin: 0 }}>
           <li>软件负责节奏引导和记录；真正的调节训练靠孩子透过拍子<b>努力看清</b>再翻转。</li>
           <li>坐正、离屏幕约 <b>40cm</b>、遮好单眼——距离和遮眼直接影响效果。</li>
@@ -183,11 +193,11 @@ export function SettingsPage({ onReplayGuide, onOpenSpeech, onOpenCalib }: { onR
           onClick={onOpenSpeech}
           style={{ background: 'none', border: 'none', color: 'var(--muted)', fontSize: 12, cursor: 'pointer', textDecoration: 'underline' }}
         >
-          🎤 语音识别测试（调试用）
+          {t('settings.speechTest')}
         </button>
       </p>
       <p style={{ textAlign: 'center', marginTop: 4, color: 'var(--muted)', fontSize: 11 }}>
-        版本 {__APP_VERSION__}
+        {t('settings.version', { v: __APP_VERSION__ })}
       </p>
     </div>
   )

@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import { acuityFromHeightMm } from './optotype-size'
 import {
   createSession, pickDirection, start, answer, advance, tick, accuracy,
-  type SessionState, type Eye,
+  type SessionState,
 } from './session'
 import { playSfx, setMuted } from './sfx'
 import { startVosk, type VoskController } from '../speech/vosk'
@@ -11,6 +11,7 @@ import { saveSession, doCheckIn, getHomeStats, type CheckinResult } from '../dat
 import { toDateStr } from '../data/date-utils'
 import { lsGet } from '../data/storage'
 import { asset } from '../data/asset'
+import { useT } from '../i18n'
 import { syncBadges } from '../badges/badge-service'
 import type { BadgeDef } from '../badges/badge-defs'
 import { getSkin, getSkinId, isSkinUnlocked, newlyUnlockedSkins } from '../skins/registry'
@@ -20,7 +21,6 @@ const DURATION_SEC = 180
 const TRANSITION_MS = 1600
 const VOSK_MODEL_URL = asset('/models/vosk-model-small-cn-0.22.tar.gz')
 const VOSK_GRAMMAR = ['上 下 左 右']
-const EYE_LABEL: Record<Eye, string> = { left: '左眼 · 遮右眼', right: '右眼 · 遮左眼' }
 const ARROW: Record<Direction, string> = { up: '↑', down: '↓', left: '←', right: '→' }
 
 function readPxPerMm(): number | null {
@@ -51,8 +51,10 @@ export function TrainingPage() {
   const [paused, setPaused] = useState(false)
   const [comboFx, setComboFx] = useState<{ n: number; key: number } | null>(null)
 
+  const t = useT()
   const pxPerMm = readPxPerMm()
   const flipMs = readFlipMs()
+  const eyeLabel = session.eye === 'left' ? t('train.eyeLeft') : t('train.eyeRight')
   const sessionRef = useRef(session)
   const voskRef = useRef<VoskController | null>(null)
   const savedRef = useRef(false)
@@ -207,9 +209,9 @@ export function TrainingPage() {
     return (
       <div style={{ maxWidth: 420, margin: '0 auto', padding: '48px 20px', textAlign: 'center' }}>
         <div style={{ fontSize: 46 }}>📐</div>
-        <h2 style={{ fontSize: 20, fontWeight: 800, marginTop: 10 }}>先完成屏幕标定</h2>
+        <h2 style={{ fontSize: 20, fontWeight: 800, marginTop: 10 }}>{t('train.calibFirst')}</h2>
         <p style={{ color: 'var(--muted)', marginTop: 8, lineHeight: 1.6 }}>
-          请先到「📐 标定」页完成一次屏幕标定，视标才能按正确的物理大小显示。
+          {t('train.calibFirstBody')}
         </p>
       </div>
     )
@@ -220,19 +222,19 @@ export function TrainingPage() {
       <div style={{ maxWidth: 420, margin: '0 auto', padding: '40px 20px', textAlign: 'center' }}>
         <div style={{ fontSize: 54 }}>{checkin.alreadyCheckedIn ? '✓' : '🎉'}</div>
         <h2 style={{ fontSize: 22, fontWeight: 800, marginTop: 6 }}>
-          {checkin.alreadyCheckedIn ? '今天已经打过卡啦' : '打卡成功！'}
+          {checkin.alreadyCheckedIn ? t('train.checkedAlready') : t('train.checkedSuccess')}
         </h2>
         <div
           className="fq-card"
           style={{ marginTop: 18, background: 'linear-gradient(135deg,#ff8a5b,#ff5c86)', border: 'none', color: '#fff', boxShadow: 'var(--shadow-coral)' }}
         >
-          <div style={{ fontSize: 22, fontWeight: 800 }}>🔥 连续 {checkin.streak} 天</div>
-          {!checkin.alreadyCheckedIn && <div style={{ fontSize: 14, marginTop: 8, opacity: 0.95 }}>今日 +{checkin.dailyPoints} 分</div>}
-          <div style={{ fontSize: 14, marginTop: 6, opacity: 0.95 }}>⭐ 累计 {checkin.totalPoints} 分</div>
+          <div style={{ fontSize: 22, fontWeight: 800 }}>{t('train.streakDays', { n: checkin.streak })}</div>
+          {!checkin.alreadyCheckedIn && <div style={{ fontSize: 14, marginTop: 8, opacity: 0.95 }}>{t('train.todayPoints', { n: checkin.dailyPoints })}</div>}
+          <div style={{ fontSize: 14, marginTop: 6, opacity: 0.95 }}>{t('train.totalPoints', { n: checkin.totalPoints })}</div>
         </div>
         {newBadges.length > 0 && (
           <div className="fq-card" style={{ marginTop: 14 }}>
-            <p style={{ fontWeight: 700, marginBottom: 12 }}>🎉 解锁新勋章！</p>
+            <p style={{ fontWeight: 700, marginBottom: 12 }}>{t('train.newBadge')}</p>
             <div style={{ display: 'flex', gap: 14, justifyContent: 'center', flexWrap: 'wrap' }}>
               {newBadges.map((b) => (
                 <div key={b.id} style={{ textAlign: 'center' }}>
@@ -245,7 +247,7 @@ export function TrainingPage() {
         )}
         {newSkins.length > 0 && (
           <div className="fq-card" style={{ marginTop: 14 }}>
-            <p style={{ fontWeight: 700, marginBottom: 12 }}>🎨 解锁新皮肤！</p>
+            <p style={{ fontWeight: 700, marginBottom: 12 }}>{t('train.newSkin')}</p>
             <div style={{ display: 'flex', gap: 10, justifyContent: 'center', flexWrap: 'wrap' }}>
               {newSkins.map((s) => (
                 <span key={s.id} className="fq-chip" style={{ background: '#fff9e6', color: '#b8860b', border: '1.5px solid var(--lemon)' }}>
@@ -253,7 +255,7 @@ export function TrainingPage() {
                 </span>
               ))}
             </div>
-            <p style={{ fontSize: 12, color: 'var(--muted)', marginTop: 10 }}>去准备页换上试试～</p>
+            <p style={{ fontSize: 12, color: 'var(--muted)', marginTop: 10 }}>{t('train.trySkinHint')}</p>
           </div>
         )}
       </div>
@@ -285,16 +287,16 @@ export function TrainingPage() {
         }}
       >
         <div style={{ fontSize: 56 }}>👁️</div>
-        <h2 style={{ fontSize: 24, fontWeight: 800, marginTop: 10 }}>准备好了吗？</h2>
+        <h2 style={{ fontSize: 24, fontWeight: 800, marginTop: 10 }}>{t('train.ready')}</h2>
         <div
           className="fq-card"
           style={{ marginTop: 18, background: 'linear-gradient(135deg, #7c6cf0, #8b6cff)', border: 'none', color: '#fff', boxShadow: 'var(--shadow)' }}
         >
-          <div style={{ fontSize: 19, fontWeight: 800 }}>{EYE_LABEL[session.eye]}</div>
-          <p style={{ fontSize: 13, opacity: 0.92, marginTop: 8, lineHeight: 1.6 }}>拍子正镜片面朝眼，坐直、离屏幕约 40cm</p>
+          <div style={{ fontSize: 19, fontWeight: 800 }}>{eyeLabel}</div>
+          <p style={{ fontSize: 13, opacity: 0.92, marginTop: 8, lineHeight: 1.6 }}>{t('train.prepHint')}</p>
         </div>
-        <p style={{ fontSize: 15, color: 'var(--violet)', fontWeight: 800, marginTop: 22 }}>准备中，马上开始…</p>
-        <p style={{ fontSize: 12, color: 'var(--muted)', marginTop: 10 }}>配置可在「⚙️ 设置」里调</p>
+        <p style={{ fontSize: 15, color: 'var(--violet)', fontWeight: 800, marginTop: 22 }}>{t('train.getReady')}</p>
+        <p style={{ fontSize: 12, color: 'var(--muted)', marginTop: 10 }}>{t('train.configHint')}</p>
       </div>
     )
   }
@@ -304,37 +306,37 @@ export function TrainingPage() {
       <div style={{ maxWidth: 420, margin: '0 auto', padding: '40px 20px', textAlign: 'center' }}>
         <div style={{ fontSize: 50 }}>🎊</div>
         <h2 style={{ fontSize: 22, fontWeight: 800, marginTop: 6 }}>
-          {session.eye === 'left' ? '左眼' : '右眼'} · 本节完成
+          {t('train.sessionDone', { eye: session.eye === 'left' ? t('train.eyeLeftShort') : t('train.eyeRightShort') })}
         </h2>
         <div className="fq-card" style={{ marginTop: 18, display: 'flex', justifyContent: 'space-around' }}>
           <div>
             <div style={{ fontSize: 26, fontWeight: 800, color: 'var(--violet)' }}>{session.correct}/{session.answered}</div>
-            <div style={{ fontSize: 12, color: 'var(--muted)', marginTop: 4 }}>答对</div>
+            <div style={{ fontSize: 12, color: 'var(--muted)', marginTop: 4 }}>{t('train.correctLabel')}</div>
           </div>
           <div>
             <div style={{ fontSize: 26, fontWeight: 800, color: 'var(--violet)' }}>{Math.round(accuracy(session) * 100)}%</div>
-            <div style={{ fontSize: 12, color: 'var(--muted)', marginTop: 4 }}>正确率</div>
+            <div style={{ fontSize: 12, color: 'var(--muted)', marginTop: 4 }}>{t('stats.accuracy')}</div>
           </div>
           <div>
             <div style={{ fontSize: 26, fontWeight: 800, color: 'var(--violet)' }}>
               {reactionCountRef.current ? (sumReactionRef.current / reactionCountRef.current / 1000).toFixed(1) : '—'}
               <span style={{ fontSize: 14 }}>s</span>
             </div>
-            <div style={{ fontSize: 12, color: 'var(--muted)', marginTop: 4 }}>平均反应</div>
+            <div style={{ fontSize: 12, color: 'var(--muted)', marginTop: 4 }}>{t('stats.avgReaction')}</div>
           </div>
         </div>
         <button className="fq-cta coral" style={{ width: '100%', marginTop: 16 }} onClick={nextEyeOrFinish}>
-          {session.eye === 'left' ? '换右眼继续 →' : '完成并打卡 🎊'}
+          {session.eye === 'left' ? t('train.nextEye') : t('train.finishCheckin')}
         </button>
       </div>
     )
   }
 
   const voskHint =
-    voskStatus === 'loading' ? '🎤 语音加载中…（可先用按钮）'
-    : voskStatus === 'ready' ? '🎧 在听…说出方向'
-    : voskStatus === 'failed' ? '🔇 语音没启动，用按钮答'
-    : '👇 用下方按钮答'
+    voskStatus === 'loading' ? t('train.voiceLoading')
+    : voskStatus === 'ready' ? t('train.voiceReady')
+    : voskStatus === 'failed' ? t('train.voiceFailed')
+    : t('train.voiceButtons')
 
   const remainSec = Math.max(0, session.durationSec - session.elapsedSec)
   const mmss = `${Math.floor(remainSec / 60)}:${String(remainSec % 60).padStart(2, '0')}`
@@ -342,12 +344,12 @@ export function TrainingPage() {
   return (
     <div style={{ position: 'relative', display: 'flex', flexDirection: 'column', minHeight: 'calc(100vh - 57px)' }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '12px 16px' }}>
-        <span className="fq-chip">{EYE_LABEL[session.eye]}</span>
+        <span className="fq-chip">{eyeLabel}</span>
         <div className="fq-bar" style={{ flex: 1 }}>
           <i style={{ width: `${progress * 100}%` }} />
         </div>
         <span style={{ fontVariantNumeric: 'tabular-nums', fontWeight: 800, color: 'var(--violet)', fontSize: 15, minWidth: 40, textAlign: 'right' }}>{mmss}</span>
-        <button className="fq-btn" style={{ padding: '7px 10px' }} onClick={() => setPaused(true)} aria-label="暂停">⏸️</button>
+        <button className="fq-btn" style={{ padding: '7px 10px' }} onClick={() => setPaused(true)} aria-label={t('train.pause')}>⏸️</button>
         <button className="fq-btn" style={{ padding: '7px 10px' }} onClick={() => setMutedState((m) => !m)}>
           {muted ? '🔇' : '🔊'}
         </button>
@@ -366,7 +368,7 @@ export function TrainingPage() {
             key={comboFx.key}
             style={{ position: 'absolute', top: '12%', left: '50%', fontSize: 28, fontWeight: 800, color: '#ff5c7a', textShadow: '0 2px 8px rgba(0,0,0,0.3)', animation: 'fzpCombo 0.9s ease-out forwards', pointerEvents: 'none', zIndex: 6, whiteSpace: 'nowrap' }}
           >
-            🔥 连击 ×{comboFx.n}
+            {t('train.combo', { n: comboFx.n })}
           </div>
         )}
         {session.phase === 'transitioning' && (
@@ -389,7 +391,7 @@ export function TrainingPage() {
                 🔄
               </div>
               <div style={{ fontSize: 24, fontWeight: 800, color: 'var(--violet)', marginTop: 8, letterSpacing: 1, textShadow: '0 1px 6px rgba(255,255,255,0.85)' }}>
-                翻转拍子
+                {t('train.flip')}
               </div>
               <div style={{ width: 168, height: 7, background: 'rgba(108,75,240,0.15)', borderRadius: 99, margin: '16px auto 0', overflow: 'hidden' }}>
                 <div style={{ height: '100%', background: 'linear-gradient(90deg, var(--violet), var(--coral))', borderRadius: 99, animation: `fzpFlipBar ${flipMs}ms linear forwards` }} />
@@ -418,9 +420,9 @@ export function TrainingPage() {
         <div style={{ position: 'absolute', inset: 0, zIndex: 10, background: 'rgba(51,40,90,0.72)', backdropFilter: 'blur(6px)', display: 'grid', placeItems: 'center', padding: 20 }}>
           <div className="fq-card fq-rise" style={{ textAlign: 'center', maxWidth: 300 }}>
             <div style={{ fontSize: 52 }}>⏸️</div>
-            <div style={{ fontSize: 20, fontWeight: 800, marginTop: 6 }}>已暂停</div>
-            <p style={{ color: 'var(--muted)', fontSize: 13, marginTop: 6 }}>剩余 {mmss}，休息好了继续～</p>
-            <button className="fq-cta" style={{ width: '100%', marginTop: 14 }} onClick={() => setPaused(false)}>▶ 继续</button>
+            <div style={{ fontSize: 20, fontWeight: 800, marginTop: 6 }}>{t('train.paused')}</div>
+            <p style={{ color: 'var(--muted)', fontSize: 13, marginTop: 6 }}>{t('train.pausedRemain', { t: mmss })}</p>
+            <button className="fq-cta" style={{ width: '100%', marginTop: 14 }} onClick={() => setPaused(false)}>{t('train.resume')}</button>
           </div>
         </div>
       )}

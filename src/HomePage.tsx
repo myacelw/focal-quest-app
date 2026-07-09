@@ -4,8 +4,10 @@ import { toDateStr } from './data/date-utils'
 import { SKINS, skinUnlockCost, isSkinUnlocked } from './skins/registry'
 import { useCountUp } from './useCountUp'
 import { asset } from './data/asset'
+import { useT } from './i18n'
 
 export function HomePage({ onStart }: { onStart: () => void }) {
+  const t = useT()
   const [stats, setStats] = useState<HomeStats | null>(null)
 
   useEffect(() => {
@@ -48,12 +50,12 @@ export function HomePage({ onStart }: { onStart: () => void }) {
           }}
         />
         <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--muted)', marginTop: 2 }}>
-          每天几分钟，练出好视力 ✨
+          {t('home.tagline')}
         </div>
       </div>
 
       {stats === null ? (
-        <div className="fq-card">加载中…</div>
+        <div className="fq-card">{t('home.loading')}</div>
       ) : (
         <>
           {/* 打卡卡片 */}
@@ -67,17 +69,17 @@ export function HomePage({ onStart }: { onStart: () => void }) {
             }}
           >
             <div style={{ fontSize: 15, fontWeight: 700, marginBottom: 16 }}>
-              {stats.checkedInToday ? '今天练过啦 ✓ 真棒！' : '今天还没练，来一局吧！'}
+              {stats.checkedInToday ? t('home.checkedToday') : t('home.notYetToday')}
             </div>
             <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: 26 }}>
               <div>
                 <div style={{ fontSize: 34, fontWeight: 800, lineHeight: 1 }}>{streakN}</div>
-                <div style={{ fontSize: 12, opacity: 0.92, marginTop: 6 }}>🔥 连续天数</div>
+                <div style={{ fontSize: 12, opacity: 0.92, marginTop: 6 }}>{t('home.streak')}</div>
               </div>
               <div style={{ width: 1, height: 42, background: '#ffffff55' }} />
               <div>
                 <div style={{ fontSize: 34, fontWeight: 800, lineHeight: 1 }}>{pointsN}</div>
-                <div style={{ fontSize: 12, opacity: 0.92, marginTop: 6 }}>⭐ 累计积分</div>
+                <div style={{ fontSize: 12, opacity: 0.92, marginTop: 6 }}>{t('home.points')}</div>
               </div>
             </div>
           </div>
@@ -85,7 +87,7 @@ export function HomePage({ onStart }: { onStart: () => void }) {
           {/* 皮肤解锁进度 */}
           <div className="fq-card" style={{ textAlign: 'left' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13, marginBottom: 10, fontWeight: 600 }}>
-              <span>{locked.length ? '皮肤解锁进度' : '全部皮肤已解锁 🎉'}</span>
+              <span>{locked.length ? t('home.skinProgress') : t('home.allSkinsUnlocked')}</span>
               {locked.length > 0 && (
                 <span style={{ color: 'var(--muted)' }}>
                   {tp} / {nextCost}
@@ -109,11 +111,11 @@ export function HomePage({ onStart }: { onStart: () => void }) {
           </div>
 
           <button className="fq-cta" style={{ width: '100%', fontSize: 20, padding: '20px' }} onClick={onStart}>
-            ▶ 开始今日训练
+            {t('home.start')}
           </button>
 
           <p style={{ fontSize: 12, color: 'var(--muted)', lineHeight: 1.6, margin: 0 }}>
-            第一次用请先到「📐 标定」完成一次屏幕标定
+            {t('home.calibHint')}
           </p>
         </>
       )}
