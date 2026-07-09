@@ -30,7 +30,7 @@ export function SettingsPage({ onReplayGuide, onOpenSpeech, onOpenCalib }: { onR
   })
   const [flipMs, setFlipMs] = useState(() => {
     const v = lsGet('fzp.flipMs')
-    return v ? Number(v) : 1600
+    return v ? Number(v) : 900
   })
   const [skinId, setSkinIdState] = useState(() => getSkinId())
   const [totalPoints, setTotalPoints] = useState<number | null>(null)
@@ -113,7 +113,7 @@ export function SettingsPage({ onReplayGuide, onOpenSpeech, onOpenCalib }: { onR
       <div className="fq-card" style={{ marginTop: 14, display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 8 }}>
         <span style={{ fontSize: 14, fontWeight: 700 }}>{t('settings.flipSpeed')}</span>
         <div className="fq-seg">
-          {[{ ms: 1000, k: 'settings.flipFast' }, { ms: 1600, k: 'settings.flipMid' }, { ms: 2200, k: 'settings.flipSlow' }].map((o) => (
+          {[{ ms: 600, k: 'settings.flipFast' }, { ms: 900, k: 'settings.flipMid' }, { ms: 1500, k: 'settings.flipSlow' }].map((o) => (
             <button key={o.ms} className={flipMs === o.ms ? 'on' : ''} onClick={() => setFlipMs(o.ms)}>
               {t(o.k)}
             </button>

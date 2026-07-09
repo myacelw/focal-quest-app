@@ -18,7 +18,7 @@ import { getSkin, getSkinId, isSkinUnlocked, newlyUnlockedSkins } from '../skins
 import type { Skin } from '../skins/types'
 
 const DURATION_SEC = 180
-const TRANSITION_MS = 1600
+const TRANSITION_MS = 900
 const VOSK_MODEL_URL = asset('/models/vosk-model-small-cn-0.22.tar.gz')
 const VOSK_GRAMMAR = ['上 下 左 右']
 const ARROW: Record<Direction, string> = { up: '↑', down: '↓', left: '←', right: '→' }
