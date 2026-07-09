@@ -28,11 +28,15 @@
 - 纯前端 PWA 改造（分支 pwa-static）✅ 完成待合并：把 app 从"依赖本机 Node 后端"改造成可部署 GitHub Pages 的纯静态 PWA，iPad 浏览器打开→添加到主屏幕→离线可用。**核心难点**：vosk 依赖 SharedArrayBuffer→需跨域隔离（COOP/COEP），而静态托管设不了响应头——用自定义 Service Worker（`src/sw.ts`，injectManifest）给每个响应补 COOP/COEP/CORP 头解决，`main.tsx` SW 接管后"未隔离则刷新一次"。已用**裸静态服务器**（`scripts/serve-dist.mjs`，故意不发头，真实模拟 Pages）验证 `crossOriginIsolated=true` / SharedArrayBuffer 可用 / 子资源带全三头 / 离线预缓存建立。配套：`VITE_BACKEND=off` 关后端不发 /api（dev 不设→本机后端照用）、资源路径经 `data/asset.ts` base 相对化（支持子路径）、PWA 图标（`scripts/gen-icons.mjs` 占位可换 AI 图）、设置页版本号、`.github/workflows/deploy.yml` push 自动构建（CI 下载模型）发布。**更新机制**：push 后孩子联网开一次自动更新，模型不重下、只拉几十 KB。详见 [docs/部署到-GitHub-Pages.md](docs/部署到-GitHub-Pages.md)。
 - App 图标/启动图 + 非商业开源 License ✅ 完成并合并：用户 AI 生成的翻转拍主视觉切成 icon-512/192/apple-touch(180) 替换占位、首页 hero banner（hero.webp）；LICENSE 采用 **PolyForm Noncommercial 1.0.0**（源码公开·禁商用·作者保留自身商业化权），README 去"家庭自用"旧句加许可说明。
 - 托管定为 GitHub Pages（已上线）✅：曾评估 EdgeOne Pages（有国内节点但免备案区对大陆网络返回 401、须绑自定义域名，而免费域名 us.kg 等实测不稳）→ 放弃 EdgeOne，改回 **GitHub Pages**。用户把仓库 myacelw/focal-quest-app 改为 **public**，`.github/workflows/deploy.yml`（configure-pages enablement:true 自动开 Pages、base=/仓库名、VITE_BACKEND=off、模型分片已入库无需下载）push master 自动构建发布。**线上：https://myacelw.github.io/focal-quest-app/**（首页/资源/模型分片/SW/manifest 均 200，base 路径正确；crossOriginIsolated 由 SW 补头，机制已在裸静态服务器实测）。真机已验证可用。vosk 模型因 EdgeOne 单文件 25MiB 限制曾切成 3 分片（part00/01/02+parts.json，vosk.ts 自动拼回 blob），GitHub Pages 上照常工作。EdgeOne 的 config.json/文档已清理删除。
-- 下一步：真机持续使用收集反馈；迭代 2 其余（限时挑战需确认节奏 / 深海动物需先验 vosk）；皮肤出正式图。
+- 键盘作答 + 连击无限累加 + 翻拍速度可调 ✅ 完成并合并：①键盘兜底（方向键最直观；1-4/asdf/jkl; 按屏幕按钮顺序映射，方便电脑调试和无语音场景，将来若出数字视标同样把 1-9 对应即可）②修复连击 bug——原实现连对 5 个后随彩蛋触发被重置，现连击与彩蛋解耦，连对可无限累加，只在答错清零③设置页新增「🔄 翻拍速度」快/适中/慢（本轮又整体调快一版，见下）。
+- 徽章解锁后保留说明 + 中英双语国际化 ✅ 完成并合并：①BadgeCard 修复——之前解锁后进度文案直接消失变空白，现改为显示「✓ 达标目标」（如 "✓ 10CPM"）②**全站中英双语**：新增 `src/i18n.tsx`（zh/en 字典 + `useT()` + `useLang()`/`setLang()` + `Rich` 组件解析 `**加粗**`），按浏览器语言自动选择、设置页可手动切换；覆盖导航/首页/训练全流程/统计/设置/勋章墙/标定页/Onboarding/语音测试调试页/图表 aria-label，含 30 枚徽章名、3 个皮肤名、太空 6 敌人名+神庙 6 守护者名（两者 name 字段改成稳定 slug，如 `enemy.name='ufo'`，渲染时 `t('space.enemy.'+name)`翻译，两皮肤 rotation 单测同步改断言值）、家长周报建议（`weeklyReport()` 吐 `suggestionKey` 而非拼好的中文串，渲染时才翻译）。vosk 语音语法常量（"上 下 左 右"）刻意保留中文，是喂给语音模型的识别词表和 UI 语言无关（124 单测绿）。
+- 托管方案探索（EdgeOne→GitHub Pages 反复）：曾短暂尝试切到 EdgeOne Pages（config.json 原生 COOP/COEP、模型分片供 CI 免联网下载构建），后来发现私有仓库要用 GH Pages 得改公开——用户已把仓库设为 public，于是**弃 EdgeOne 改回 GitHub Pages**（EdgeOne 相关 config.json/脚本已清理删除，仅模型切片方案保留，因分片本身也利于 GH Pages 构建）。托管现状仍以 30 行前的"托管定为 GitHub Pages"条目为准。
+- 皮肤怪兽出正式图 ✅ 完成并合并：太空/神庙各差 5 只怪兽的 emoji 占位，用 **Gemini 4×4 网格一次出图**（`docs/怪兽出图提示词.md` 含完整提示词+关键约束"透明背景/风格统一/不画分隔线"），切片转 webp 后接入代码——`Enemy`/`Guardian` 类型的 emoji 分支整个删掉（不再是 sprite/img/emoji 三态混池，太空全 img、神庙 sprite+img 两态），emoji 无兜底、直接换真图。每套另留 11 只储备（`public/skins/{space,shrine}/reserve/`），扩池不用再出图。两皮肤 CREDITS.md 补记 AI 出图来源。
+- 下一步：真机持续使用收集反馈；迭代 2 其余（限时挑战需确认节奏 / 深海动物需先验 vosk）；皮肤储备怪兽池扩充（已有 22 只素材待挑用）。
 
 ## 关键决策（反复讨论后确定的边界，勿擅自推翻）
 1. **平台：只做 iPad Web**。不做手机 / 电脑 / 原生 App / Flutter（远期才议）。
-2. **交互：语音报答案为主 + 触控兜底**。不做手势 / 键盘。识别范围仅数字 `1-9` 和方向 `上下左右`。
+2. **交互：语音报答案为主 + 触控/键盘兜底**。不做手势。语音识别范围仅方向 `上下左右`（数字识别已弃用，见下方状态记录）；键盘作答（方向键/1-4/asdf/jkl;）后来补上，方便电脑调试和无语音场景。
 3. **训练驱动：节奏引导，不检测翻转**。不做任何摄像头 CV（虹膜测距 / 闭眼检测 / ArUco）。
    - 代价（已接受）：软件无法保证孩子真翻拍，有效性依赖诚实翻拍 + 家长偶尔监督。**家庭级够用，非临床级严谨**。CPM 为推算值。
 4. **数据：本地 IndexedDB**（Dexie.js）为可靠源；**已加本机 Node+SQLite 后端双写**（防丢/多设备读，见 server/）——注意是"本地服务"不是云，仍不做云同步 / 账号（远期）。

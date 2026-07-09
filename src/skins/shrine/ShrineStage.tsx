@@ -10,19 +10,20 @@ import { useT } from '../../i18n'
  * 素材 ansimuz CC0（Gothicvania），见 public/skins/shrine/CREDITS.md。
  */
 /** 守护者（怪兽）池：每题轮换一只，E 始终印在核心深色圆底上（铁律：看清优先）。
- *  sprite=CC0 精灵图（有质感）；emoji=占位大怪兽（真图渐进替换）。加怪兽只需 push 进池。
+ *  sprite=CC0 精灵图（8 帧待机动画）；img=Gemini AI 生成的静态图（4×4 网格一次出图，
+ *  见 docs/怪兽出图提示词.md）。加怪兽只需 push 进池。
  *  name 是翻译 key 的 slug（对应 i18n 的 shrine.guardian.<name>），非展示文本。 */
 type Guardian =
   | { kind: 'sprite'; src: string; frames: number; name: string }
-  | { kind: 'emoji'; char: string; name: string }
+  | { kind: 'img'; src: string; name: string }
 
 const GUARDIANS: Guardian[] = [
   { kind: 'sprite', src: asset('/skins/shrine/guardian-strip8.png'), frames: 8, name: 'skeleton' },
-  { kind: 'emoji', char: '🐉', name: 'dragon' },
-  { kind: 'emoji', char: '👹', name: 'oni' },
-  { kind: 'emoji', char: '🗿', name: 'statue' },
-  { kind: 'emoji', char: '👾', name: 'void' },
-  { kind: 'emoji', char: '🦂', name: 'scorpion' },
+  { kind: 'img', src: asset('/skins/shrine/dragon.webp'), name: 'dragon' },
+  { kind: 'img', src: asset('/skins/shrine/oni.webp'), name: 'oni' },
+  { kind: 'img', src: asset('/skins/shrine/statue.webp'), name: 'statue' },
+  { kind: 'img', src: asset('/skins/shrine/void.webp'), name: 'void' },
+  { kind: 'img', src: asset('/skins/shrine/scorpion.webp'), name: 'scorpion' },
 ]
 
 /** 第 seq 道视标（0-based，= 已答题数）对应的守护者，循环轮换整个池。 */
@@ -104,9 +105,7 @@ export function ShrineStage({ target, heightPx, phase, lastAnswer, isEgg }: Stag
           {guardian.kind === 'sprite' ? (
             <div style={{ position: 'absolute', inset: 0, backgroundImage: `url(${guardian.src})`, backgroundRepeat: 'no-repeat', animation: `fzpGuardian 0.9s steps(${guardian.frames}) infinite` }} />
           ) : (
-            <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 150, lineHeight: 1, filter: 'drop-shadow(0 0 10px rgba(140,50,10,0.85))' }}>
-              {guardian.char}
-            </div>
+            <img src={guardian.src} alt="" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'contain', imageRendering: 'pixelated' }} />
           )}
           {/* 怪兽名牌，强化"每题变形"的代入感 */}
           <div style={{ position: 'absolute', top: -28, left: '50%', transform: 'translateX(-50%)', fontSize: 11, letterSpacing: 1, color: '#ffd9a0', whiteSpace: 'nowrap', textShadow: '0 0 4px #000' }}>{t(`shrine.guardian.${guardian.name}`)}</div>

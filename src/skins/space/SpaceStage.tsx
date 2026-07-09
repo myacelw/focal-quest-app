@@ -5,24 +5,23 @@ import { asset } from '../../data/asset'
 import { useT } from '../../i18n'
 
 /**
- * 太空射击皮肤（真素材版）：NASA 星云背景 + Unlucky Studio CC0 战机/敌舰/爆炸帧。
+ * 太空射击皮肤（真素材版）：NASA 星云背景 + Unlucky Studio CC0 战机/敌舰/爆炸帧
+ * + Gemini AI 生成的 5 只敌人（4×4 网格一次出图，见 docs/怪兽出图提示词.md）。
  * 视标 E 印在敌舰核心上（读 E = 判断弱点相位）。
  * 答对 → 激光命中 → 爆炸序列帧；答错 → 红闪 + 战机抖；翻拍 → 跃迁速线。
  * 素材来源见 public/skins/space/CREDITS.md。
  */
-/** 敌人池：每题轮换一个承载视标 E。img=CC0 敌舰精灵（有质感）；emoji=占位敌人（真图渐进）。
+/** 敌人池：每题轮换一个承载视标 E，全部为静态图（无动画帧）。
  *  name 是翻译 key 的 slug（对应 i18n 的 space.enemy.<name>），非展示文本。 */
-type Enemy =
-  | { kind: 'img'; src: string; name: string }
-  | { kind: 'emoji'; char: string; name: string }
+type Enemy = { kind: 'img'; src: string; name: string }
 
 const ENEMIES: Enemy[] = [
   { kind: 'img', src: asset('/skins/space/enemy.png'), name: 'enemy' },
-  { kind: 'emoji', char: '🛸', name: 'ufo' },
-  { kind: 'emoji', char: '👾', name: 'alien' },
-  { kind: 'emoji', char: '☄️', name: 'meteor' },
-  { kind: 'emoji', char: '🤖', name: 'sentinel' },
-  { kind: 'emoji', char: '🪐', name: 'darkring' },
+  { kind: 'img', src: asset('/skins/space/ufo.webp'), name: 'ufo' },
+  { kind: 'img', src: asset('/skins/space/alien.webp'), name: 'alien' },
+  { kind: 'img', src: asset('/skins/space/meteor.webp'), name: 'meteor' },
+  { kind: 'img', src: asset('/skins/space/sentinel.webp'), name: 'sentinel' },
+  { kind: 'img', src: asset('/skins/space/darkring.webp'), name: 'darkring' },
 ]
 
 /** 第 seq 道视标（=已答题数）对应的敌人，循环轮换整个池 */
@@ -96,13 +95,7 @@ export function SpaceStage({ target, heightPx, phase, lastAnswer, isEgg }: Stage
             filter: isEgg ? 'drop-shadow(0 0 14px gold)' : 'none',
           }}
         >
-          {enemy.kind === 'img' ? (
-            <img src={enemy.src} alt="" width={enemySize} height={enemySize} style={{ display: 'block' }} />
-          ) : (
-            <div style={{ width: enemySize, height: enemySize, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: enemySize * 0.72, lineHeight: 1, filter: 'drop-shadow(0 0 12px rgba(120,180,255,0.6))' }}>
-              {enemy.char}
-            </div>
-          )}
+          <img src={enemy.src} alt="" width={enemySize} height={enemySize} style={{ display: 'block' }} />
           <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
             <span style={{ color: '#ffffff', filter: 'drop-shadow(0 0 3px #000) drop-shadow(0 0 1px #000)' }}>
               <TumblingE direction={target} heightPx={heightPx} />
