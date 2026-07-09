@@ -55,14 +55,15 @@ export function answer(state: SessionState, dir: Direction): SessionState {
 
 export function advance(state: SessionState, nextTarget: Direction): SessionState {
   if (state.phase !== 'transitioning') return state
-  const isEgg = state.correctStreak >= EGG_THRESHOLD
+  // 连击持续累加（只在答错时清零，见 answer）；彩蛋每逢 EGG_THRESHOLD 的倍数触发一次，
+  // 不再重置连击——两者解耦，连击可以一直涨。
+  const isEgg = state.correctStreak > 0 && state.correctStreak % EGG_THRESHOLD === 0
   return {
     ...state,
     phase: 'showing',
     target: nextTarget,
     flips: state.flips + 1,
     isEgg,
-    correctStreak: isEgg ? 0 : state.correctStreak,
   }
 }
 

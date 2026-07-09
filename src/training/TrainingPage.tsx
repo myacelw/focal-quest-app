@@ -33,6 +33,12 @@ function readDurationSec(): number {
   return v ? Number(v) : DURATION_SEC
 }
 
+// 翻拍过渡时长（ms）：给孩子留出物理翻拍的时间，设置页可调（快/适中/慢）
+function readFlipMs(): number {
+  const v = lsGet('fzp.flipMs')
+  return v ? Number(v) : TRANSITION_MS
+}
+
 export function TrainingPage() {
   const [muted, setMutedState] = useState(false)
   const [session, setSession] = useState<SessionState>(() => createSession('left', readDurationSec()))
@@ -46,6 +52,7 @@ export function TrainingPage() {
   const [comboFx, setComboFx] = useState<{ n: number; key: number } | null>(null)
 
   const pxPerMm = readPxPerMm()
+  const flipMs = readFlipMs()
   const sessionRef = useRef(session)
   const voskRef = useRef<VoskController | null>(null)
   const savedRef = useRef(false)
@@ -55,6 +62,7 @@ export function TrainingPage() {
   const sumReactionRef = useRef(0)
   const reactionCountRef = useRef(0)
   const pausedRef = useRef(false)
+  const handleAnswerRef = useRef<(d: Direction) => void>(() => {})
 
   useEffect(() => { sessionRef.current = session }, [session])
   useEffect(() => { setMuted(muted) }, [muted])
@@ -127,8 +135,30 @@ export function TrainingPage() {
           ? advance(cur, pickDirection(cur.target, Math.random()))
           : cur,
       )
-    }, TRANSITION_MS)
+    }, flipMs)
   }
+  handleAnswerRef.current = handleAnswer
+
+  // 键盘作答：方向键最直观；1-4 / asdf / jkl; 按屏幕按钮顺序(上下左右)映射，方便单手/无语音时用。
+  // 若将来出现数字视标，同样把 1-9 对到对应选项即可。
+  useEffect(() => {
+    const KEY_MAP: Record<string, Direction> = {
+      arrowup: 'up', arrowdown: 'down', arrowleft: 'left', arrowright: 'right',
+      '1': 'up', '2': 'down', '3': 'left', '4': 'right',
+      a: 'up', s: 'down', d: 'left', f: 'right',
+      j: 'up', k: 'down', l: 'left', ';': 'right',
+    }
+    const onKey = (e: KeyboardEvent) => {
+      const t = e.target as HTMLElement | null
+      if (t && /^(input|textarea|select)$/i.test(t.tagName)) return
+      const dir = KEY_MAP[e.key.toLowerCase()]
+      if (!dir) return
+      e.preventDefault()
+      handleAnswerRef.current(dir)
+    }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [])
 
   function beginSession() {
     // 立即出视标（触控就能玩），vosk 后台异步加载——不让用户干等 42MB 模型
@@ -354,7 +384,7 @@ export function TrainingPage() {
             <div style={{ textAlign: 'center', animation: 'fzpGuideIn 0.35s cubic-bezier(0.2,0.8,0.2,1) both' }}>
               <div
                 className="fzp-flip-icon"
-                style={{ fontSize: 68, animation: 'fzpFlip3d 1.4s ease-in-out infinite', filter: 'drop-shadow(0 4px 10px rgba(108,75,240,0.28))' }}
+                style={{ fontSize: 68, animation: `fzpFlip3d ${flipMs}ms ease-in-out infinite`, filter: 'drop-shadow(0 4px 10px rgba(108,75,240,0.28))' }}
               >
                 🔄
               </div>
@@ -362,7 +392,7 @@ export function TrainingPage() {
                 翻转拍子
               </div>
               <div style={{ width: 168, height: 7, background: 'rgba(108,75,240,0.15)', borderRadius: 99, margin: '16px auto 0', overflow: 'hidden' }}>
-                <div style={{ height: '100%', background: 'linear-gradient(90deg, var(--violet), var(--coral))', borderRadius: 99, animation: 'fzpFlipBar 1.6s linear forwards' }} />
+                <div style={{ height: '100%', background: 'linear-gradient(90deg, var(--violet), var(--coral))', borderRadius: 99, animation: `fzpFlipBar ${flipMs}ms linear forwards` }} />
               </div>
             </div>
           </div>

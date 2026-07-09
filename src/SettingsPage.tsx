@@ -25,6 +25,10 @@ export function SettingsPage({ onReplayGuide, onOpenSpeech, onOpenCalib }: { onR
     const v = lsGet('fzp.flipperD')
     return v ? Number(v) : 2
   })
+  const [flipMs, setFlipMs] = useState(() => {
+    const v = lsGet('fzp.flipMs')
+    return v ? Number(v) : 1600
+  })
   const [skinId, setSkinIdState] = useState(() => getSkinId())
   const [totalPoints, setTotalPoints] = useState<number | null>(null)
 
@@ -34,6 +38,7 @@ export function SettingsPage({ onReplayGuide, onOpenSpeech, onOpenCalib }: { onR
   useEffect(() => { lsSet('fzp.optotypeSizeMm', String(sizeMm)) }, [sizeMm])
   useEffect(() => { lsSet('fzp.durationSec', String(durationSec)) }, [durationSec])
   useEffect(() => { lsSet('fzp.flipperD', String(flipperD)) }, [flipperD])
+  useEffect(() => { lsSet('fzp.flipMs', String(flipMs)) }, [flipMs])
 
   const pxPerMm = readPxPerMm()
   const tp = totalPoints ?? 0
@@ -90,6 +95,17 @@ export function SettingsPage({ onReplayGuide, onOpenSpeech, onOpenCalib }: { onR
           {[60, 120, 180, 300].map((sec) => (
             <button key={sec} className={durationSec === sec ? 'on' : ''} onClick={() => setDurationSec(sec)}>
               {sec / 60}分
+            </button>
+          ))}
+        </div>
+      </div>
+
+      <div className="fq-card" style={{ marginTop: 14, display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 8 }}>
+        <span style={{ fontSize: 14, fontWeight: 700 }}>🔄 翻拍速度</span>
+        <div className="fq-seg">
+          {[{ ms: 1000, label: '快' }, { ms: 1600, label: '适中' }, { ms: 2200, label: '慢' }].map((o) => (
+            <button key={o.ms} className={flipMs === o.ms ? 'on' : ''} onClick={() => setFlipMs(o.ms)}>
+              {o.label}
             </button>
           ))}
         </div>

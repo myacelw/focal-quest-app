@@ -98,14 +98,18 @@ describe('egg (surprise) logic', () => {
     s = answer(s, 'up') // wrong: target is left
     expect(s.correctStreak).toBe(0)
   })
-  it('advance makes next an egg at threshold, then resets streak', () => {
+  it('egg fires at threshold but streak keeps climbing (不清零)', () => {
     const s: SessionState = { ...createSession('left', 180), phase: 'transitioning', correctStreak: EGG_THRESHOLD }
     const n = advance(s, 'up')
     expect(n.isEgg).toBe(true)
-    expect(n.correctStreak).toBe(0)
+    expect(n.correctStreak).toBe(EGG_THRESHOLD) // 连击持续，不再重置
   })
-  it('advance keeps non-egg below threshold', () => {
-    const s: SessionState = { ...createSession('left', 180), phase: 'transitioning', correctStreak: 2 }
-    expect(advance(s, 'up').isEgg).toBe(false)
+  it('egg fires only on multiples of threshold, combo grows forever', () => {
+    const mk = (streak: number) =>
+      advance({ ...createSession('left', 180), phase: 'transitioning', correctStreak: streak }, 'up')
+    expect(mk(2).isEgg).toBe(false)
+    expect(mk(EGG_THRESHOLD).isEgg).toBe(true) // 5
+    expect(mk(EGG_THRESHOLD + 1).isEgg).toBe(false) // 6
+    expect(mk(2 * EGG_THRESHOLD).isEgg).toBe(true) // 10
   })
 })
