@@ -1,33 +1,37 @@
 import type { BadgeDef } from './badge-defs'
 import { BADGES } from './badge-defs'
 import { asset } from '../data/asset'
+import { useT } from '../i18n'
 
-const METRIC_SUFFIX: Record<BadgeDef['metric'], string> = {
-  maxStreak: '天',
-  totalSessions: '节',
-  totalSec: '秒',
-  maxCpm: 'CPM',
-  maxAccuracy: '',
-  totalCorrect: '题',
+type T = (key: string, params?: Record<string, string | number>) => string
+
+function metricSuffix(metric: BadgeDef['metric'], t: T): string {
+  const KEY: Record<BadgeDef['metric'], string> = {
+    maxStreak: 'unit.day',
+    totalSessions: 'unit.session',
+    totalSec: 'unit.minute',
+    maxCpm: 'unit.cpm',
+    maxAccuracy: 'unit.percent',
+    totalCorrect: 'unit.question',
+  }
+  return t(KEY[metric])
 }
 
 /** 达标目标文案，如 "7天" / "10CPM" / "90%"（解锁后也保留，说明这枚徽章代表什么） */
-function goalText(def: BadgeDef): string {
-  if (def.metric === 'maxAccuracy') return `${Math.round(def.threshold * 100)}%`
+function goalText(def: BadgeDef, t: T): string {
+  if (def.metric === 'maxAccuracy') return `${Math.round(def.threshold * 100)}${metricSuffix(def.metric, t)}`
   const thr = def.metric === 'totalSec' ? Math.round(def.threshold / 60) : def.threshold
-  const suffix = def.metric === 'totalSec' ? '分' : METRIC_SUFFIX[def.metric]
-  return `${thr}${suffix}`
+  return `${thr}${metricSuffix(def.metric, t)}`
 }
 
 /** 未解锁时的进度文案，如 "5/7 天" */
-function progressText(def: BadgeDef, current: number): string {
+function progressText(def: BadgeDef, current: number, t: T): string {
   if (def.metric === 'maxAccuracy') {
-    return `${Math.round(current * 100)}/${Math.round(def.threshold * 100)}%`
+    return `${Math.round(current * 100)}/${Math.round(def.threshold * 100)}${metricSuffix(def.metric, t)}`
   }
   const cur = def.metric === 'totalSec' ? Math.round(current / 60) : Math.floor(current)
   const thr = def.metric === 'totalSec' ? Math.round(def.threshold / 60) : def.threshold
-  const suffix = def.metric === 'totalSec' ? '分' : METRIC_SUFFIX[def.metric]
-  return `${cur}/${thr}${suffix}`
+  return `${cur}/${thr}${metricSuffix(def.metric, t)}`
 }
 
 /**
@@ -44,6 +48,8 @@ export function spritePos(id: string): { sheet: 1 | 2; row: number; col: number 
 }
 
 export function BadgeCard({ def, unlocked, current }: { def: BadgeDef; unlocked: boolean; current: number }) {
+  const t = useT()
+  const name = t(`badge.${def.id}`)
   const { sheet, row, col } = spritePos(def.id)
   return (
     <div
@@ -56,7 +62,7 @@ export function BadgeCard({ def, unlocked, current }: { def: BadgeDef; unlocked:
         border: unlocked ? '1.5px solid #ffd93d' : '1px solid var(--line)',
         boxShadow: unlocked ? '0 8px 18px -8px rgba(255,180,0,0.4)' : '0 6px 14px -8px rgba(124,108,240,0.2)',
       }}
-      title={def.name}
+      title={name}
     >
       {/* 96×96 图标：从 4×4 宫格图切片，圆环边框是图自带的 */}
       <div
@@ -72,9 +78,9 @@ export function BadgeCard({ def, unlocked, current }: { def: BadgeDef; unlocked:
           filter: unlocked ? 'none' : 'grayscale(1)',
         }}
       />
-      <div style={{ fontSize: 14, marginTop: 8, fontWeight: 700, color: unlocked ? 'var(--ink)' : 'var(--muted)' }}>{def.name}</div>
+      <div style={{ fontSize: 14, marginTop: 8, fontWeight: 700, color: unlocked ? 'var(--ink)' : 'var(--muted)' }}>{name}</div>
       <div style={{ fontSize: 12, marginTop: 3, fontWeight: unlocked ? 700 : 400, color: unlocked ? '#e0a400' : 'var(--muted)' }}>
-        {unlocked ? `✓ ${goalText(def)}` : progressText(def, current)}
+        {unlocked ? `✓ ${goalText(def, t)}` : progressText(def, current, t)}
       </div>
     </div>
   )

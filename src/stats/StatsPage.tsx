@@ -85,7 +85,7 @@ export function StatsPage() {
           </div>
         </div>
         <div style={{ fontSize: 13, background: 'rgba(255,255,255,0.18)', borderRadius: 10, padding: '9px 12px' }}>
-          💡 {report.suggestion}
+          💡 {t(`stats.${report.suggestionKey}`)}
         </div>
       </div>
 
@@ -103,7 +103,7 @@ export function StatsPage() {
       </div>
 
       <p style={{ fontSize: 12, color: 'var(--muted)', lineHeight: 1.6, marginTop: 16, textAlign: 'center' }}>
-        💡 答对率越高，越说明孩子真的透过镜片调节看清了——这是训练有效的直接证明。
+        {t('stats.effectivenessTip')}
       </p>
     </div>
   )

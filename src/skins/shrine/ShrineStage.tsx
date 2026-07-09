@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { TumblingE } from '../../training/TumblingE'
 import type { StageProps } from '../types'
 import { asset } from '../../data/asset'
+import { useT } from '../../i18n'
 
 /**
  * 神庙勇者皮肤（塞尔达风，像素艺术）：古神庙里火焰骷髅守护者的核心符文（视标 E）指示弱点。
@@ -9,18 +10,19 @@ import { asset } from '../../data/asset'
  * 素材 ansimuz CC0（Gothicvania），见 public/skins/shrine/CREDITS.md。
  */
 /** 守护者（怪兽）池：每题轮换一只，E 始终印在核心深色圆底上（铁律：看清优先）。
- *  sprite=CC0 精灵图（有质感）；emoji=占位大怪兽（真图渐进替换）。加怪兽只需 push 进池。 */
+ *  sprite=CC0 精灵图（有质感）；emoji=占位大怪兽（真图渐进替换）。加怪兽只需 push 进池。
+ *  name 是翻译 key 的 slug（对应 i18n 的 shrine.guardian.<name>），非展示文本。 */
 type Guardian =
   | { kind: 'sprite'; src: string; frames: number; name: string }
   | { kind: 'emoji'; char: string; name: string }
 
 const GUARDIANS: Guardian[] = [
-  { kind: 'sprite', src: asset('/skins/shrine/guardian-strip8.png'), frames: 8, name: '火焰骷髅' },
-  { kind: 'emoji', char: '🐉', name: '青焰龙' },
-  { kind: 'emoji', char: '👹', name: '赤角鬼' },
-  { kind: 'emoji', char: '🗿', name: '远古像' },
-  { kind: 'emoji', char: '👾', name: '虚空魔' },
-  { kind: 'emoji', char: '🦂', name: '毒尾蝎' },
+  { kind: 'sprite', src: asset('/skins/shrine/guardian-strip8.png'), frames: 8, name: 'skeleton' },
+  { kind: 'emoji', char: '🐉', name: 'dragon' },
+  { kind: 'emoji', char: '👹', name: 'oni' },
+  { kind: 'emoji', char: '🗿', name: 'statue' },
+  { kind: 'emoji', char: '👾', name: 'void' },
+  { kind: 'emoji', char: '🦂', name: 'scorpion' },
 ]
 
 /** 第 seq 道视标（0-based，= 已答题数）对应的守护者，循环轮换整个池。 */
@@ -36,6 +38,7 @@ const HERO = {
 }
 
 export function ShrineStage({ target, heightPx, phase, lastAnswer, isEgg }: StageProps) {
+  const t = useT()
   const [fx, setFx] = useState<{ correct: boolean; key: number } | null>(null)
   const [spirits, setSpirits] = useState(0)
   const [shrines, setShrines] = useState(1)
@@ -49,8 +52,8 @@ export function ShrineStage({ target, heightPx, phase, lastAnswer, isEgg }: Stag
         return n + 1
       })
     }
-    const t = window.setTimeout(() => setFx(null), 800)
-    return () => window.clearTimeout(t)
+    const timer = window.setTimeout(() => setFx(null), 800)
+    return () => window.clearTimeout(timer)
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [lastAnswer?.seq])
 
@@ -78,7 +81,7 @@ export function ShrineStage({ target, heightPx, phase, lastAnswer, isEgg }: Stag
 
       {/* 计数 */}
       <div style={{ position: 'absolute', top: 10, left: 12, fontSize: 12, background: 'rgba(0,0,0,0.5)', border: '1px solid #2f6b5c', borderRadius: 99, padding: '3px 12px', color: '#c2ffe9', zIndex: 5 }}>
-        ✨ 精灵 {spirits}/10 · ⛩️ 神庙 {shrines}
+        {t('shrine.counter', { spirits, shrines })}
       </div>
 
       {/* 答错红闪 */}
@@ -106,7 +109,7 @@ export function ShrineStage({ target, heightPx, phase, lastAnswer, isEgg }: Stag
             </div>
           )}
           {/* 怪兽名牌，强化"每题变形"的代入感 */}
-          <div style={{ position: 'absolute', top: -28, left: '50%', transform: 'translateX(-50%)', fontSize: 11, letterSpacing: 1, color: '#ffd9a0', whiteSpace: 'nowrap', textShadow: '0 0 4px #000' }}>{guardian.name}</div>
+          <div style={{ position: 'absolute', top: -28, left: '50%', transform: 'translateX(-50%)', fontSize: 11, letterSpacing: 1, color: '#ffd9a0', whiteSpace: 'nowrap', textShadow: '0 0 4px #000' }}>{t(`shrine.guardian.${guardian.name}`)}</div>
           {/* 符文 E：深色圆底保证对比（铁律一：看清优先） */}
           <div style={{ position: 'absolute', top: '52%', left: '50%', transform: 'translate(-50%,-50%)', background: 'rgba(0,0,0,0.6)', borderRadius: '50%', padding: Math.max(6, heightPx * 0.4), display: 'flex' }}>
             <span style={{ color: '#ffffff' }}>
@@ -120,7 +123,7 @@ export function ShrineStage({ target, heightPx, phase, lastAnswer, isEgg }: Stag
       {/* 翻拍：符文重组 */}
       {transitioning && !hit && (
         <div style={{ position: 'absolute', top: '36%', left: '50%', transform: 'translate(-50%,-50%)', color: '#8fe8c8', fontSize: 16, textShadow: '0 0 8px #031', zIndex: 3 }}>
-          符文重组中…
+          {t('shrine.reforging')}
         </div>
       )}
 

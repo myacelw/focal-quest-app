@@ -3,6 +3,7 @@ import { parseAnswer, isCorrect, labelOf, type Answer } from './answer-mapping'
 import { recognizeOnce, isWebSpeechSupported } from './webspeech'
 import { startVosk, type VoskController } from './vosk'
 import { asset } from '../data/asset'
+import { useT } from '../i18n'
 
 type Engine = 'A' | 'B'
 
@@ -19,6 +20,7 @@ const VOSK_MODEL_URL = asset('/models/vosk-model-small-cn-0.22.tar.gz')
 const VOSK_GRAMMAR = ['一 二 三 四 五 六 七 八 九 上 下 左 右']
 
 export function SpeechTestPage() {
+  const t = useT()
   const [engine, setEngine] = useState<Engine>('A')
   const [idx, setIdx] = useState(0)
   const [log, setLog] = useState<string[]>([])
@@ -32,11 +34,17 @@ export function SpeechTestPage() {
 
   const target = TARGETS[idx % TARGETS.length]
 
-  function record(t: Answer, transcript: string, elapsedMs: number) {
+  function record(target: Answer, transcript: string, elapsedMs: number) {
     const parsed = parseAnswer(transcript)
-    const ok = isCorrect(parsed, t)
+    const ok = isCorrect(parsed, target)
     setLog((l) => [
-      `目标"${labelOf(t)}" | 识别"${transcript}" | 解析${parsed ? labelOf(parsed) : '∅'} | ${ok ? '✓' : '✗'} | ${elapsedMs.toFixed(0)}ms`,
+      t('speech.logLine', {
+        target: labelOf(target),
+        transcript,
+        parsed: parsed ? labelOf(parsed) : t('speech.parsedNone'),
+        ok: ok ? '✓' : '✗',
+        ms: elapsedMs.toFixed(0),
+      }),
       ...l,
     ])
     setStats((s) => ({
@@ -50,12 +58,12 @@ export function SpeechTestPage() {
   // 方案 A：一次性识别
   async function listenA() {
     setBusy(true)
-    const t = target
+    const tgt = target
     try {
       const { transcript, elapsedMs } = await recognizeOnce('zh-CN', 6000)
-      record(t, transcript, elapsedMs)
+      record(tgt, transcript, elapsedMs)
     } catch (e) {
-      setLog((l) => [`错误：${(e as Error).message}`, ...l])
+      setLog((l) => [t('speech.error', { msg: (e as Error).message }), ...l])
     } finally {
       setBusy(false)
     }
@@ -75,12 +83,12 @@ export function SpeechTestPage() {
           armedRef.current = null
           record(armed.target, text, performance.now() - armed.t0)
         },
-        onError: (err) => setLog((l) => [`vosk 错误：${err.message}`, ...l]),
+        onError: (err) => setLog((l) => [t('speech.voskError', { msg: err.message }), ...l]),
       })
       setVoskReady(true)
       setVoskLoadMs(performance.now() - t0)
     } catch (e) {
-      setLog((l) => [`加载失败：${(e as Error).message}`, ...l])
+      setLog((l) => [t('speech.loadFailed', { msg: (e as Error).message }), ...l])
     } finally {
       setBusy(false)
     }
@@ -89,7 +97,7 @@ export function SpeechTestPage() {
   // 方案 B：武装一次，下一个识别结果作为本题答案
   function listenB() {
     armedRef.current = { target, t0: performance.now() }
-    setLog((l) => [`（正在听「${labelOf(target)}」…请说）`, ...l])
+    setLog((l) => [t('speech.listening', { target: labelOf(target) }), ...l])
   }
 
   function switchEngine(next: Engine) {
@@ -108,56 +116,56 @@ export function SpeechTestPage() {
 
   return (
     <div className="fq-page fq-rise">
-      <h2 className="fq-h2">🎤 语音测试</h2>
-      <p className="fq-sub">开发调试用：对比两种语音识别方案的准确率和延迟。</p>
+      <h2 className="fq-h2">{t('speech.title')}</h2>
+      <p className="fq-sub">{t('speech.sub')}</p>
 
       <div className="fq-seg" style={{ marginTop: 14, display: 'flex' }}>
         <button className={engine === 'A' ? 'on' : ''} onClick={() => switchEngine('A')} style={{ flex: 1 }}>
-          方案A · 云
+          {t('speech.engineA')}
         </button>
         <button className={engine === 'B' ? 'on' : ''} onClick={() => switchEngine('B')} style={{ flex: 1 }}>
-          方案B · 离线
+          {t('speech.engineB')}
         </button>
       </div>
 
       {engine === 'A' && !isWebSpeechSupported() && (
-        <p style={{ color: 'var(--coral)', marginTop: 10, fontSize: 13 }}>此浏览器不支持 Web Speech API。</p>
+        <p style={{ color: 'var(--coral)', marginTop: 10, fontSize: 13 }}>{t('speech.noWebSpeech')}</p>
       )}
 
       <div className="fq-card" style={{ marginTop: 14, textAlign: 'center' }}>
-        <div style={{ fontSize: 13, color: 'var(--muted)' }}>请说出</div>
+        <div style={{ fontSize: 13, color: 'var(--muted)' }}>{t('speech.sayThis')}</div>
         <div style={{ fontSize: 52, fontWeight: 800, color: 'var(--violet)', margin: '4px 0 16px' }}>{labelOf(target)}</div>
         {engine === 'A' ? (
           <button className="fq-cta" style={{ width: '100%' }} onClick={listenA} disabled={busy}>
-            {busy ? '识别中…' : '🎙️ 开始说'}
+            {busy ? t('speech.recognizing') : t('speech.startSpeaking')}
           </button>
         ) : !voskReady ? (
           <button className="fq-cta" style={{ width: '100%' }} onClick={loadVosk} disabled={busy}>
-            {busy ? '加载模型中…' : '⬇️ 加载离线模型（首次较慢）'}
+            {busy ? t('speech.loadingModel') : t('speech.loadModel')}
           </button>
         ) : (
           <button className="fq-cta" style={{ width: '100%' }} onClick={listenB}>
-            🎙️ 开始说
+            {t('speech.startSpeaking')}
           </button>
         )}
       </div>
 
       <div className="fq-card" style={{ marginTop: 14, display: 'flex', alignItems: 'center' }}>
-        <div className="fq-stat"><div className="n">{acc}%</div><div className="l">准确率</div></div>
+        <div className="fq-stat"><div className="n">{acc}%</div><div className="l">{t('speech.accuracy')}</div></div>
         <div style={{ width: 1, height: 36, background: 'var(--line)' }} />
-        <div className="fq-stat"><div className="n">{avg}</div><div className="l">延迟 ms</div></div>
+        <div className="fq-stat"><div className="n">{avg}</div><div className="l">{t('speech.latency')}</div></div>
         <div style={{ width: 1, height: 36, background: 'var(--line)' }} />
-        <div className="fq-stat"><div className="n">{stats.total}</div><div className="l">样本</div></div>
+        <div className="fq-stat"><div className="n">{stats.total}</div><div className="l">{t('speech.samples')}</div></div>
       </div>
       {engine === 'B' && voskLoadMs !== null && (
         <p style={{ fontSize: 12, color: 'var(--muted)', textAlign: 'center', marginTop: 8 }}>
-          模型加载 {voskLoadMs.toFixed(0)}ms
+          {t('speech.modelLoadTime', { ms: voskLoadMs.toFixed(0) })}
         </p>
       )}
 
       {log.length > 0 && (
         <div className="fq-card" style={{ marginTop: 14 }}>
-          <div className="fq-card-title">📋 识别日志</div>
+          <div className="fq-card-title">{t('speech.log')}</div>
           <ul style={{ fontFamily: 'ui-monospace, monospace', fontSize: 12, margin: 0, padding: 0, listStyle: 'none', color: 'var(--muted)' }}>
             {log.map((line, i) => (
               <li key={i} style={{ padding: '5px 0', borderBottom: i < log.length - 1 ? '1px solid var(--line)' : 'none' }}>

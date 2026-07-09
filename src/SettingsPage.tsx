@@ -5,7 +5,7 @@ import { getHomeStats } from './data/checkin'
 import { lsGet, lsSet } from './data/storage'
 import { toDateStr } from './data/date-utils'
 import { getSkin, getSkinId, setSkinId, isSkinUnlocked, skinUnlockCost, SKINS } from './skins/registry'
-import { useT, useLang, setLang, type Lang } from './i18n'
+import { useT, useLang, setLang, type Lang, Rich } from './i18n'
 
 function readPxPerMm(): number | null {
   const v = lsGet('fzp.cssPxPerMm')
@@ -78,7 +78,7 @@ export function SettingsPage({ onReplayGuide, onOpenSpeech, onOpenCalib }: { onR
           <>
             <div style={{ fontSize: 14 }}>
               <b style={{ color: 'var(--violet)' }}>{sizeMm.toFixed(1)} mm</b>
-              <span style={{ color: 'var(--muted)' }}>（≈ {acuityFromHeightMm(sizeMm).toFixed(2)} 视力）</span>
+              <span style={{ color: 'var(--muted)' }}>{t('settings.acuity', { v: acuityFromHeightMm(sizeMm).toFixed(2) })}</span>
             </div>
             <input
               type="range"
@@ -92,10 +92,10 @@ export function SettingsPage({ onReplayGuide, onOpenSpeech, onOpenCalib }: { onR
             <div style={{ marginTop: 12, display: 'grid', placeItems: 'center', minHeight: 56, color: 'var(--ink)' }}>
               <TumblingE direction="up" heightPx={sizeMm * pxPerMm} />
             </div>
-            <p style={{ fontSize: 12, color: 'var(--muted)', marginTop: 6 }}>调到孩子透过负镜片要努力才看清的大小——太大没训练强度，太小易放弃（实测约 0.7mm）</p>
+            <p style={{ fontSize: 12, color: 'var(--muted)', marginTop: 6 }}>{t('settings.optotypeHint')}</p>
           </>
         ) : (
-          <p style={{ fontSize: 13, color: 'var(--muted)' }}>请先用上方「📐 屏幕标定」完成校准，才能设视标大小。</p>
+          <p style={{ fontSize: 13, color: 'var(--muted)' }}>{t('settings.optotypeNeedCalib')}</p>
         )}
       </div>
 
@@ -144,7 +144,7 @@ export function SettingsPage({ onReplayGuide, onOpenSpeech, onOpenCalib }: { onR
                 key={s.id}
                 className="fq-btn"
                 disabled={!unlocked}
-                title={unlocked ? s.name : `练满 ${cost} 分解锁`}
+                title={unlocked ? t(`skin.${s.id}`) : t('settings.skinLocked', { n: cost })}
                 onClick={() => { if (!unlocked) return; setSkinId(s.id); setSkinIdState(s.id) }}
                 style={{
                   background: sel ? 'var(--violet)' : '#fff',
@@ -154,18 +154,18 @@ export function SettingsPage({ onReplayGuide, onOpenSpeech, onOpenCalib }: { onR
                   cursor: unlocked ? 'pointer' : 'not-allowed',
                 }}
               >
-                {unlocked ? '' : '🔒 '}{s.name}
+                {unlocked ? '' : '🔒 '}{t(`skin.${s.id}`)}
               </button>
             )
           })}
         </div>
         <div style={{ fontSize: 12, color: 'var(--muted)', marginTop: 10 }}>
-          ⭐ 累计 {tp} 分
+          {t('settings.skinTotal', { n: tp })}
           {(() => {
             const locked = SKINS.filter((s) => !isSkinUnlocked(s.id, tp))
-            if (locked.length === 0) return ' · 已全部解锁 🎉'
+            if (locked.length === 0) return t('settings.skinAllUnlocked')
             const nearest = Math.min(...locked.map((s) => skinUnlockCost(s.id)))
-            return ` · 再练 ${nearest - tp} 分解锁新皮肤`
+            return t('settings.skinNeedMore', { n: nearest - tp })
           })()}
         </div>
         <div style={{ maxWidth: 200, margin: '12px auto 0', borderRadius: 14, overflow: 'hidden' }}>
@@ -181,10 +181,10 @@ export function SettingsPage({ onReplayGuide, onOpenSpeech, onOpenCalib }: { onR
       <div className="fq-card" style={{ marginTop: 14 }}>
         <div className="fq-card-title">{t('settings.about')}</div>
         <ul style={{ fontSize: 13, color: 'var(--muted)', lineHeight: 1.75, paddingLeft: 18, margin: 0 }}>
-          <li>软件负责节奏引导和记录；真正的调节训练靠孩子透过拍子<b>努力看清</b>再翻转。</li>
-          <li>坐正、离屏幕约 <b>40cm</b>、遮好单眼——距离和遮眼直接影响效果。</li>
-          <li>坚持<b>每天练</b>，调节训练通常 <b>4–6 周</b>才逐渐见效，别几天没效果就放弃。</li>
-          <li>CPM / 反应时间是<b>趋势参考</b>（和自己比、在变快就是进步），不是医学诊断；需专业评估请找视光师。</li>
+          <li><Rich text={t('settings.about.li1')} /></li>
+          <li><Rich text={t('settings.about.li2')} /></li>
+          <li><Rich text={t('settings.about.li3')} /></li>
+          <li><Rich text={t('settings.about.li4')} /></li>
         </ul>
       </div>
 

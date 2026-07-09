@@ -1,4 +1,5 @@
 import type { Direction } from '../speech/answer-mapping'
+import { useT } from '../i18n'
 
 /** Tumbling E 开口朝向 → 旋转角度（基准 E 开口朝右 = 0°，顺时针） */
 export function directionToRotation(dir: Direction): number {
@@ -15,13 +16,14 @@ export function directionToRotation(dir: Direction): number {
  * 颜色继承 currentColor。
  */
 export function TumblingE({ direction, heightPx }: { direction: Direction; heightPx: number }) {
+  const t = useT()
   return (
     <svg
       width={heightPx}
       height={heightPx}
       viewBox="0 0 5 5"
       role="img"
-      aria-label={`视标 E 朝${direction}`}
+      aria-label={t('tumblingE.ariaLabel', { dir: t(`direction.${direction}`) })}
       style={{ transform: `rotate(${directionToRotation(direction)}deg)`, color: 'inherit' }}
     >
       <g fill="currentColor">

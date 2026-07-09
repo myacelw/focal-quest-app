@@ -13,7 +13,7 @@ describe('weeklyReport', () => {
   it('本周无记录 → 提示开始', () => {
     const r = weeklyReport([], TODAY)
     expect(r.thisWeekCount).toBe(0)
-    expect(r.suggestion).toContain('今天开始')
+    expect(r.suggestionKey).toBe('suggest.noSessions')
   })
 
   it('统计本周/上周次数', () => {
@@ -25,19 +25,19 @@ describe('weeklyReport', () => {
   it('高正确率 → 建议调小视标（难度进阶）', () => {
     const r = weeklyReport([s('2026-07-07', 10, 10, 1500)], TODAY)
     expect(r.accuracy).toBe(1)
-    expect(r.suggestion).toContain('视标调小')
+    expect(r.suggestionKey).toBe('suggest.highAccuracy')
   })
 
   it('反应比上周快 → 进步鼓励', () => {
     const r = weeklyReport([s('2026-07-07', 6, 10, 1200), s('2026-06-30', 6, 10, 2000)], TODAY)
     expect(r.reactionTrend).toBe('faster')
     expect(r.avgReactionSec).toBe(1.2)
-    expect(r.suggestion).toContain('进步')
+    expect(r.suggestionKey).toBe('suggest.reactionFaster')
   })
 
   it('正确率偏低 → 提醒家长', () => {
     const r = weeklyReport([s('2026-07-07', 3, 10, 1500)], TODAY)
-    expect(r.suggestion).toContain('正确率偏低')
+    expect(r.suggestionKey).toBe('suggest.lowAccuracy')
   })
 
   it('缺一周数据 → 趋势为 null', () => {

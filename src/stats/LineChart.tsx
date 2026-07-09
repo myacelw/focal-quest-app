@@ -1,8 +1,11 @@
+import { useT } from '../i18n'
+
 export function LineChart({ values, labels, unit }: { values: number[]; labels: string[]; unit?: string }) {
+  const t = useT()
   const W = 320
   const H = 160
   const pad = 28
-  if (values.length === 0) return <p style={{ color: 'var(--muted)' }}>暂无数据</p>
+  if (values.length === 0) return <p style={{ color: 'var(--muted)' }}>{t('chart.noData')}</p>
 
   const max = Math.max(...values, 1)
   const min = Math.min(...values, 0)
@@ -14,7 +17,7 @@ export function LineChart({ values, labels, unit }: { values: number[]; labels: 
   const area = `${x(0)},${H - pad} ${pts} ${x(n - 1)},${H - pad}`
 
   return (
-    <svg width="100%" viewBox={`0 0 ${W} ${H}`} role="img" aria-label="折线图" style={{ display: 'block' }}>
+    <svg width="100%" viewBox={`0 0 ${W} ${H}`} role="img" aria-label={t('chart.lineLabel')} style={{ display: 'block' }}>
       <defs>
         <linearGradient id="lcFill" x1="0" y1="0" x2="0" y2="1">
           <stop offset="0%" stopColor="#6c4bf0" stopOpacity="0.28" />

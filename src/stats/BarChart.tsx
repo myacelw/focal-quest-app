@@ -1,8 +1,11 @@
+import { useT } from '../i18n'
+
 export function BarChart({ values, labels }: { values: number[]; labels: string[] }) {
+  const t = useT()
   const W = 320
   const H = 160
   const pad = 28
-  if (values.length === 0) return <p style={{ color: 'var(--muted)' }}>暂无数据</p>
+  if (values.length === 0) return <p style={{ color: 'var(--muted)' }}>{t('chart.noData')}</p>
 
   const max = Math.max(...values, 1)
   const n = values.length
@@ -10,7 +13,7 @@ export function BarChart({ values, labels }: { values: number[]; labels: string[
   const bw = Math.min(slot * 0.6, 30)
 
   return (
-    <svg width="100%" viewBox={`0 0 ${W} ${H}`} role="img" aria-label="柱状图" style={{ display: 'block' }}>
+    <svg width="100%" viewBox={`0 0 ${W} ${H}`} role="img" aria-label={t('chart.barLabel')} style={{ display: 'block' }}>
       <defs>
         <linearGradient id="bcFill" x1="0" y1="0" x2="0" y2="1">
           <stop offset="0%" stopColor="#8b6cff" />

@@ -103,7 +103,7 @@ export function HomePage({ onStart }: { onStart: () => void }) {
                 return (
                   <span key={s.id} className="fq-chip" style={{ opacity: on ? 1 : 0.5 }}>
                     {on ? '' : '🔒 '}
-                    {s.name}
+                    {t(`skin.${s.id}`)}
                   </span>
                 )
               })}

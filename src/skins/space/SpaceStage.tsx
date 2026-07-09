@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { TumblingE } from '../../training/TumblingE'
 import type { StageProps } from '../types'
 import { asset } from '../../data/asset'
+import { useT } from '../../i18n'
 
 /**
  * 太空射击皮肤（真素材版）：NASA 星云背景 + Unlucky Studio CC0 战机/敌舰/爆炸帧。
@@ -9,18 +10,19 @@ import { asset } from '../../data/asset'
  * 答对 → 激光命中 → 爆炸序列帧；答错 → 红闪 + 战机抖；翻拍 → 跃迁速线。
  * 素材来源见 public/skins/space/CREDITS.md。
  */
-/** 敌人池：每题轮换一个承载视标 E。img=CC0 敌舰精灵（有质感）；emoji=占位敌人（真图渐进）。 */
+/** 敌人池：每题轮换一个承载视标 E。img=CC0 敌舰精灵（有质感）；emoji=占位敌人（真图渐进）。
+ *  name 是翻译 key 的 slug（对应 i18n 的 space.enemy.<name>），非展示文本。 */
 type Enemy =
   | { kind: 'img'; src: string; name: string }
   | { kind: 'emoji'; char: string; name: string }
 
 const ENEMIES: Enemy[] = [
-  { kind: 'img', src: asset('/skins/space/enemy.png'), name: '敌方战舰' },
-  { kind: 'emoji', char: '🛸', name: '幽灵飞碟' },
-  { kind: 'emoji', char: '👾', name: '外星兵' },
-  { kind: 'emoji', char: '☄️', name: '烈焰陨星' },
-  { kind: 'emoji', char: '🤖', name: '机械哨兵' },
-  { kind: 'emoji', char: '🪐', name: '暗环星' },
+  { kind: 'img', src: asset('/skins/space/enemy.png'), name: 'enemy' },
+  { kind: 'emoji', char: '🛸', name: 'ufo' },
+  { kind: 'emoji', char: '👾', name: 'alien' },
+  { kind: 'emoji', char: '☄️', name: 'meteor' },
+  { kind: 'emoji', char: '🤖', name: 'sentinel' },
+  { kind: 'emoji', char: '🪐', name: 'darkring' },
 ]
 
 /** 第 seq 道视标（=已答题数）对应的敌人，循环轮换整个池 */
@@ -30,13 +32,14 @@ export function enemyForSeq(seq: number): Enemy {
 }
 
 export function SpaceStage({ target, heightPx, phase, lastAnswer, isEgg }: StageProps) {
+  const t = useT()
   const [fx, setFx] = useState<{ correct: boolean; key: number } | null>(null)
 
   useEffect(() => {
     if (!lastAnswer) return
     setFx({ correct: lastAnswer.correct, key: lastAnswer.seq })
-    const t = window.setTimeout(() => setFx(null), 700)
-    return () => window.clearTimeout(t)
+    const timer = window.setTimeout(() => setFx(null), 700)
+    return () => window.clearTimeout(timer)
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [lastAnswer?.seq])
 
@@ -105,7 +108,7 @@ export function SpaceStage({ target, heightPx, phase, lastAnswer, isEgg }: Stage
               <TumblingE direction={target} heightPx={heightPx} />
             </span>
           </div>
-          <div style={{ position: 'absolute', top: -22, left: '50%', transform: 'translateX(-50%)', fontSize: 11, letterSpacing: 1, color: '#bfe4ff', whiteSpace: 'nowrap', textShadow: '0 0 4px #001' }}>{enemy.name}</div>
+          <div style={{ position: 'absolute', top: -22, left: '50%', transform: 'translateX(-50%)', fontSize: 11, letterSpacing: 1, color: '#bfe4ff', whiteSpace: 'nowrap', textShadow: '0 0 4px #001' }}>{t(`space.enemy.${enemy.name}`)}</div>
           {isEgg && <div style={{ position: 'absolute', top: -14, left: '50%', transform: 'translateX(-50%)', fontSize: 20 }}>✨</div>}
         </div>
       )}
@@ -113,7 +116,7 @@ export function SpaceStage({ target, heightPx, phase, lastAnswer, isEgg }: Stage
       {/* 翻拍提示 */}
       {transitioning && !hit && (
         <div style={{ position: 'absolute', top: '40%', left: '50%', transform: 'translate(-50%,-50%)', color: '#9fdcff', fontSize: 16, textShadow: '0 0 8px #001' }}>
-          下一波来袭…
+          {t('space.nextWave')}
         </div>
       )}
 

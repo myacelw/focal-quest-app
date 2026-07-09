@@ -1,10 +1,12 @@
 import { useState } from 'react'
 import { cssPxPerMm, mmToCssPx, CARD_WIDTH_MM } from './calibration-math'
 import { lsGet, lsSet } from '../data/storage'
+import { useT, Rich } from '../i18n'
 
 const STORAGE_KEY = 'fzp.cssPxPerMm'
 
 export function CalibrationPage() {
+  const t = useT()
   const [barPx, setBarPx] = useState(300)
   const [saved, setSaved] = useState<number | null>(() => {
     const v = lsGet(STORAGE_KEY)
@@ -20,9 +22,9 @@ export function CalibrationPage() {
 
   return (
     <div className="fq-page fq-rise">
-      <h2 className="fq-h2">📐 屏幕标定</h2>
+      <h2 className="fq-h2">{t('calib.title')}</h2>
       <p className="fq-sub">
-        把下面的紫条拖到和一张银行卡（宽 {CARD_WIDTH_MM}mm）一样宽，再点保存——这样视标才能按正确的物理尺寸显示。
+        {t('calib.instruction', { mm: CARD_WIDTH_MM })}
       </p>
 
       <div className="fq-card" style={{ marginTop: 16 }}>
@@ -47,15 +49,15 @@ export function CalibrationPage() {
           style={{ width: '100%', marginTop: 16, accentColor: 'var(--violet)' }}
         />
         <p style={{ fontSize: 13, color: 'var(--muted)', marginTop: 4 }}>
-          当前条宽 {barPx} px → <b style={{ color: 'var(--violet)' }}>{ratio.toFixed(3)}</b> px/mm
+          {t('calib.barWidth', { px: barPx })}<b style={{ color: 'var(--violet)' }}>{ratio.toFixed(3)}</b> px/mm
         </p>
         <button className="fq-cta" style={{ width: '100%', marginTop: 8 }} onClick={save}>
-          💾 保存标定
+          {t('calib.save')}
         </button>
         {saved !== null && (
           <div style={{ marginTop: 12, textAlign: 'center' }}>
             <span className="fq-chip" style={{ background: '#e8f9f0', color: '#1d9e75' }}>
-              ✓ 已保存（{saved.toFixed(3)} px/mm）
+              {t('calib.saved', { v: saved.toFixed(3) })}
             </span>
           </div>
         )}
@@ -63,9 +65,9 @@ export function CalibrationPage() {
 
       {saved !== null && (
         <div className="fq-card" style={{ marginTop: 14, textAlign: 'center' }}>
-          <div className="fq-card-title" style={{ justifyContent: 'center' }}>📏 拿尺子验一下</div>
+          <div className="fq-card-title" style={{ justifyContent: 'center' }}>{t('calib.verifyTitle')}</div>
           <p style={{ fontSize: 13, color: 'var(--muted)', marginBottom: 12 }}>
-            下面方块理论上是 <b>20mm</b>，量一量应在 19–21mm（误差 &lt; 5%）
+            <Rich text={t('calib.verifyBody')} />
           </p>
           <div
             style={{

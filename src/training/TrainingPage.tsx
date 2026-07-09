@@ -239,7 +239,7 @@ export function TrainingPage() {
               {newBadges.map((b) => (
                 <div key={b.id} style={{ textAlign: 'center' }}>
                   <div style={{ fontSize: 34 }}>{b.emoji}</div>
-                  <div style={{ fontSize: 12, color: 'var(--muted)', marginTop: 2 }}>{b.name}</div>
+                  <div style={{ fontSize: 12, color: 'var(--muted)', marginTop: 2 }}>{t(`badge.${b.id}`)}</div>
                 </div>
               ))}
             </div>
@@ -251,7 +251,7 @@ export function TrainingPage() {
             <div style={{ display: 'flex', gap: 10, justifyContent: 'center', flexWrap: 'wrap' }}>
               {newSkins.map((s) => (
                 <span key={s.id} className="fq-chip" style={{ background: '#fff9e6', color: '#b8860b', border: '1.5px solid var(--lemon)' }}>
-                  {s.name}
+                  {t(`skin.${s.id}`)}
                 </span>
               ))}
             </div>

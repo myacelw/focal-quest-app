@@ -11,8 +11,8 @@ export interface WeeklyReport {
   reactionTrend: 'faster' | 'slower' | 'flat' | null
   /** 本周正确率 0..1；null=本周没答题 */
   accuracy: number | null
-  /** 给家长看的一句话建议（含难度进阶提示） */
-  suggestion: string
+  /** 给家长看的一句话建议（含难度进阶提示）的 i18n key，渲染时用 t(`stats.${suggestionKey}`) 翻译 */
+  suggestionKey: string
 }
 
 function weekOf(sessions: SessionRow[], wk: string): SessionRow[] {
@@ -44,17 +44,17 @@ export function weeklyReport(sessions: SessionRow[], today: string): WeeklyRepor
   const answered = tw.reduce((a, r) => a + r.answered, 0)
   const accuracy = answered === 0 ? null : correct / answered
 
-  let suggestion: string
+  let suggestionKey: string
   if (tw.length === 0) {
-    suggestion = '这周还没练，今天开始吧！'
+    suggestionKey = 'suggest.noSessions'
   } else if (accuracy !== null && accuracy >= 0.9) {
-    suggestion = '正确率很棒 👍 可以把视标调小一点，挑战更高难度'
+    suggestionKey = 'suggest.highAccuracy'
   } else if (reactionTrend === 'faster') {
-    suggestion = '反应越来越快，调节能力在进步 🎉'
+    suggestionKey = 'suggest.reactionFaster'
   } else if (accuracy !== null && accuracy < 0.6) {
-    suggestion = '正确率偏低——可能视标偏小或需要更专注，家长可陪着看看'
+    suggestionKey = 'suggest.lowAccuracy'
   } else {
-    suggestion = '保持每天练习，坚持几周就有效果 💪'
+    suggestionKey = 'suggest.keepGoing'
   }
 
   return {
@@ -63,6 +63,6 @@ export function weeklyReport(sessions: SessionRow[], today: string): WeeklyRepor
     avgReactionSec: twReact === null ? null : Math.round(twReact / 100) / 10,
     reactionTrend,
     accuracy,
-    suggestion,
+    suggestionKey,
   }
 }
