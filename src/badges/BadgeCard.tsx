@@ -11,6 +11,14 @@ const METRIC_SUFFIX: Record<BadgeDef['metric'], string> = {
   totalCorrect: '题',
 }
 
+/** 达标目标文案，如 "7天" / "10CPM" / "90%"（解锁后也保留，说明这枚徽章代表什么） */
+function goalText(def: BadgeDef): string {
+  if (def.metric === 'maxAccuracy') return `${Math.round(def.threshold * 100)}%`
+  const thr = def.metric === 'totalSec' ? Math.round(def.threshold / 60) : def.threshold
+  const suffix = def.metric === 'totalSec' ? '分' : METRIC_SUFFIX[def.metric]
+  return `${thr}${suffix}`
+}
+
 /** 未解锁时的进度文案，如 "5/7 天" */
 function progressText(def: BadgeDef, current: number): string {
   if (def.metric === 'maxAccuracy') {
@@ -65,7 +73,9 @@ export function BadgeCard({ def, unlocked, current }: { def: BadgeDef; unlocked:
         }}
       />
       <div style={{ fontSize: 14, marginTop: 8, fontWeight: 700, color: unlocked ? 'var(--ink)' : 'var(--muted)' }}>{def.name}</div>
-      {!unlocked && <div style={{ fontSize: 12, color: 'var(--muted)', marginTop: 3 }}>{progressText(def, current)}</div>}
+      <div style={{ fontSize: 12, marginTop: 3, fontWeight: unlocked ? 700 : 400, color: unlocked ? '#e0a400' : 'var(--muted)' }}>
+        {unlocked ? `✓ ${goalText(def)}` : progressText(def, current)}
+      </div>
     </div>
   )
 }
