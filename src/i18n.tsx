@@ -130,6 +130,8 @@ const ZH: Dict = {
   'stats.suggest.reactionFaster': '反应越来越快，调节能力在进步 🎉',
   'stats.suggest.lowAccuracy': '正确率偏低——可能视标偏小或需要更专注，家长可陪着看看',
   'stats.suggest.keepGoing': '保持每天练习，坚持几周就有效果 💪',
+  'stats.weeklyMonsters': '🎁 本周抓 {n} 只怪',
+  'stats.weeklyRedeemed': '🏆 兑换了：{titles}',
   // 设置
   'settings.title': '⚙️ 设置',
   'settings.sub': '家长在这里配一次，孩子训练时就不用管这些了。',
@@ -448,6 +450,8 @@ const EN: Dict = {
   'stats.suggest.reactionFaster': '🎉 Reaction time is improving — focusing ability is getting stronger',
   'stats.suggest.lowAccuracy': 'Accuracy is a bit low — the optotype may be too small, or focus is needed. Consider sitting in.',
   'stats.suggest.keepGoing': '💪 Keep practicing daily — results show after a few weeks',
+  'stats.weeklyMonsters': '🎁 Caught {n} monsters this week',
+  'stats.weeklyRedeemed': '🏆 Redeemed: {titles}',
   'settings.title': '⚙️ Settings',
   'settings.sub': 'Set these once as a parent; kids never need to touch them.',
   'settings.calib': '📐 Screen calibration',

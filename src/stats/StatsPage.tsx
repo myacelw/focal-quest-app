@@ -4,7 +4,9 @@ import { aggregate, type Dim } from './aggregate'
 import { LineChart } from './LineChart'
 import { BarChart } from './BarChart'
 import { VisionTrendCard } from './VisionTrendCard'
-import { weeklyReport } from './weekly-report'
+import { weeklyReport, weeklyExtras, type WeeklyExtras } from './weekly-report'
+import { getOwnedMonsters } from '../dex/dex-service'
+import { listRedemptions } from '../rewards/rewards-service'
 import { toDateStr } from '../data/date-utils'
 import { useT } from '../i18n'
 
@@ -12,9 +14,16 @@ export function StatsPage() {
   const t = useT()
   const [sessions, setSessions] = useState<SessionRow[] | null>(null)
   const [dim, setDim] = useState<Dim>('day')
+  const [extras, setExtras] = useState<WeeklyExtras>({ monstersThisWeek: 0, redeemedTitlesThisWeek: [] })
 
   useEffect(() => {
     db.sessions.toArray().then(setSessions)
+  }, [])
+
+  useEffect(() => {
+    void Promise.all([getOwnedMonsters(), listRedemptions()]).then(([monsters, reds]) => {
+      setExtras(weeklyExtras(monsters, reds, toDateStr(new Date())))
+    })
   }, [])
 
   if (sessions === null) return <div className="fq-page">{t('home.loading')}</div>
@@ -92,6 +101,12 @@ export function StatsPage() {
         <div style={{ fontSize: 13, background: 'rgba(255,255,255,0.18)', borderRadius: 10, padding: '9px 12px' }}>
           💡 {t(`stats.${report.suggestionKey}`)}
         </div>
+        {(extras.monstersThisWeek > 0 || extras.redeemedTitlesThisWeek.length > 0) && (
+          <div style={{ fontSize: 12, marginTop: 8, opacity: 0.92, display: 'flex', flexDirection: 'column', gap: 4 }}>
+            {extras.monstersThisWeek > 0 && <div>{t('stats.weeklyMonsters', { n: extras.monstersThisWeek })}</div>}
+            {extras.redeemedTitlesThisWeek.length > 0 && <div>{t('stats.weeklyRedeemed', { titles: extras.redeemedTitlesThisWeek.join('、') })}</div>}
+          </div>
+        )}
       </div>
 
       <div className="fq-card" style={{ marginTop: 14 }}>
