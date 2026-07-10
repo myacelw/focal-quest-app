@@ -8,6 +8,7 @@ import { getSkin, getSkinId, setSkinId, isSkinUnlocked, skinUnlockCost, SKINS } 
 import { useT, useLang, setLang, type Lang, Rich } from './i18n'
 import { RewardConfig } from './rewards/RewardConfig'
 import { ExamConfig } from './exams/ExamConfig'
+import { BackupCard } from './backup/BackupCard'
 
 function readPxPerMm(): number | null {
   const v = lsGet('fzp.cssPxPerMm')
@@ -177,6 +178,7 @@ export function SettingsPage({ onReplayGuide, onOpenSpeech, onOpenCalib }: { onR
 
       <RewardConfig />
       <ExamConfig />
+      <BackupCard />
 
       <div className="fq-card" style={{ marginTop: 14, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
         <span style={{ fontSize: 14, fontWeight: 700 }}>{t('settings.guide')}</span>
