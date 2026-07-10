@@ -57,6 +57,15 @@ export interface RedemptionRow {
   repairDate?: string   // kind='repair' 时 = 补的是哪天（漏掉的那天）
 }
 
+/** 线下验光记录（v5 新增），视力为小数记法（0.6/0.8/1.0） */
+export interface ExamRow {
+  id?: number       // ++id
+  date: string      // 本地 YYYY-MM-DD，验光日期
+  left: number      // 左眼视力，小数记法
+  right: number     // 右眼视力，小数记法
+  note?: string     // 备注（如度数、医院名）
+}
+
 export class FocalQuestDB extends Dexie {
   sessions!: Table<SessionRow, number>
   checkins!: Table<CheckinRow, string>
@@ -64,6 +73,7 @@ export class FocalQuestDB extends Dexie {
   monsters!: Table<MonsterRow, string>
   rewards!: Table<RewardRow, number>
   redemptions!: Table<RedemptionRow, number>
+  exams!: Table<ExamRow, number>
 
   constructor() {
     super('focalquest')
@@ -89,6 +99,16 @@ export class FocalQuestDB extends Dexie {
       monsters: 'id',
       rewards: '++id',
       redemptions: '++id, kind, status',
+    })
+    this.version(5).stores({
+      // 重复声明完整 schema，便于回滚/排查；新增 exams 表
+      sessions: '++id, date',
+      checkins: 'date',
+      badges: 'id',
+      monsters: 'id',
+      rewards: '++id',
+      redemptions: '++id, kind, status',
+      exams: '++id, date',
     })
   }
 }
