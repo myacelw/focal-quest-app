@@ -45,7 +45,9 @@ export function RewardConfig() {
       ))}
 
       {/* 待确认兑换 */}
-      <div className="fq-card-title" style={{ marginTop: 18 }}>{t('reward.pendingTitle')}</div>
+      <div className="fq-card-title" style={{ marginTop: 18 }}>
+        {t('reward.pendingTitle')}{pending.length > 0 ? ` (${pending.length})` : ''}
+      </div>
       {pending.length === 0 ? (
         <p style={{ fontSize: 12, color: 'var(--muted)', marginTop: 8 }}>{t('reward.noPending')}</p>
       ) : (

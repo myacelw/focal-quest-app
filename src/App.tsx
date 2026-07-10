@@ -9,6 +9,7 @@ import { pushAll } from './data/api'
 import { Onboarding } from './Onboarding'
 import { SettingsPage } from './SettingsPage'
 import { RewardsPage } from './rewards/RewardsPage'
+import { listPending } from './rewards/rewards-service'
 import { lsGet, lsSet } from './data/storage'
 import { useT } from './i18n'
 
@@ -29,6 +30,9 @@ export function App() {
   const [showOnboard, setShowOnboard] = useState(() => !lsGet('fzp.onboarded'))
   // 勋章页初始 tab：首页收集进度卡片点击时设为 'dex' 再跳过去
   const [badgeTab, setBadgeTab] = useState<DexTab>('badges')
+  // 待确认兑换数量：挂载及每次切视图刷新（驱动设置导航红点）
+  const [pendingCount, setPendingCount] = useState(0)
+  useEffect(() => { void listPending().then((p) => setPendingCount(p.length)) }, [view])
   // 启动时把本地数据回填到后端（best-effort，后端没开则忽略）
   useEffect(() => { void pushAll() }, [])
   return (
@@ -39,7 +43,13 @@ export function App() {
       <nav className="fq-nav">
         {NAV.map((n) => (
           <button key={n.key} className={view === n.key ? 'on' : ''} onClick={() => { setBadgeTab('badges'); setView(n.key) }}>
-            <span aria-hidden>{n.icon}</span>{t(`nav.${n.key}`)}
+            <span aria-hidden style={{ position: 'relative' }}>
+              {n.icon}
+              {n.key === 'settings' && pendingCount > 0 && (
+                <span style={{ position: 'absolute', top: -2, right: -6, width: 8, height: 8, borderRadius: '50%', background: '#ff4d4f' }} />
+              )}
+            </span>
+            {t(`nav.${n.key}`)}
           </button>
         ))}
       </nav>
