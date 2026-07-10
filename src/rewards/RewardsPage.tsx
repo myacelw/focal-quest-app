@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import type { RewardRow, RedemptionRow } from '../data/db'
-import { listRewards, getAvailablePoints, requestRedemption, listRedemptions } from './rewards-service'
+import { listRewards, getAvailablePoints, requestRedemption, listRedemptions, cancelRedemption } from './rewards-service'
 import { useT } from '../i18n'
 
 export function RewardsPage() {
@@ -65,9 +65,14 @@ export function RewardsPage() {
         <div style={{ fontSize: 13, color: 'var(--muted)', marginTop: 8 }}>{t('reward.noHistory')}</div>
       ) : (
         history.map((h) => (
-          <div key={h.id} className="fq-card" style={{ marginTop: 10, display: 'flex', justifyContent: 'space-between', fontSize: 13 }}>
+          <div key={h.id} className="fq-card" style={{ marginTop: 10, display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: 13, gap: 8 }}>
             <span>{h.title}</span>
-            <span style={{ color: 'var(--muted)' }}>{t('reward.cost', { n: h.cost })} · {t(`reward.status.${h.status}`)}</span>
+            <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>
+              <span style={{ color: 'var(--muted)' }}>{t('reward.cost', { n: h.cost })} · {t(`reward.status.${h.status}`)}</span>
+              {h.status === 'pending' && (
+                <button className="fq-btn" onClick={async () => { await cancelRedemption(h.id!); await refresh() }}>{t('reward.revoke')}</button>
+              )}
+            </span>
           </div>
         ))
       )}

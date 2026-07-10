@@ -250,6 +250,7 @@ const ZH: Dict = {
   'reward.status.pending': '待确认',
   'reward.status.fulfilled': '已兑现',
   'reward.status.cancelled': '已取消',
+  'reward.revoke': '撤回',
   'reward.noHistory': '还没有兑换记录',
   // 设置页家长区
   'reward.config': '🎁 奖励设置',
@@ -565,6 +566,7 @@ const EN: Dict = {
   'reward.status.pending': 'Pending',
   'reward.status.fulfilled': 'Fulfilled',
   'reward.status.cancelled': 'Cancelled',
+  'reward.revoke': 'Undo',
   'reward.noHistory': 'No redemptions yet',
   'reward.config': '🎁 Reward setup',
   'reward.configHint': 'Add real-world rewards your child can redeem with points',
