@@ -4,14 +4,17 @@ import { toDateStr } from './data/date-utils'
 import { SKINS, skinUnlockCost, isSkinUnlocked } from './skins/registry'
 import { useCountUp } from './useCountUp'
 import { asset } from './data/asset'
+import { getDexProgress, type DexProgress } from './dex/dex-service'
 import { useT } from './i18n'
 
-export function HomePage({ onStart }: { onStart: () => void }) {
+export function HomePage({ onStart, onOpenDex }: { onStart: () => void; onOpenDex: () => void }) {
   const t = useT()
   const [stats, setStats] = useState<HomeStats | null>(null)
+  const [dex, setDex] = useState<DexProgress | null>(null)
 
   useEffect(() => {
     getHomeStats(toDateStr(new Date())).then(setStats)
+    void getDexProgress().then(setDex)
   }, [])
 
   const tp = stats?.totalPoints ?? 0
@@ -83,6 +86,33 @@ export function HomePage({ onStart }: { onStart: () => void }) {
               </div>
             </div>
           </div>
+
+          {/* 怪兽图鉴入口：显示收集进度，点击跳图鉴 tab */}
+          <button
+            onClick={onOpenDex}
+            className="fq-card"
+            style={{
+              textAlign: 'left', cursor: 'pointer', border: '1.5px solid var(--violet)',
+              background: 'linear-gradient(135deg, #f3efff, #fffaf0)',
+              padding: '14px 16px',
+            }}
+          >
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: 14, fontWeight: 700, marginBottom: 8 }}>
+              <span>{t('dex.homeCard')}</span>
+              <span style={{ color: 'var(--violet)', fontVariantNumeric: 'tabular-nums' }}>
+                📖 {dex ? `${dex.owned}/${dex.total}` : '—'}
+              </span>
+            </div>
+            <div className="fq-bar">
+              <i style={{ width: `${dex ? Math.round((dex.owned / dex.total) * 100) : 0}%` }} />
+            </div>
+            <div style={{ display: 'flex', gap: 6, marginTop: 10, fontSize: 12, color: 'var(--muted)' }}>
+              <span>🚀 {dex ? dex.byWorld.space : 0}/{dex ? dex.byWorldTotal.space : 17}</span>
+              <span>·</span>
+              <span>🏛 {dex ? dex.byWorld.shrine : 0}/{dex ? dex.byWorldTotal.shrine : 17}</span>
+              <span style={{ marginLeft: 'auto', color: 'var(--violet)', fontWeight: 700 }}>{t('dex.tab.dex')} →</span>
+            </div>
+          </button>
 
           {/* 皮肤解锁进度 */}
           <div className="fq-card" style={{ textAlign: 'left' }}>

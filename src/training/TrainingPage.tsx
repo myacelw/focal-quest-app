@@ -16,6 +16,9 @@ import { syncBadges } from '../badges/badge-service'
 import type { BadgeDef } from '../badges/badge-defs'
 import { getSkin, getSkinId, isSkinUnlocked, newlyUnlockedSkins } from '../skins/registry'
 import type { Skin } from '../skins/types'
+import { captureMonster, captureDailyOnCheckin, getOwnedReserveIdsByWorld } from '../dex/dex-service'
+import type { MonsterDef, World, Rarity } from '../dex/monster-defs'
+import { MonsterImage } from '../dex/MonsterImage'
 
 const DURATION_SEC = 180
 const TRANSITION_MS = 900
@@ -50,6 +53,11 @@ export function TrainingPage() {
   const [voskStatus, setVoskStatus] = useState<'idle' | 'loading' | 'ready' | 'failed'>('idle')
   const [paused, setPaused] = useState(false)
   const [comboFx, setComboFx] = useState<{ n: number; key: number } | null>(null)
+  // 怪兽图鉴：训练中彩蛋答对触发捕获，结算页保底捕获；本节捕获列表用于开箱
+  const [eggCaptureFx, setEggCaptureFx] = useState<{ key: number } | null>(null)
+  const [capturedThisSession, setCapturedThisSession] = useState<MonsterDef[]>([])
+  // 皮肤池联动：按世界分组的已捕获储备怪 id，传给 Stage 扩展轮换池
+  const [capturedByWorld, setCapturedByWorld] = useState<Record<World, string[]>>({ space: [], shrine: [] })
 
   const t = useT()
   const pxPerMm = readPxPerMm()
@@ -70,6 +78,18 @@ export function TrainingPage() {
   useEffect(() => { setMuted(muted) }, [muted])
 
   useEffect(() => { pausedRef.current = paused }, [paused])
+
+  // 彩蛋捕获角标 1.2s 自动消失（不阻断翻拍节奏）
+  useEffect(() => {
+    if (!eggCaptureFx) return
+    const id = window.setTimeout(() => setEggCaptureFx(null), 1200)
+    return () => window.clearTimeout(id)
+  }, [eggCaptureFx])
+
+  // 读已捕获储备怪（用于皮肤池联动）；进训练页一次即可
+  useEffect(() => {
+    void getOwnedReserveIdsByWorld().then(setCapturedByWorld)
+  }, [])
 
   useEffect(() => {
     if (paused) return
@@ -130,6 +150,21 @@ export function TrainingPage() {
     if (right && s.correctStreak + 1 >= 3) setComboFx({ n: s.correctStreak + 1, key: seqRef.current })
     setLastAnswer({ dir, correct: right, seq: seqRef.current })
     setSession(answer(s, dir))
+    // 彩蛋答对触发捕获：触发瞬间抽定并落库，正式揭晓在结算页开箱区。
+    // 不阻断翻拍节奏——只飘一个不阻断的小角标。
+    if (s.isEgg && right) {
+      const todayStr = toDateStr(new Date())
+      const now = Date.now()
+      void captureMonster('egg', todayStr, now).then((m) => {
+        if (!m) return
+        setCapturedThisSession((arr) => [...arr, m])
+        setEggCaptureFx({ key: seqRef.current })
+        // 储备怪（rarity !== common）加入对应世界的轮换池
+        if (m.rarity !== 'common') {
+          setCapturedByWorld((prev) => ({ ...prev, [m.world]: [...prev[m.world], m.id] }))
+        }
+      })
+    }
     window.setTimeout(() => {
       playSfx('flip')
       setSession((cur) =>
@@ -194,11 +229,24 @@ export function TrainingPage() {
       savedRef.current = false
       setSession(createSession('right', readDurationSec()))
     } else {
-      const result = await doCheckIn(toDateStr(new Date()))
+      const todayStr = toDateStr(new Date())
+      const result = await doCheckIn(todayStr)
       const unlocked = await syncBadges(Date.now())
+      // 保底捕获：当天首次完成训练打卡时必得 1 只新怪兽
+      let dailyCaptured: MonsterDef | null = null
+      if (!result.alreadyCheckedIn) {
+        dailyCaptured = await captureDailyOnCheckin(false, todayStr, Date.now())
+        if (dailyCaptured) {
+          setCapturedThisSession((arr) => [...arr, dailyCaptured!])
+          if (dailyCaptured.rarity !== 'common') {
+            setCapturedByWorld((prev) => ({ ...prev, [dailyCaptured!.world]: [...prev[dailyCaptured!.world], dailyCaptured!.id] }))
+          }
+        }
+      }
       const prevPoints = result.alreadyCheckedIn ? result.totalPoints : result.totalPoints - result.dailyPoints
       const skins = newlyUnlockedSkins(prevPoints, result.totalPoints)
-      playSfx(unlocked.length > 0 || skins.length > 0 ? 'badge' : 'checkin')
+      // 任何"额外收获"都用 badge 音效，纯打卡用 checkin
+      playSfx(unlocked.length > 0 || skins.length > 0 || dailyCaptured ? 'badge' : 'checkin')
       setNewBadges(unlocked)
       setNewSkins(skins)
       setCheckin(result)
@@ -256,6 +304,18 @@ export function TrainingPage() {
               ))}
             </div>
             <p style={{ fontSize: 12, color: 'var(--muted)', marginTop: 10 }}>{t('train.trySkinHint')}</p>
+          </div>
+        )}
+        {/* 怪兽图鉴开箱区：本节捕获（彩蛋 + 保底）逐只翻牌揭晓，配音效 */}
+        {capturedThisSession.length > 0 && (
+          <div className="fq-card" style={{ marginTop: 14 }}>
+            <p style={{ fontWeight: 700, marginBottom: 12 }}>{t('dex.openBox')}</p>
+            <div style={{ display: 'flex', gap: 14, justifyContent: 'center', flexWrap: 'wrap' }}>
+              {capturedThisSession.map((m, i) => (
+                <CapturedMonsterReveal key={`${m.id}-${i}`} def={m} delayMs={i * 500} />
+              ))}
+            </div>
+            <p style={{ fontSize: 12, color: 'var(--muted)', marginTop: 12 }}>{t('dex.empty')}</p>
           </div>
         )}
       </div>
@@ -362,6 +422,7 @@ export function TrainingPage() {
           phase={session.phase === 'transitioning' ? 'transitioning' : 'showing'}
           lastAnswer={lastAnswer}
           isEgg={session.isEgg}
+          capturedReserveIds={effectiveSkinId === 'space' ? capturedByWorld.space : effectiveSkinId === 'shrine' ? capturedByWorld.shrine : []}
         />
         {comboFx && (
           <div
@@ -369,6 +430,31 @@ export function TrainingPage() {
             style={{ position: 'absolute', top: '12%', left: '50%', fontSize: 28, fontWeight: 800, color: '#ff5c7a', textShadow: '0 2px 8px rgba(0,0,0,0.3)', animation: 'fzpCombo 0.9s ease-out forwards', pointerEvents: 'none', zIndex: 6, whiteSpace: 'nowrap' }}
           >
             {t('train.combo', { n: comboFx.n })}
+          </div>
+        )}
+        {/* 彩蛋捕获角标：不阻断翻拍节奏，仅飘一个「📖 新怪兽！」提示 */}
+        {eggCaptureFx && (
+          <div
+            key={`egg-${eggCaptureFx.key}`}
+            className="fzp-dex-toast"
+            style={{
+              position: 'absolute',
+              top: 16,
+              right: 16,
+              fontSize: 14,
+              fontWeight: 800,
+              color: '#fff',
+              background: 'linear-gradient(135deg, var(--violet), var(--coral))',
+              padding: '8px 14px',
+              borderRadius: 99,
+              boxShadow: 'var(--shadow)',
+              animation: 'fzpDexToast 1.2s ease-out forwards',
+              pointerEvents: 'none',
+              zIndex: 6,
+              whiteSpace: 'nowrap',
+            }}
+          >
+            {t('dex.newCapture')}
           </div>
         )}
         {session.phase === 'transitioning' && (
@@ -426,6 +512,59 @@ export function TrainingPage() {
           </div>
         </div>
       )}
+    </div>
+  )
+}
+
+/** 稀有度 → 边框色（普通银灰、稀有紫、史诗金） */
+const RARITY_BORDER: Record<Rarity, string> = {
+  common: '#c7c0db',
+  rare: '#7c6cf0',
+  epic: '#ffb400',
+}
+
+/** 结算页开箱：本节捕获的怪兽逐只翻牌揭晓，配音效 */
+function CapturedMonsterReveal({ def, delayMs }: { def: MonsterDef; delayMs: number }) {
+  const t = useT()
+  const [revealed, setRevealed] = useState(false)
+  useEffect(() => {
+    const id = window.setTimeout(() => {
+      setRevealed(true)
+      // 复用现有音效：史诗/稀有用 badge（金光感），普通用 egg（彩蛋感）
+      playSfx(def.rarity === 'common' ? 'egg' : 'badge')
+    }, delayMs)
+    return () => window.clearTimeout(id)
+  }, [delayMs, def.rarity])
+
+  return (
+    <div style={{ textAlign: 'center' }}>
+      <div
+        className="fzp-dex-reveal"
+        style={{
+          width: 96,
+          height: 96,
+          margin: '0 auto',
+          borderRadius: 14,
+          border: `2px solid ${RARITY_BORDER[def.rarity]}`,
+          background: revealed ? '#fff' : 'linear-gradient(135deg, var(--violet), var(--coral))',
+          overflow: 'hidden',
+          transition: 'transform 0.4s cubic-bezier(0.2,0.8,0.2,1)',
+          transform: revealed ? 'scale(1)' : 'scale(0.85)',
+          animation: revealed ? 'none' : 'fzpFloat 2.6s ease-in-out infinite',
+        }}
+      >
+        {revealed ? (
+          <MonsterImage def={def} />
+        ) : (
+          <div style={{ display: 'grid', placeItems: 'center', width: '100%', height: '100%', fontSize: 36, color: '#fff' }}>❓</div>
+        )}
+      </div>
+      <div style={{ fontSize: 13, marginTop: 6, fontWeight: 700, color: 'var(--ink)' }}>
+        {revealed ? t(def.nameKey) : '？？？'}
+      </div>
+      <div style={{ fontSize: 11, marginTop: 2, color: RARITY_BORDER[def.rarity] }}>
+        {revealed ? t(`dex.rarity.${def.rarity}`) : ''}
+      </div>
     </div>
   )
 }

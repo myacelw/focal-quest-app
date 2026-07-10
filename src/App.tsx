@@ -4,7 +4,7 @@ import { CalibrationPage } from './calibration/CalibrationPage'
 import { SpeechTestPage } from './speech/SpeechTestPage'
 import { TrainingPage } from './training/TrainingPage'
 import { StatsPage } from './stats/StatsPage'
-import { BadgeWall } from './badges/BadgeWall'
+import { BadgeWall, type DexTab } from './badges/BadgeWall'
 import { pushAll } from './data/api'
 import { Onboarding } from './Onboarding'
 import { SettingsPage } from './SettingsPage'
@@ -26,6 +26,8 @@ export function App() {
   const t = useT()
   const [view, setView] = useState<View>('home')
   const [showOnboard, setShowOnboard] = useState(() => !lsGet('fzp.onboarded'))
+  // 勋章页初始 tab：首页收集进度卡片点击时设为 'dex' 再跳过去
+  const [badgeTab, setBadgeTab] = useState<DexTab>('badges')
   // 启动时把本地数据回填到后端（best-effort，后端没开则忽略）
   useEffect(() => { void pushAll() }, [])
   return (
@@ -35,15 +37,20 @@ export function App() {
       )}
       <nav className="fq-nav">
         {NAV.map((n) => (
-          <button key={n.key} className={view === n.key ? 'on' : ''} onClick={() => setView(n.key)}>
+          <button key={n.key} className={view === n.key ? 'on' : ''} onClick={() => { setBadgeTab('badges'); setView(n.key) }}>
             <span aria-hidden>{n.icon}</span>{t(`nav.${n.key}`)}
           </button>
         ))}
       </nav>
-      {view === 'home' && <HomePage onStart={() => setView('train')} />}
+      {view === 'home' && (
+        <HomePage
+          onStart={() => setView('train')}
+          onOpenDex={() => { setBadgeTab('dex'); setView('badges') }}
+        />
+      )}
       {view === 'train' && <TrainingPage />}
       {view === 'stats' && <StatsPage />}
-      {view === 'badges' && <BadgeWall />}
+      {view === 'badges' && <BadgeWall initialTab={badgeTab} />}
       {view === 'calib' && <CalibrationPage />}
       {view === 'speech' && <SpeechTestPage />}
       {view === 'settings' && (

@@ -31,6 +31,11 @@ db.exec(`
     id         TEXT PRIMARY KEY,
     unlockedAt INTEGER NOT NULL
   );
+  CREATE TABLE IF NOT EXISTS monsters (
+    id         TEXT PRIMARY KEY,
+    capturedAt INTEGER NOT NULL,
+    source     TEXT NOT NULL
+  );
 `)
 
 // 轻量迁移：给早于本字段的旧库补列（新库 CREATE 已含，此处会报"列已存在"被忽略）
@@ -61,6 +66,11 @@ export interface CheckinRow {
 export interface BadgeRow {
   id: string
   unlockedAt: number
+}
+export interface MonsterRow {
+  id: string
+  capturedAt: number
+  source: string
 }
 
 /** session 以前端 Dexie 的 id 为主键 upsert，重复推送/回填幂等（DO NOTHING） */
@@ -94,4 +104,12 @@ export function upsertBadge(r: BadgeRow): void {
 }
 export function allBadges(): BadgeRow[] {
   return db.prepare('SELECT id,unlockedAt FROM badges ORDER BY unlockedAt').all() as unknown as BadgeRow[]
+}
+
+/** monsters 首次捕获写入，已存在则保留原捕获时间（不覆盖） */
+export function upsertMonster(r: MonsterRow): void {
+  db.prepare('INSERT INTO monsters (id,capturedAt,source) VALUES (?,?,?) ON CONFLICT(id) DO NOTHING').run(r.id, r.capturedAt, r.source)
+}
+export function allMonsters(): MonsterRow[] {
+  return db.prepare('SELECT id,capturedAt,source FROM monsters ORDER BY capturedAt').all() as unknown as MonsterRow[]
 }

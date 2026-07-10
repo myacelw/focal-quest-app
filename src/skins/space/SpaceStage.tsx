@@ -3,6 +3,7 @@ import { TumblingE } from '../../training/TumblingE'
 import type { StageProps } from '../types'
 import { asset } from '../../data/asset'
 import { useT } from '../../i18n'
+import { reserveMonstersOfWorld } from '../../dex/monster-defs'
 
 /**
  * 太空射击皮肤（真素材版）：NASA 星云背景 + Unlucky Studio CC0 战机/敌舰/爆炸帧
@@ -15,7 +16,8 @@ import { useT } from '../../i18n'
  *  name 是翻译 key 的 slug（对应 i18n 的 space.enemy.<name>），非展示文本。 */
 type Enemy = { kind: 'img'; src: string; name: string }
 
-const ENEMIES: Enemy[] = [
+/** 现役基础池（6 只现役，与图鉴 monster-defs 的现役 id 对齐） */
+const BASE_ENEMIES: Enemy[] = [
   { kind: 'img', src: asset('/skins/space/enemy.png'), name: 'enemy' },
   { kind: 'img', src: asset('/skins/space/ufo.webp'), name: 'ufo' },
   { kind: 'img', src: asset('/skins/space/alien.webp'), name: 'alien' },
@@ -24,13 +26,30 @@ const ENEMIES: Enemy[] = [
   { kind: 'img', src: asset('/skins/space/darkring.webp'), name: 'darkring' },
 ]
 
-/** 第 seq 道视标（=已答题数）对应的敌人，循环轮换整个池 */
-export function enemyForSeq(seq: number): Enemy {
-  const n = ENEMIES.length
-  return ENEMIES[((seq % n) + n) % n]
+/** 储备敌池：由图鉴定义派生（rare+epic 共 11 只），按 id 排序保持稳定；
+ *  仅当孩子已捕获对应怪兽时，对应项才进入实际轮换池。 */
+const RESERVE_ENEMIES: Enemy[] = reserveMonstersOfWorld('space').map((m) => ({
+  kind: 'img' as const,
+  src: m.img,
+  // monster-defs 的 id 是 'space-<slug>'，这里取 slug 复用 space.enemy.<slug> 翻译
+  name: m.id.replace('space-', ''),
+}))
+
+/** 实际轮换池 = 基础池 + 已捕获的本世界储备怪 */
+export function buildEnemyPool(capturedReserveIds: string[] = []): Enemy[] {
+  const extra = RESERVE_ENEMIES.filter((e) => capturedReserveIds.includes(`space-${e.name}`))
+  return [...BASE_ENEMIES, ...extra]
 }
 
-export function SpaceStage({ target, heightPx, phase, lastAnswer, isEgg }: StageProps) {
+/** 第 seq 道视标（=已答题数）对应的敌人，循环轮换整个池。
+ *  不传 capturedReserveIds 时回退基础池（向后兼容现有单测）。 */
+export function enemyForSeq(seq: number, capturedReserveIds?: string[]): Enemy {
+  const pool = buildEnemyPool(capturedReserveIds)
+  const n = pool.length
+  return pool[((seq % n) + n) % n]
+}
+
+export function SpaceStage({ target, heightPx, phase, lastAnswer, isEgg, capturedReserveIds }: StageProps) {
   const t = useT()
   const [fx, setFx] = useState<{ correct: boolean; key: number } | null>(null)
 
@@ -44,7 +63,7 @@ export function SpaceStage({ target, heightPx, phase, lastAnswer, isEgg }: Stage
 
   const transitioning = phase === 'transitioning'
   const enemySize = Math.max(120, heightPx * 2.6)
-  const enemy = enemyForSeq(lastAnswer?.seq ?? 0)
+  const enemy = enemyForSeq(lastAnswer?.seq ?? 0, capturedReserveIds)
   const hit = fx?.correct === true
   const miss = fx?.correct === false
 

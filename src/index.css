@@ -131,6 +131,8 @@ h1, h2, h3, h4, p { margin: 0; }
 @keyframes fzpGuideIn { from { opacity: 0; transform: scale(0.92); } to { opacity: 1; transform: none; } }
 @keyframes fzpFlipBar { from { width: 0; } to { width: 100%; } }
 @keyframes fzpCombo { 0% { opacity: 0; transform: translate(-50%, 12px) scale(0.8); } 25% { opacity: 1; transform: translate(-50%, 0) scale(1.12); } 100% { opacity: 0; transform: translate(-50%, -34px) scale(1); } }
+/* 怪兽捕获角标：从右上角淡入→停顿→淡出，不阻断翻拍 */
+@keyframes fzpDexToast { 0% { opacity: 0; transform: translateY(-6px); } 20% { opacity: 1; transform: translateY(0); } 80% { opacity: 1; } 100% { opacity: 0; transform: translateY(-6px); } }
 
 @media (prefers-reduced-motion: reduce) {
   .fq-rise, .fq-float { animation: none; }
@@ -138,4 +140,6 @@ h1, h2, h3, h4, p { margin: 0; }
   .fq-cta, .fq-btn { transition: none; }
   /* 翻拍 🔄 不旋转，只静态显示；进度条仍走（是节奏提示，需保留） */
   .fzp-flip-icon { animation: none !important; }
+  /* 捕获角标 / 开箱盒（含未揭晓时的浮动）：静态显示，不闪动 */
+  .fzp-dex-toast, .fzp-dex-reveal { animation: none !important; }
 }

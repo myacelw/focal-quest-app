@@ -3,6 +3,7 @@ import { TumblingE } from '../../training/TumblingE'
 import type { StageProps } from '../types'
 import { asset } from '../../data/asset'
 import { useT } from '../../i18n'
+import { reserveMonstersOfWorld } from '../../dex/monster-defs'
 
 /**
  * 神庙勇者皮肤（塞尔达风，像素艺术）：古神庙里火焰骷髅守护者的核心符文（视标 E）指示弱点。
@@ -17,7 +18,8 @@ type Guardian =
   | { kind: 'sprite'; src: string; frames: number; name: string }
   | { kind: 'img'; src: string; name: string }
 
-const GUARDIANS: Guardian[] = [
+/** 现役基础池（6 只现役，与图鉴 monster-defs 的现役 id 对齐） */
+const BASE_GUARDIANS: Guardian[] = [
   { kind: 'sprite', src: asset('/skins/shrine/guardian-strip8.png'), frames: 8, name: 'skeleton' },
   { kind: 'img', src: asset('/skins/shrine/dragon.webp'), name: 'dragon' },
   { kind: 'img', src: asset('/skins/shrine/oni.webp'), name: 'oni' },
@@ -26,10 +28,26 @@ const GUARDIANS: Guardian[] = [
   { kind: 'img', src: asset('/skins/shrine/scorpion.webp'), name: 'scorpion' },
 ]
 
-/** 第 seq 道视标（0-based，= 已答题数）对应的守护者，循环轮换整个池。 */
-export function guardianForSeq(seq: number): Guardian {
-  const n = GUARDIANS.length
-  return GUARDIANS[((seq % n) + n) % n]
+/** 储备守护者池：由图鉴定义派生（rare+epic 共 11 只，全部为静态图），按 id 排序保持稳定；
+ *  仅当孩子已捕获对应怪兽时，对应项才进入实际轮换池。 */
+const RESERVE_GUARDIANS: Guardian[] = reserveMonstersOfWorld('shrine').map((m) => ({
+  kind: 'img' as const,
+  src: m.img,
+  name: m.id.replace('shrine-', ''),
+}))
+
+/** 实际轮换池 = 基础池 + 已捕获的本世界储备怪 */
+export function buildGuardianPool(capturedReserveIds: string[] = []): Guardian[] {
+  const extra = RESERVE_GUARDIANS.filter((g) => capturedReserveIds.includes(`shrine-${g.name}`))
+  return [...BASE_GUARDIANS, ...extra]
+}
+
+/** 第 seq 道视标（0-based，= 已答题数）对应的守护者，循环轮换整个池。
+ *  不传 capturedReserveIds 时回退基础池（向后兼容现有单测）。 */
+export function guardianForSeq(seq: number, capturedReserveIds?: string[]): Guardian {
+  const pool = buildGuardianPool(capturedReserveIds)
+  const n = pool.length
+  return pool[((seq % n) + n) % n]
 }
 
 /** 勇者（下方角色）。换林克/四英杰只需替换这两张精灵图，或扩成英雄池按需切换。 */
@@ -38,7 +56,7 @@ const HERO = {
   attack: asset('/skins/shrine/hero-attack-strip6.png'),
 }
 
-export function ShrineStage({ target, heightPx, phase, lastAnswer, isEgg }: StageProps) {
+export function ShrineStage({ target, heightPx, phase, lastAnswer, isEgg, capturedReserveIds }: StageProps) {
   const t = useT()
   const [fx, setFx] = useState<{ correct: boolean; key: number } | null>(null)
   const [spirits, setSpirits] = useState(0)
@@ -58,7 +76,7 @@ export function ShrineStage({ target, heightPx, phase, lastAnswer, isEgg }: Stag
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [lastAnswer?.seq])
 
-  const guardian = guardianForSeq(lastAnswer?.seq ?? 0)
+  const guardian = guardianForSeq(lastAnswer?.seq ?? 0, capturedReserveIds)
   const transitioning = phase === 'transitioning'
   const hit = fx?.correct === true
   const miss = fx?.correct === false
