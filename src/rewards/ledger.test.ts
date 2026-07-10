@@ -1,8 +1,12 @@
 import { describe, it, expect } from 'vitest'
 import {
-  REPAIR_COST, availablePoints, monthRepairCount, canRepair, buildRepairCheckin,
+  REPAIR_COST, availablePoints, monthRepairCount, canRepair, findRepairTarget,
 } from './ledger'
-import type { RedemptionRow } from '../data/db'
+import type { RedemptionRow, CheckinRow } from '../data/db'
+
+function ck(date: string, streak: number, totalPoints = 800): CheckinRow {
+  return { date, streak, dailyPoints: 0, totalPoints }
+}
 
 function red(over: Partial<RedemptionRow>): RedemptionRow {
   return {
@@ -40,36 +44,67 @@ describe('monthRepairCount', () => {
   })
 })
 
-describe('canRepair', () => {
-  const base = { today: '2026-07-03', monthRepairCount: 0, available: 500, cost: REPAIR_COST }
-  it('恰好漏 1 天可补', () => {
-    expect(canRepair({ ...base, lastCheckinDate: '2026-07-01' })).toEqual({ ok: true })
+describe('findRepairTarget', () => {
+  const today = '2026-07-03'
+
+  it('未打卡 + 恰好漏 1 天：补插昨天、接续 streak', () => {
+    // 周一(07-01)打卡 streak5，周二漏，今天(07-03)还没打卡
+    const target = findRepairTarget([ck('2026-07-01', 5)], today)
+    expect(target).toEqual({
+      missedDate: '2026-07-02',
+      phantomStreak: 6,
+      phantomTotal: 800,
+      fixTodayStreak: undefined,
+    })
   })
-  it('没断（昨天打过卡）不可补', () => {
-    expect(canRepair({ ...base, lastCheckinDate: '2026-07-02' }))
-      .toEqual({ ok: false, reason: 'not-broken' })
+
+  it('今天已打卡且已被重置：补插昨天并把今天 streak 接续', () => {
+    // 周一 streak5、周二漏、今天(07-03)已打卡但被重置为 1
+    const target = findRepairTarget([ck('2026-07-01', 5, 800), ck('2026-07-03', 1, 900)], today)
+    expect(target).toEqual({
+      missedDate: '2026-07-02',
+      phantomStreak: 6,
+      phantomTotal: 800,      // 沿用缺口前一天（周一），不是今天
+      fixTodayStreak: 7,      // 今天行从 1 修正为 7
+    })
   })
-  it('连漏 2+ 天不可补', () => {
-    expect(canRepair({ ...base, lastCheckinDate: '2026-06-30' }))
-      .toEqual({ ok: false, reason: 'not-broken' })
+
+  it('昨天打过卡（未断）：无缺口', () => {
+    expect(findRepairTarget([ck('2026-07-02', 5)], today)).toBeNull()
   })
-  it('从无打卡记录不可补', () => {
-    expect(canRepair({ ...base, lastCheckinDate: null }))
-      .toEqual({ ok: false, reason: 'not-broken' })
+
+  it('连漏 2+ 天：不可补', () => {
+    expect(findRepairTarget([ck('2026-06-30', 5)], today)).toBeNull()
   })
-  it('本月已补 2 次不可补', () => {
-    expect(canRepair({ ...base, lastCheckinDate: '2026-07-01', monthRepairCount: 2 }))
-      .toEqual({ ok: false, reason: 'month-limit' })
+
+  it('今天已打卡但上一条是连漏 2 天：不可补', () => {
+    expect(findRepairTarget([ck('2026-06-30', 5), ck('2026-07-03', 1)], today)).toBeNull()
   })
-  it('可用分不足不可补', () => {
-    expect(canRepair({ ...base, lastCheckinDate: '2026-07-01', available: 10 }))
-      .toEqual({ ok: false, reason: 'no-points' })
+
+  it('从无打卡记录：不可补', () => {
+    expect(findRepairTarget([], today)).toBeNull()
+  })
+
+  it('乱序输入也能正确排序判定', () => {
+    const target = findRepairTarget([ck('2026-07-03', 1, 900), ck('2026-07-01', 5, 800)], today)
+    expect(target?.missedDate).toBe('2026-07-02')
+    expect(target?.fixTodayStreak).toBe(7)
   })
 })
 
-describe('buildRepairCheckin', () => {
-  it('补插行接续 streak、0 分、totalPoints 沿用', () => {
-    const row = buildRepairCheckin({ streak: 5, totalPoints: 800 }, '2026-07-02')
-    expect(row).toEqual({ date: '2026-07-02', streak: 6, dailyPoints: 0, totalPoints: 800 })
+describe('canRepair', () => {
+  const target = { missedDate: '2026-07-02', phantomStreak: 6, phantomTotal: 800, fixTodayStreak: undefined }
+  const base = { target, monthRepairCount: 0, available: 500, cost: REPAIR_COST }
+  it('有缺口 + 有分 + 未超限：可补', () => {
+    expect(canRepair(base)).toEqual({ ok: true })
+  })
+  it('无缺口：not-broken', () => {
+    expect(canRepair({ ...base, target: null })).toEqual({ ok: false, reason: 'not-broken' })
+  })
+  it('本月已补 2 次：month-limit', () => {
+    expect(canRepair({ ...base, monthRepairCount: 2 })).toEqual({ ok: false, reason: 'month-limit' })
+  })
+  it('可用分不足：no-points', () => {
+    expect(canRepair({ ...base, available: 10 })).toEqual({ ok: false, reason: 'no-points' })
   })
 })

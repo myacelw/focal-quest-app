@@ -40,7 +40,7 @@ export function RewardConfig() {
       {rewards.map((r) => (
         <div key={r.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 10, fontSize: 13 }}>
           <span>{r.title} · {t('reward.cost', { n: r.cost })}</span>
-          <button className="fq-btn" onClick={async () => { await deactivateReward(r.id!); await refresh() }}>{t('reward.delete')}</button>
+          <button className="fq-btn" onClick={async () => { if (!window.confirm(t('reward.deleteConfirm', { title: r.title }))) return; await deactivateReward(r.id!); await refresh() }}>{t('reward.delete')}</button>
         </div>
       ))}
 

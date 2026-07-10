@@ -1,5 +1,5 @@
 import { db, type RewardRow, type RedemptionRow, type CheckinRow } from '../data/db'
-import { availablePoints, monthRepairCount, canRepair, buildRepairCheckin, REPAIR_COST, type RepairEligibility } from './ledger'
+import { availablePoints, monthRepairCount, canRepair, findRepairTarget, REPAIR_COST, type RepairEligibility } from './ledger'
 import { toDateStr, addDays, monthOf } from '../data/date-utils'
 import { pushRewards, pushRedemptions, pushCheckin } from '../data/api'
 
@@ -19,12 +19,6 @@ export async function addReward(title: string, cost: number): Promise<void> {
   const row: RewardRow = { title, cost, active: true, createdAt: Date.now() }
   const id = await db.rewards.add(row)
   pushRewards([{ ...row, id }])
-}
-
-export async function updateReward(id: number, patch: { title: string; cost: number }): Promise<void> {
-  await db.rewards.update(id, patch)
-  const row = await db.rewards.get(id)
-  if (row) pushRewards([row])
 }
 
 /** 软删：置 active=false，历史兑换名称快照不受影响 */
@@ -81,41 +75,70 @@ export async function cancelRedemption(id: number): Promise<void> {
 }
 
 export interface RepairStatus extends RepairEligibility {
-  streak: number       // 补签后可保住的连续天数（= 上次真实 streak）
+  streak: number       // 补签后可保住/达到的连续天数
   cost: number
   missedDate: string   // 漏掉的那天（= 昨天）
 }
 
-/** 首页补签横幅所需状态 */
+/** 首页补签横幅所需状态。缺口检测基于整条 checkins 链，故当天打卡前后都能正确判定。 */
 export async function getRepairStatus(today: string): Promise<RepairStatus> {
-  const last = await db.checkins.orderBy('date').last()
-  const [available, reds] = await Promise.all([getAvailablePoints(), db.redemptions.toArray()])
+  const [checkins, available, reds] = await Promise.all([
+    db.checkins.toArray(),
+    getAvailablePoints(),
+    db.redemptions.toArray(),
+  ])
+  const target = findRepairTarget(checkins, today)
   const elig = canRepair({
-    lastCheckinDate: last ? last.date : null,
-    today,
+    target,
     monthRepairCount: monthRepairCount(reds, monthOf(today)),
     available,
     cost: REPAIR_COST,
   })
-  return { ...elig, streak: last ? last.streak : 0, cost: REPAIR_COST, missedDate: addDays(today, -1) }
+  return {
+    ...elig,
+    // 补签后可见的连续天数：今天已打卡→修正值，否则→补插行 streak
+    streak: target ? (target.fixTodayStreak ?? target.phantomStreak) : 0,
+    cost: REPAIR_COST,
+    missedDate: target ? target.missedDate : addDays(today, -1),
+  }
 }
 
-/** 执行补签：记消耗（fulfilled）+ 补插打卡行。返回是否成功 */
+/**
+ * 执行补签：记消耗（fulfilled）+ 补插漏掉那天的打卡行；若今天已打卡且被重置，
+ * 顺带把今天行的 streak 接续上去（防止"先打卡后补签"丢连续）。返回是否成功。
+ */
 export async function doRepair(today: string): Promise<boolean> {
-  const status = await getRepairStatus(today)
-  if (!status.ok) return false
-  const last = await db.checkins.orderBy('date').last()
-  if (!last) return false
+  const [checkins, available, reds] = await Promise.all([
+    db.checkins.toArray(),
+    getAvailablePoints(),
+    db.redemptions.toArray(),
+  ])
+  const target = findRepairTarget(checkins, today)
+  const elig = canRepair({ target, monthRepairCount: monthRepairCount(reds, monthOf(today)), available, cost: REPAIR_COST })
+  if (!elig.ok || !target) return false
+
   const now = Date.now()
   const redemption: RedemptionRow = {
-    kind: 'repair', title: 'repair', cost: status.cost,
+    kind: 'repair', title: 'repair', cost: REPAIR_COST,
     createdAt: now, createdDate: toDateStr(new Date(now)),
-    status: 'fulfilled', fulfilledAt: now, repairDate: status.missedDate,
+    status: 'fulfilled', fulfilledAt: now, repairDate: target.missedDate,
   }
-  const checkinRow: CheckinRow = buildRepairCheckin(last, status.missedDate)
+  const phantom: CheckinRow = {
+    date: target.missedDate, streak: target.phantomStreak, dailyPoints: 0, totalPoints: target.phantomTotal,
+  }
   const id = await db.redemptions.add(redemption)
-  await db.checkins.put(checkinRow)
+  await db.checkins.put(phantom)
   pushRedemptions([{ ...redemption, id }])
-  pushCheckin(checkinRow)
+  pushCheckin(phantom)
+
+  // 路径 B：今天已打卡被重置，把今天行接续（只改 streak，保留已赚 dailyPoints/totalPoints）
+  if (target.fixTodayStreak !== undefined) {
+    const todayRow = checkins.find((c) => c.date === today)
+    if (todayRow) {
+      const fixed: CheckinRow = { ...todayRow, streak: target.fixTodayStreak }
+      await db.checkins.put(fixed)
+      pushCheckin(fixed)
+    }
+  }
   return true
 }
