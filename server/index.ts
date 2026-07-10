@@ -6,6 +6,7 @@ import {
   upsertMonster, allMonsters,
   upsertReward, allRewards,
   upsertRedemption, allRedemptions,
+  upsertExam, allExams,
 } from './db.ts'
 
 const PORT = Number(process.env.PORT ?? 3001)
@@ -77,6 +78,14 @@ const server = createServer(async (req: IncomingMessage, res: ServerResponse) =>
       const body = await readBody(req)
       const rows = Array.isArray(body) ? body : [body]
       for (const r of rows) upsertRedemption(r as never)
+      return send(res, 200, { ok: true })
+    }
+
+    if (url === '/api/exams' && method === 'GET') return send(res, 200, allExams())
+    if (url === '/api/exams' && method === 'POST') {
+      const body = await readBody(req)
+      const rows = Array.isArray(body) ? body : [body]
+      for (const r of rows) upsertExam(r as never)
       return send(res, 200, { ok: true })
     }
 

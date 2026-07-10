@@ -54,6 +54,13 @@ db.exec(`
     fulfilledAt INTEGER,
     repairDate  TEXT
   );
+  CREATE TABLE IF NOT EXISTS exams (
+    id       INTEGER PRIMARY KEY,
+    date     TEXT NOT NULL,
+    leftEye  REAL NOT NULL,
+    rightEye REAL NOT NULL,
+    note     TEXT
+  );
 `)
 
 // 轻量迁移：给早于本字段的旧库补列（新库 CREATE 已含，此处会报"列已存在"被忽略）
@@ -107,6 +114,13 @@ export interface RedemptionRow {
   status: string
   fulfilledAt?: number
   repairDate?: string
+}
+export interface ExamRow {
+  id: number
+  date: string
+  left: number
+  right: number
+  note?: string
 }
 
 /** session 以前端 Dexie 的 id 为主键 upsert，重复推送/回填幂等（DO NOTHING） */
@@ -171,4 +185,16 @@ export function upsertRedemption(r: RedemptionRow): void {
 }
 export function allRedemptions(): RedemptionRow[] {
   return db.prepare('SELECT * FROM redemptions ORDER BY createdAt').all() as unknown as RedemptionRow[]
+}
+
+/** exams 首次写入，已存在保留（记录只增删、删除不同步后端） */
+export function upsertExam(r: ExamRow): void {
+  db.prepare(
+    'INSERT INTO exams (id,date,leftEye,rightEye,note) VALUES (?,?,?,?,?) ON CONFLICT(id) DO NOTHING',
+  ).run(r.id, r.date, r.left, r.right, r.note ?? null)
+}
+export function allExams(): ExamRow[] {
+  return db.prepare(
+    'SELECT id,date,leftEye AS "left",rightEye AS "right",note FROM exams ORDER BY date',
+  ).all() as unknown as ExamRow[]
 }

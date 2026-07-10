@@ -1,4 +1,4 @@
-import { db, type SessionRow, type CheckinRow, type BadgeRow, type MonsterRow, type RewardRow, type RedemptionRow } from './db'
+import { db, type SessionRow, type CheckinRow, type BadgeRow, type MonsterRow, type RewardRow, type RedemptionRow, type ExamRow } from './db'
 
 /**
  * 前端 → 本地 Node 后端（server/）的最简同步层。只调相对 /api/*，由 Vite proxy 转发。
@@ -41,17 +41,21 @@ export function pushRewards(rows: RewardRow[]): void {
 export function pushRedemptions(rows: RedemptionRow[]): void {
   if (rows.length > 0) void post('/redemptions', rows)
 }
+export function pushExams(rows: ExamRow[]): void {
+  if (rows.length > 0) void post('/exams', rows)
+}
 
 /** 启动时把本地全部数据回填到后端（幂等），确保历史数据也进 SQLite */
 export async function pushAll(): Promise<void> {
   try {
-    const [sessions, checkins, badges, monsters, rewards, redemptions] = await Promise.all([
+    const [sessions, checkins, badges, monsters, rewards, redemptions, exams] = await Promise.all([
       db.sessions.toArray(),
       db.checkins.toArray(),
       db.badges.toArray(),
       db.monsters.toArray(),
       db.rewards.toArray(),
       db.redemptions.toArray(),
+      db.exams.toArray(),
     ])
     // 串行回填：避免一次并发几十个请求压后端，页面切换时也只影响当前一个
     for (const s of sessions) await post('/sessions', s)
@@ -60,6 +64,7 @@ export async function pushAll(): Promise<void> {
     if (monsters.length > 0) await post('/monsters', monsters)
     if (rewards.length > 0) await post('/rewards', rewards)
     if (redemptions.length > 0) await post('/redemptions', redemptions)
+    if (exams.length > 0) await post('/exams', exams)
   } catch {
     // 忽略
   }
