@@ -1,20 +1,24 @@
 import { useEffect, useState } from 'react'
-import { db, type SessionRow } from '../data/db'
+import { db, type SessionRow, type ExamRow } from '../data/db'
 import { aggregate, type Dim } from './aggregate'
 import { LineChart } from './LineChart'
 import { BarChart } from './BarChart'
+import { DualLineChart } from './DualLineChart'
 import { weeklyReport } from './weekly-report'
 import { toDateStr } from '../data/date-utils'
+import { listExams } from '../exams/exams-service'
 import { useT } from '../i18n'
 
 export function StatsPage() {
   const t = useT()
   const [sessions, setSessions] = useState<SessionRow[] | null>(null)
   const [dim, setDim] = useState<Dim>('day')
+  const [exams, setExams] = useState<ExamRow[]>([])
 
   useEffect(() => {
     db.sessions.toArray().then(setSessions)
   }, [])
+  useEffect(() => { void listExams().then(setExams) }, [])
 
   if (sessions === null) return <div className="fq-page">{t('home.loading')}</div>
   if (sessions.length === 0) {
@@ -100,6 +104,21 @@ export function StatsPage() {
       <div className="fq-card" style={{ marginTop: 14 }}>
         <div className="fq-card-title">{t('stats.countChart')}</div>
         <BarChart values={stats.map((s) => s.count)} labels={labels} />
+      </div>
+
+      <div className="fq-card" style={{ marginTop: 14 }}>
+        <div className="fq-card-title">{t('exam.chartTitle')}</div>
+        {exams.length === 0 ? (
+          <p style={{ fontSize: 13, color: 'var(--muted)', marginTop: 8 }}>{t('exam.chartEmpty')}</p>
+        ) : (
+          <DualLineChart
+            a={exams.map((e) => e.left)}
+            b={exams.map((e) => e.right)}
+            labels={exams.map((e) => e.date.slice(5))}
+            legendA={t('exam.left')}
+            legendB={t('exam.right')}
+          />
+        )}
       </div>
 
       <p style={{ fontSize: 12, color: 'var(--muted)', lineHeight: 1.6, marginTop: 16, textAlign: 'center' }}>
