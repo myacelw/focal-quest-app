@@ -289,6 +289,13 @@ const ZH: Dict = {
   'backup.confirm': '将覆盖当前全部数据，恢复到备份时刻（{date}）。确定继续？',
   'backup.done': '✅ 恢复成功。若更换了设备，请到设置里重新完成屏幕标定。',
   'backup.badFile': '❌ 备份文件格式不对，未做任何改动。',
+  // 每日提醒
+  'reminder.title': '⏰ 每日提醒',
+  'reminder.hint': '添加一个每天到点的日历提醒，帮孩子坚持。iPad 打开下载的文件会弹"添加到日历"',
+  'reminder.time': '提醒时间',
+  'reminder.add': '添加到日历',
+  'reminder.icsSummary': '该练视力啦 👀',
+  'reminder.icsDesc': '打开「变焦大冒险」，练几分钟翻转拍',
   // 补签
   'repair.banner': '😱 昨天漏练了！花 {cost} 分补签，保住 {streak} 天连续',
   'repair.do': '补签',
@@ -606,6 +613,13 @@ const EN: Dict = {
   'backup.confirm': 'This will OVERWRITE all current data and restore to the backup taken on {date}. Continue?',
   'backup.done': '✅ Restored. If you switched devices, please redo screen calibration in Settings.',
   'backup.badFile': '❌ Invalid backup file. Nothing was changed.',
+  // Daily reminder
+  'reminder.title': '⏰ Daily reminder',
+  'reminder.hint': 'Add a daily calendar reminder to help your child keep the habit. Opening the downloaded file on iPad prompts "Add to Calendar"',
+  'reminder.time': 'Reminder time',
+  'reminder.add': 'Add to calendar',
+  'reminder.icsSummary': 'Time for vision training 👀',
+  'reminder.icsDesc': 'Open FocalQuest and do a few minutes of flipper training',
   'repair.banner': '😱 Missed yesterday! Spend {cost} pts to keep your {streak}-day streak',
   'repair.do': 'Repair',
   'repair.done': '✅ Streak saved!',
