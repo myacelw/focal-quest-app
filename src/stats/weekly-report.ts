@@ -1,6 +1,6 @@
-import type { SessionRow } from '../data/db'
+import type { SessionRow, RedemptionRow } from '../data/db'
 import { weekKey } from './period'
-import { addDays } from '../data/date-utils'
+import { addDays, toDateStr } from '../data/date-utils'
 
 export interface WeeklyReport {
   thisWeekCount: number
@@ -65,4 +65,26 @@ export function weeklyReport(sessions: SessionRow[], today: string): WeeklyRepor
     accuracy,
     suggestionKey,
   }
+}
+
+export interface WeeklyExtras {
+  monstersThisWeek: number
+  redeemedTitlesThisWeek: string[]
+}
+
+/** 周报的"游戏化成果"补充：本周捕获怪兽数 + 本周已兑现奖励名称 */
+export function weeklyExtras(
+  monsters: { capturedAt: number }[],
+  redemptions: RedemptionRow[],
+  today: string,
+): WeeklyExtras {
+  const thisWk = weekKey(today)
+  const monstersThisWeek = monsters.filter(
+    (m) => weekKey(toDateStr(new Date(m.capturedAt))) === thisWk,
+  ).length
+  const redeemedTitlesThisWeek = redemptions
+    .filter((r) => r.kind === 'reward' && r.status === 'fulfilled' && weekKey(r.createdDate) === thisWk)
+    .sort((a, b) => a.createdAt - b.createdAt)
+    .map((r) => r.title)
+  return { monstersThisWeek, redeemedTitlesThisWeek }
 }
