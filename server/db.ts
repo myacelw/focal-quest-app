@@ -36,6 +36,24 @@ db.exec(`
     capturedAt INTEGER NOT NULL,
     source     TEXT NOT NULL
   );
+  CREATE TABLE IF NOT EXISTS rewards (
+    id        INTEGER PRIMARY KEY,
+    title     TEXT NOT NULL,
+    cost      INTEGER NOT NULL,
+    active    INTEGER NOT NULL,
+    createdAt INTEGER NOT NULL
+  );
+  CREATE TABLE IF NOT EXISTS redemptions (
+    id          INTEGER PRIMARY KEY,
+    kind        TEXT NOT NULL,
+    title       TEXT NOT NULL,
+    cost        INTEGER NOT NULL,
+    createdAt   INTEGER NOT NULL,
+    createdDate TEXT NOT NULL,
+    status      TEXT NOT NULL,
+    fulfilledAt INTEGER,
+    repairDate  TEXT
+  );
 `)
 
 // 轻量迁移：给早于本字段的旧库补列（新库 CREATE 已含，此处会报"列已存在"被忽略）
@@ -71,6 +89,24 @@ export interface MonsterRow {
   id: string
   capturedAt: number
   source: string
+}
+export interface RewardRow {
+  id: number
+  title: string
+  cost: number
+  active: number      // SQLite 无 bool，用 0/1
+  createdAt: number
+}
+export interface RedemptionRow {
+  id: number
+  kind: string
+  title: string
+  cost: number
+  createdAt: number
+  createdDate: string
+  status: string
+  fulfilledAt?: number
+  repairDate?: string
 }
 
 /** session 以前端 Dexie 的 id 为主键 upsert，重复推送/回填幂等（DO NOTHING） */
@@ -112,4 +148,27 @@ export function upsertMonster(r: MonsterRow): void {
 }
 export function allMonsters(): MonsterRow[] {
   return db.prepare('SELECT id,capturedAt,source FROM monsters ORDER BY capturedAt').all() as unknown as MonsterRow[]
+}
+
+/** rewards 按 id upsert（可更新 title/cost/active） */
+export function upsertReward(r: RewardRow): void {
+  db.prepare(
+    `INSERT INTO rewards (id,title,cost,active,createdAt) VALUES (?,?,?,?,?)
+     ON CONFLICT(id) DO UPDATE SET title=excluded.title, cost=excluded.cost, active=excluded.active`,
+  ).run(r.id, r.title, r.cost, r.active ? 1 : 0, r.createdAt)
+}
+export function allRewards(): RewardRow[] {
+  return db.prepare('SELECT id,title,cost,active,createdAt FROM rewards ORDER BY createdAt').all() as unknown as RewardRow[]
+}
+
+/** redemptions 按 id upsert（可更新 status/fulfilledAt） */
+export function upsertRedemption(r: RedemptionRow): void {
+  db.prepare(
+    `INSERT INTO redemptions (id,kind,title,cost,createdAt,createdDate,status,fulfilledAt,repairDate)
+     VALUES (?,?,?,?,?,?,?,?,?)
+     ON CONFLICT(id) DO UPDATE SET status=excluded.status, fulfilledAt=excluded.fulfilledAt`,
+  ).run(r.id, r.kind, r.title, r.cost, r.createdAt, r.createdDate, r.status, r.fulfilledAt ?? null, r.repairDate ?? null)
+}
+export function allRedemptions(): RedemptionRow[] {
+  return db.prepare('SELECT * FROM redemptions ORDER BY createdAt').all() as unknown as RedemptionRow[]
 }

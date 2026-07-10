@@ -21,3 +21,17 @@ export function addDays(dateStr: string, n: number): string {
 export function isYesterday(dateStr: string, todayStr: string): boolean {
   return addDays(todayStr, -1) === dateStr
 }
+
+/** bStr - aStr 的天数差（UTC 解析，纯日期算术，无时区漂移） */
+export function daysBetween(aStr: string, bStr: string): number {
+  const parse = (s: string) => {
+    const [y, m, d] = s.split('-').map(Number)
+    return Date.UTC(y, m - 1, d)
+  }
+  return Math.round((parse(bStr) - parse(aStr)) / 86400000)
+}
+
+/** 'YYYY-MM-DD' → 'YYYY-MM' */
+export function monthOf(dateStr: string): string {
+  return dateStr.slice(0, 7)
+}

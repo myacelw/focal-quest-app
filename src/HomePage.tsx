@@ -5,16 +5,22 @@ import { SKINS, skinUnlockCost, isSkinUnlocked } from './skins/registry'
 import { useCountUp } from './useCountUp'
 import { asset } from './data/asset'
 import { getDexProgress, type DexProgress } from './dex/dex-service'
+import { getAvailablePoints, getRepairStatus, doRepair, type RepairStatus } from './rewards/rewards-service'
 import { useT } from './i18n'
 
-export function HomePage({ onStart, onOpenDex }: { onStart: () => void; onOpenDex: () => void }) {
+export function HomePage({ onStart, onOpenDex, onOpenRewards }: { onStart: () => void; onOpenDex: () => void; onOpenRewards: () => void }) {
   const t = useT()
   const [stats, setStats] = useState<HomeStats | null>(null)
   const [dex, setDex] = useState<DexProgress | null>(null)
+  const [available, setAvailable] = useState<number | null>(null)
+  const [repair, setRepair] = useState<RepairStatus | null>(null)
 
   useEffect(() => {
-    getHomeStats(toDateStr(new Date())).then(setStats)
+    const today = toDateStr(new Date())
+    getHomeStats(today).then(setStats)
     void getDexProgress().then(setDex)
+    void getAvailablePoints().then(setAvailable)
+    void getRepairStatus(today).then(setRepair)
   }, [])
 
   const tp = stats?.totalPoints ?? 0
@@ -82,10 +88,46 @@ export function HomePage({ onStart, onOpenDex }: { onStart: () => void; onOpenDe
               <div style={{ width: 1, height: 42, background: '#ffffff55' }} />
               <div>
                 <div style={{ fontSize: 34, fontWeight: 800, lineHeight: 1 }}>{pointsN}</div>
-                <div style={{ fontSize: 12, opacity: 0.92, marginTop: 6 }}>{t('home.points')}</div>
+                <div style={{ fontSize: 12, opacity: 0.92, marginTop: 6 }}>{t('reward.total')}</div>
+              </div>
+              <div style={{ width: 1, height: 42, background: '#ffffff55' }} />
+              <div>
+                <div style={{ fontSize: 34, fontWeight: 800, lineHeight: 1 }}>{available ?? '—'}</div>
+                <div style={{ fontSize: 12, opacity: 0.92, marginTop: 6 }}>{t('reward.available')}</div>
               </div>
             </div>
           </div>
+
+          {/* 补签横幅：仅恰好漏 1 天时出现 */}
+          {repair?.ok && (
+            <div className="fq-card fq-rise" style={{ border: '1.5px solid var(--coral)', background: '#fff4ec' }}>
+              <div style={{ fontSize: 14, fontWeight: 700, marginBottom: 10 }}>
+                {t('repair.banner', { cost: repair.cost, streak: repair.streak })}
+              </div>
+              <button
+                className="fq-cta"
+                style={{ width: '100%' }}
+                onClick={async () => {
+                  const ok = await doRepair(toDateStr(new Date()))
+                  if (ok) {
+                    const today = toDateStr(new Date())
+                    const s = await getHomeStats(today)
+                    setStats(s)
+                    setRepair(await getRepairStatus(today))
+                    setAvailable(await getAvailablePoints())
+                  }
+                }}
+              >
+                {t('repair.do')}
+              </button>
+            </div>
+          )}
+          {repair && !repair.ok && repair.reason === 'no-points' && (
+            <div className="fq-card" style={{ color: 'var(--muted)', fontSize: 13 }}>{t('repair.noPoints', { cost: repair.cost })}</div>
+          )}
+          {repair && !repair.ok && repair.reason === 'month-limit' && (
+            <div className="fq-card" style={{ color: 'var(--muted)', fontSize: 13 }}>{t('repair.monthLimit')}</div>
+          )}
 
           {/* 怪兽图鉴入口：显示收集进度，点击跳图鉴 tab */}
           <button
@@ -111,6 +153,18 @@ export function HomePage({ onStart, onOpenDex }: { onStart: () => void; onOpenDe
               <span>·</span>
               <span>🏛 {dex ? dex.byWorld.shrine : 0}/{dex ? dex.byWorldTotal.shrine : 17}</span>
               <span style={{ marginLeft: 'auto', color: 'var(--violet)', fontWeight: 700 }}>{t('dex.tab.dex')} →</span>
+            </div>
+          </button>
+
+          {/* 奖励兑换入口 */}
+          <button
+            onClick={onOpenRewards}
+            className="fq-card"
+            style={{ textAlign: 'left', cursor: 'pointer', border: '1.5px solid var(--coral)', background: 'linear-gradient(135deg, #fff2ec, #fffaf0)', padding: '14px 16px' }}
+          >
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: 14, fontWeight: 700 }}>
+              <span>{t('reward.homeCard')}</span>
+              <span style={{ color: 'var(--coral)', fontWeight: 700 }}>{t('reward.homeCardHint')} →</span>
             </div>
           </button>
 

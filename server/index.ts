@@ -4,6 +4,8 @@ import {
   upsertCheckin, allCheckins,
   upsertBadge, allBadges,
   upsertMonster, allMonsters,
+  upsertReward, allRewards,
+  upsertRedemption, allRedemptions,
 } from './db.ts'
 
 const PORT = Number(process.env.PORT ?? 3001)
@@ -60,6 +62,21 @@ const server = createServer(async (req: IncomingMessage, res: ServerResponse) =>
       const body = await readBody(req)
       const rows = Array.isArray(body) ? body : [body]
       for (const m of rows) upsertMonster(m as never)
+      return send(res, 200, { ok: true })
+    }
+
+    if (url === '/api/rewards' && method === 'GET') return send(res, 200, allRewards())
+    if (url === '/api/rewards' && method === 'POST') {
+      const body = await readBody(req)
+      const rows = Array.isArray(body) ? body : [body]
+      for (const r of rows) upsertReward(r as never)
+      return send(res, 200, { ok: true })
+    }
+    if (url === '/api/redemptions' && method === 'GET') return send(res, 200, allRedemptions())
+    if (url === '/api/redemptions' && method === 'POST') {
+      const body = await readBody(req)
+      const rows = Array.isArray(body) ? body : [body]
+      for (const r of rows) upsertRedemption(r as never)
       return send(res, 200, { ok: true })
     }
 
