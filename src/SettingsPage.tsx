@@ -6,6 +6,7 @@ import { lsGet, lsSet } from './data/storage'
 import { toDateStr } from './data/date-utils'
 import { getSkin, getSkinId, setSkinId, isSkinUnlocked, skinUnlockCost, SKINS } from './skins/registry'
 import { useT, useLang, setLang, type Lang, Rich } from './i18n'
+import { RewardConfig } from './rewards/RewardConfig'
 
 function readPxPerMm(): number | null {
   const v = lsGet('fzp.cssPxPerMm')
@@ -172,6 +173,8 @@ export function SettingsPage({ onReplayGuide, onOpenSpeech, onOpenCalib }: { onR
           <CurrentSkin.Stage target="up" heightPx={28} phase="showing" lastAnswer={null} isEgg={false} />
         </div>
       </div>
+
+      <RewardConfig />
 
       <div className="fq-card" style={{ marginTop: 14, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
         <span style={{ fontSize: 14, fontWeight: 700 }}>{t('settings.guide')}</span>

@@ -8,10 +8,11 @@ import { BadgeWall, type DexTab } from './badges/BadgeWall'
 import { pushAll } from './data/api'
 import { Onboarding } from './Onboarding'
 import { SettingsPage } from './SettingsPage'
+import { RewardsPage } from './rewards/RewardsPage'
 import { lsGet, lsSet } from './data/storage'
 import { useT } from './i18n'
 
-type View = 'home' | 'train' | 'stats' | 'badges' | 'calib' | 'speech' | 'settings'
+type View = 'home' | 'train' | 'stats' | 'badges' | 'calib' | 'speech' | 'settings' | 'rewards'
 
 const NAV: { key: View; icon: string }[] = [
   { key: 'home', icon: '🏠' },
@@ -46,6 +47,7 @@ export function App() {
         <HomePage
           onStart={() => setView('train')}
           onOpenDex={() => { setBadgeTab('dex'); setView('badges') }}
+          onOpenRewards={() => setView('rewards')}
         />
       )}
       {view === 'train' && <TrainingPage />}
@@ -53,6 +55,7 @@ export function App() {
       {view === 'badges' && <BadgeWall initialTab={badgeTab} />}
       {view === 'calib' && <CalibrationPage />}
       {view === 'speech' && <SpeechTestPage />}
+      {view === 'rewards' && <RewardsPage />}
       {view === 'settings' && (
         <SettingsPage
           onReplayGuide={() => setShowOnboard(true)}
