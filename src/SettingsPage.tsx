@@ -188,6 +188,11 @@ export function SettingsPage({ onReplayGuide, onOpenSpeech, onOpenCalib }: { onR
         <button className="fq-btn" onClick={onReplayGuide}>{t('settings.replayGuide')}</button>
       </div>
 
+      <div className="fq-card" style={{ marginTop: 14, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
+        <span style={{ fontSize: 14, fontWeight: 700 }}>{t('settings.speechTest')}</span>
+        <button className="fq-btn" onClick={onOpenSpeech}>{t('settings.speechOpen')}</button>
+      </div>
+
       <div className="fq-card" style={{ marginTop: 14 }}>
         <div className="fq-card-title">{t('settings.about')}</div>
         <ul style={{ fontSize: 13, color: 'var(--muted)', lineHeight: 1.75, paddingLeft: 18, margin: 0 }}>
@@ -200,15 +205,7 @@ export function SettingsPage({ onReplayGuide, onOpenSpeech, onOpenCalib }: { onR
 
       <ResetCard />
 
-      <p style={{ textAlign: 'center', marginTop: 20 }}>
-        <button
-          onClick={onOpenSpeech}
-          style={{ background: 'none', border: 'none', color: 'var(--muted)', fontSize: 12, cursor: 'pointer', textDecoration: 'underline' }}
-        >
-          {t('settings.speechTest')}
-        </button>
-      </p>
-      <p style={{ textAlign: 'center', marginTop: 4, color: 'var(--muted)', fontSize: 11 }}>
+      <p style={{ textAlign: 'center', marginTop: 20, color: 'var(--muted)', fontSize: 11 }}>
         {t('settings.version', { v: __APP_VERSION__ })}
       </p>
     </div>

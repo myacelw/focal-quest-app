@@ -163,6 +163,7 @@ const ZH: Dict = {
   'settings.about.li4': 'CPM / 反应时间是**趋势参考**（和自己比、在变快就是进步），不是医学诊断；需专业评估请找视光师。',
   'settings.language': '🌐 语言',
   'settings.speechTest': '🎤 语音识别测试（调试用）',
+  'settings.speechOpen': '打开',
   'settings.version': '版本 {v}',
   // 勋章
   'badges.title': '🏅 勋章墙',
@@ -498,6 +499,7 @@ const EN: Dict = {
   'settings.about.li4': 'CPM / reaction time are **trend indicators** (compare against yourself — getting faster means progress), not a medical diagnosis; see an optometrist for a professional assessment.',
   'settings.language': '🌐 Language',
   'settings.speechTest': '🎤 Speech recognition test (debug)',
+  'settings.speechOpen': 'Open',
   'settings.version': 'Version {v}',
   'badges.title': '🏅 Badges',
   'badges.unlocked': 'Unlocked {n} / {total}',
