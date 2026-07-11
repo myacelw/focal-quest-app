@@ -10,6 +10,7 @@ import { RewardConfig } from './rewards/RewardConfig'
 import { ExamConfig } from './exams/ExamConfig'
 import { BackupCard } from './backup/BackupCard'
 import { ReminderCard } from './reminder/ReminderCard'
+import { ResetCard } from './reset/ResetCard'
 
 function readPxPerMm(): number | null {
   const v = lsGet('fzp.cssPxPerMm')
@@ -196,6 +197,8 @@ export function SettingsPage({ onReplayGuide, onOpenSpeech, onOpenCalib }: { onR
           <li><Rich text={t('settings.about.li4')} /></li>
         </ul>
       </div>
+
+      <ResetCard />
 
       <p style={{ textAlign: 'center', marginTop: 20 }}>
         <button
