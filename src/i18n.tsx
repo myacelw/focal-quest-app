@@ -326,8 +326,9 @@ const ZH: Dict = {
   'speech.listening': '（正在听「{target}」…请说）',
   // 屏幕标定
   'calib.title': '📐 屏幕标定',
-  'calib.instruction': '把下面的紫条拖到和一张银行卡（宽 {mm}mm）一样宽，再点保存——这样视标才能按正确的物理尺寸显示。',
-  'calib.barWidth': '当前条宽 {px} px → ',
+  'calib.instruction': '把下面的卡框拖到和一张真银行卡一样大（长、宽都对齐），再点保存——这样视标才能按正确的物理尺寸显示。',
+  'calib.cardHint': '对齐银行卡',
+  'calib.barWidth': '当前卡宽 {px} px → ',
   'calib.save': '💾 保存标定',
   'calib.saved': '✓ 已保存（{v} px/mm）',
   'calib.verifyTitle': '📏 拿尺子验一下',
@@ -649,8 +650,9 @@ const EN: Dict = {
   'speech.listening': '(listening for "{target}"… speak now)',
   // Screen calibration
   'calib.title': '📐 Screen calibration',
-  'calib.instruction': 'Drag the purple bar below until it matches the width of a bank card ({mm}mm), then save — this makes the optotype size physically accurate.',
-  'calib.barWidth': 'Bar width {px} px → ',
+  'calib.instruction': 'Resize the card outline below to match a real bank card (align both width and height), then save — this makes the optotype size physically accurate.',
+  'calib.cardHint': 'match a bank card',
+  'calib.barWidth': 'Card width {px} px → ',
   'calib.save': '💾 Save calibration',
   'calib.saved': '✓ Saved ({v} px/mm)',
   'calib.verifyTitle': '📏 Double-check with a ruler',
