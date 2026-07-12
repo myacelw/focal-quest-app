@@ -65,7 +65,7 @@ export function HomePage({ onStart, onOpenDex, onOpenRewards }: { onStart: () =>
             onClick={onStart}
             style={{ position: 'relative', zIndex: 1, width: '100%', fontSize: 22, fontWeight: 800, padding: '22px', borderRadius: 20, gap: 12 }}
           >
-            <span style={{ fontSize: 22 }}>▶</span>{t('home.start')}
+            {t('home.start')}
           </button>
         </div>
         <p style={{ fontSize: 12, color: 'var(--muted)', lineHeight: 1.6, margin: '-4px 0 0' }}>{t('home.calibHint')}</p>
