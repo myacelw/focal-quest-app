@@ -505,9 +505,10 @@ export function TrainingPage() {
         )}
       </div>
 
-      <div style={{ padding: '8px 16px 22px' }}>
-        <div style={{ textAlign: 'center', color: 'var(--muted)', fontSize: 13, fontWeight: 600, minHeight: 18, marginBottom: 10 }}>{voskHint}</div>
-        {/* 十字方向盘：上下左右按方位摆，与视标 E 朝向一一对应，"朝哪开点哪" */}
+      {/* 语音提示放左侧（次要信息，不占整行）；十字方向盘居中且紧凑 */}
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr auto 1fr', alignItems: 'center', gap: 8, padding: '4px 14px 18px' }}>
+        <span style={{ color: 'var(--muted)', fontSize: 12, fontWeight: 600, textAlign: 'right', lineHeight: 1.4 }}>{voskHint}</span>
+        {/* 上下左右按方位摆，与视标 E 朝向一一对应，"朝哪开点哪" */}
         <div className="fq-dpad">
           {DPAD.map(({ dir, col, row }) => (
             <button
@@ -522,6 +523,7 @@ export function TrainingPage() {
           ))}
           <div className="fq-dpad-hub" style={{ gridColumn: 2, gridRow: 2 }}><i /></div>
         </div>
+        <span aria-hidden />
       </div>
 
       {paused && (

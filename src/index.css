@@ -112,13 +112,13 @@ h1, h2, h3, h4, p { margin: 0; }
 /* ---------- 训练答题：十字方向盘（D-pad） ---------- */
 .fq-dpad {
   display: grid; grid-template-columns: repeat(3, 1fr); grid-template-rows: repeat(3, 1fr);
-  gap: 10px; width: min(268px, 80vw); aspect-ratio: 1; margin: 0 auto;
+  gap: 7px; width: min(210px, 58vw); aspect-ratio: 1; margin: 0 auto;
 }
 .fq-dpad-btn {
   display: grid; place-items: center; font-family: inherit;
-  font-size: 34px; font-weight: 800; color: var(--violet);
+  font-size: 28px; font-weight: 800; color: var(--violet);
   background: linear-gradient(160deg, #ffffff, #f4f0ff);
-  border: 2px solid var(--line); border-radius: 20px;
+  border: 2px solid var(--line); border-radius: 16px;
   box-shadow: var(--shadow); cursor: pointer;
   transition: transform 0.1s ease, box-shadow 0.1s ease, background 0.1s ease, border-color 0.1s ease, color 0.1s ease;
   touch-action: manipulation; -webkit-tap-highlight-color: transparent; -webkit-user-select: none; user-select: none;
