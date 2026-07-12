@@ -31,178 +31,139 @@ export function HomePage({ onStart, onOpenDex, onOpenRewards }: { onStart: () =>
   const progress = nextCost ? Math.min(1, tp / nextCost) : 1
 
   return (
-    <div
-      style={{
-        minHeight: 'calc(100vh - 57px)',
-        display: 'flex',
-        flexDirection: 'column',
-        justifyContent: 'flex-start',
-        gap: 14,
-        padding: '18px 20px 40px',
-        maxWidth: 440,
-        margin: '0 auto',
-        textAlign: 'center',
-      }}
-    >
-      {/* 英雄区：主视觉 banner + 标语 */}
-      <div>
-        <img
-          src={asset('/hero.webp')}
-          alt="变焦大冒险 · FocalQuest"
-          style={{
-            width: '100%',
-            maxWidth: 300,
-            display: 'block',
-            margin: '0 auto 8px',
-            borderRadius: 20,
-            boxShadow: '0 16px 36px -12px rgba(124,108,240,.42)',
-          }}
-        />
-        <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--muted)', marginTop: 2 }}>
-          {t('home.tagline')}
+    <div className="fq-home">
+      <div className="fq-home-blobs" aria-hidden />
+      <div
+        className="fq-home-content"
+        style={{ display: 'flex', flexDirection: 'column', gap: 14, padding: '16px 20px 44px', maxWidth: 440, margin: '0 auto', textAlign: 'center' }}
+      >
+        {/* 英雄区：主视觉轻轻浮动 */}
+        <div className="fq-rise">
+          <img
+            src={asset('/hero.webp')}
+            alt="变焦大冒险 · FocalQuest"
+            className="fq-float"
+            style={{ width: '100%', maxWidth: 264, display: 'block', margin: '2px auto 8px', borderRadius: 20, boxShadow: '0 18px 40px -14px rgba(124,108,240,.5)' }}
+          />
+          <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--muted)' }}>{t('home.tagline')}</div>
         </div>
-      </div>
 
-      {/* 主操作：开始训练——紧跟 hero、一眼可点，且不等数据加载 */}
-      <button className="fq-cta" style={{ width: '100%', fontSize: 20, padding: '20px' }} onClick={onStart}>
-        {t('home.start')}
-      </button>
-      <p style={{ fontSize: 12, color: 'var(--muted)', lineHeight: 1.6, margin: '-6px 0 2px' }}>
-        {t('home.calibHint')}
-      </p>
+        {/* 今日状态 */}
+        <div className="fq-rise" style={{ fontSize: 15, fontWeight: 800, color: stats?.checkedInToday ? 'var(--mint)' : 'var(--ink)', animationDelay: '0.05s' }}>
+          {stats?.checkedInToday ? t('home.checkedToday') : t('home.notYetToday')}
+        </div>
 
-      {stats === null ? (
-        <div className="fq-card">{t('home.loading')}</div>
-      ) : (
-        <>
-          {/* 打卡卡片 */}
+        {/* 主行动：开始训练——呼吸光晕聚焦，一眼可点、不等数据加载 */}
+        <div className="fq-rise" style={{ position: 'relative', animationDelay: '0.08s' }}>
           <div
-            className="fq-card"
-            style={{
-              background: 'linear-gradient(135deg, #ff8a5b, #ff5c86)',
-              border: 'none',
-              color: '#fff',
-              boxShadow: 'var(--shadow-coral)',
-            }}
+            className="fq-startglow"
+            aria-hidden
+            style={{ position: 'absolute', inset: '-8px -6px', borderRadius: 28, background: 'linear-gradient(90deg, var(--violet), var(--coral))', filter: 'blur(20px)', zIndex: 0 }}
+          />
+          <button
+            className="fq-cta"
+            onClick={onStart}
+            style={{ position: 'relative', zIndex: 1, width: '100%', fontSize: 22, fontWeight: 800, padding: '22px', borderRadius: 20, gap: 12 }}
           >
-            <div style={{ fontSize: 15, fontWeight: 700, marginBottom: 16 }}>
-              {stats.checkedInToday ? t('home.checkedToday') : t('home.notYetToday')}
-            </div>
-            <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: 26 }}>
-              <div>
-                <div style={{ fontSize: 34, fontWeight: 800, lineHeight: 1 }}>{streakN}</div>
-                <div style={{ fontSize: 12, opacity: 0.92, marginTop: 6 }}>{t('home.streak')}</div>
-              </div>
-              <div style={{ width: 1, height: 42, background: '#ffffff55' }} />
-              <div>
-                <div style={{ fontSize: 34, fontWeight: 800, lineHeight: 1 }}>{pointsN}</div>
-                <div style={{ fontSize: 12, opacity: 0.92, marginTop: 6 }}>{t('reward.total')}</div>
-              </div>
-              <div style={{ width: 1, height: 42, background: '#ffffff55' }} />
-              <div>
-                <div style={{ fontSize: 34, fontWeight: 800, lineHeight: 1 }}>{available ?? '—'}</div>
-                <div style={{ fontSize: 12, opacity: 0.92, marginTop: 6 }}>{t('reward.available')}</div>
-              </div>
-            </div>
+            <span style={{ fontSize: 22 }}>▶</span>{t('home.start')}
+          </button>
+        </div>
+        <p style={{ fontSize: 12, color: 'var(--muted)', lineHeight: 1.6, margin: '-4px 0 0' }}>{t('home.calibHint')}</p>
+
+        {/* 补签横幅：仅恰好漏 1 天时出现 */}
+        {repair?.ok && (
+          <div className="fq-card fq-rise" style={{ border: '1.5px solid var(--coral)', background: 'linear-gradient(135deg, #fff4ec, #fff)' }}>
+            <div style={{ fontSize: 14, fontWeight: 700, marginBottom: 10 }}>{t('repair.banner', { cost: repair.cost, streak: repair.streak })}</div>
+            <button
+              className="fq-cta coral"
+              style={{ width: '100%' }}
+              onClick={async () => {
+                const ok = await doRepair(toDateStr(new Date()))
+                if (ok) {
+                  const today = toDateStr(new Date())
+                  setStats(await getHomeStats(today))
+                  setRepair(await getRepairStatus(today))
+                  setAvailable(await getAvailablePoints())
+                }
+              }}
+            >
+              {t('repair.do')}
+            </button>
           </div>
+        )}
+        {repair && !repair.ok && repair.reason === 'no-points' && (
+          <div className="fq-card" style={{ color: 'var(--muted)', fontSize: 13 }}>{t('repair.noPoints', { cost: repair.cost })}</div>
+        )}
+        {repair && !repair.ok && repair.reason === 'month-limit' && (
+          <div className="fq-card" style={{ color: 'var(--muted)', fontSize: 13 }}>{t('repair.monthLimit')}</div>
+        )}
 
-          {/* 补签横幅：仅恰好漏 1 天时出现 */}
-          {repair?.ok && (
-            <div className="fq-card fq-rise" style={{ border: '1.5px solid var(--coral)', background: '#fff4ec' }}>
-              <div style={{ fontSize: 14, fontWeight: 700, marginBottom: 10 }}>
-                {t('repair.banner', { cost: repair.cost, streak: repair.streak })}
-              </div>
-              <button
-                className="fq-cta"
-                style={{ width: '100%' }}
-                onClick={async () => {
-                  const ok = await doRepair(toDateStr(new Date()))
-                  if (ok) {
-                    const today = toDateStr(new Date())
-                    const s = await getHomeStats(today)
-                    setStats(s)
-                    setRepair(await getRepairStatus(today))
-                    setAvailable(await getAvailablePoints())
-                  }
-                }}
-              >
-                {t('repair.do')}
-              </button>
-            </div>
-          )}
-          {repair && !repair.ok && repair.reason === 'no-points' && (
-            <div className="fq-card" style={{ color: 'var(--muted)', fontSize: 13 }}>{t('repair.noPoints', { cost: repair.cost })}</div>
-          )}
-          {repair && !repair.ok && repair.reason === 'month-limit' && (
-            <div className="fq-card" style={{ color: 'var(--muted)', fontSize: 13 }}>{t('repair.monthLimit')}</div>
-          )}
+        {/* 成绩小药丸：连续 / 累计 / 可用 */}
+        <div className="fq-rise" style={{ display: 'flex', gap: 10, animationDelay: '0.12s' }}>
+          <StatPill emoji="🔥" value={streakN} label={t('home.streak').replace('🔥 ', '')} tint="var(--coral)" />
+          <StatPill emoji="⭐" value={pointsN} label={t('reward.total')} tint="var(--violet)" />
+          <StatPill emoji="💎" value={available ?? '—'} label={t('reward.available')} tint="var(--mint)" />
+        </div>
 
-          {/* 怪兽图鉴入口：显示收集进度，点击跳图鉴 tab */}
+        {/* 入口：图鉴 | 奖励（两列，省纵向空间） */}
+        <div className="fq-rise" style={{ display: 'flex', gap: 12, animationDelay: '0.16s' }}>
           <button
             onClick={onOpenDex}
             className="fq-card"
-            style={{
-              textAlign: 'left', cursor: 'pointer', border: '1.5px solid var(--violet)',
-              background: 'linear-gradient(135deg, #f3efff, #fffaf0)',
-              padding: '14px 16px',
-            }}
+            style={{ flex: 1, textAlign: 'left', cursor: 'pointer', border: '1.5px solid var(--violet)', background: 'linear-gradient(160deg, #f3efff, #fff)', padding: 14 }}
           >
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: 14, fontWeight: 700, marginBottom: 8 }}>
-              <span>{t('dex.homeCard')}</span>
-              <span style={{ color: 'var(--violet)', fontVariantNumeric: 'tabular-nums' }}>
-                📖 {dex ? `${dex.owned}/${dex.total}` : '—'}
-              </span>
+            <div style={{ fontSize: 20 }}>📖</div>
+            <div style={{ fontSize: 14, fontWeight: 800, marginTop: 4 }}>{t('dex.tab.dex').replace('📖 ', '')}</div>
+            <div style={{ fontSize: 12, color: 'var(--violet)', fontWeight: 700, fontVariantNumeric: 'tabular-nums', marginTop: 2 }}>
+              {dex ? `${dex.owned}/${dex.total}` : '—'}
             </div>
-            <div className="fq-bar">
+            <div className="fq-bar" style={{ marginTop: 8 }}>
               <i style={{ width: `${dex ? Math.round((dex.owned / dex.total) * 100) : 0}%` }} />
-            </div>
-            <div style={{ display: 'flex', gap: 6, marginTop: 10, fontSize: 12, color: 'var(--muted)' }}>
-              <span>🚀 {dex ? dex.byWorld.space : 0}/{dex ? dex.byWorldTotal.space : 17}</span>
-              <span>·</span>
-              <span>🏛 {dex ? dex.byWorld.shrine : 0}/{dex ? dex.byWorldTotal.shrine : 17}</span>
-              <span style={{ marginLeft: 'auto', color: 'var(--violet)', fontWeight: 700 }}>{t('dex.tab.dex')} →</span>
             </div>
           </button>
 
-          {/* 奖励兑换入口 */}
           <button
             onClick={onOpenRewards}
             className="fq-card"
-            style={{ textAlign: 'left', cursor: 'pointer', border: '1.5px solid var(--coral)', background: 'linear-gradient(135deg, #fff2ec, #fffaf0)', padding: '14px 16px' }}
+            style={{ flex: 1, textAlign: 'left', cursor: 'pointer', border: '1.5px solid var(--coral)', background: 'linear-gradient(160deg, #fff2ec, #fff)', padding: 14 }}
           >
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: 14, fontWeight: 700 }}>
-              <span>{t('reward.homeCard')}</span>
-              <span style={{ color: 'var(--coral)', fontWeight: 700 }}>{t('reward.homeCardHint')} →</span>
-            </div>
+            <div style={{ fontSize: 20 }}>🎁</div>
+            <div style={{ fontSize: 14, fontWeight: 800, marginTop: 4 }}>{t('reward.homeCard').replace('🎁 ', '')}</div>
+            <div style={{ fontSize: 12, color: 'var(--muted)', marginTop: 2, lineHeight: 1.4 }}>{t('reward.homeCardHint')}</div>
+            <div style={{ fontSize: 13, color: 'var(--coral)', fontWeight: 800, marginTop: 8 }}>→</div>
           </button>
+        </div>
 
-          {/* 皮肤解锁进度 */}
-          <div className="fq-card" style={{ textAlign: 'left' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13, marginBottom: 10, fontWeight: 600 }}>
-              <span>{locked.length ? t('home.skinProgress') : t('home.allSkinsUnlocked')}</span>
-              {locked.length > 0 && (
-                <span style={{ color: 'var(--muted)' }}>
-                  {tp} / {nextCost}
-                </span>
-              )}
-            </div>
-            <div className="fq-bar">
-              <i style={{ width: `${progress * 100}%` }} />
-            </div>
-            <div style={{ display: 'flex', gap: 8, marginTop: 12, flexWrap: 'wrap' }}>
-              {SKINS.map((s) => {
-                const on = isSkinUnlocked(s.id, tp)
-                return (
-                  <span key={s.id} className="fq-chip" style={{ opacity: on ? 1 : 0.5 }}>
-                    {on ? '' : '🔒 '}
-                    {t(`skin.${s.id}`)}
-                  </span>
-                )
-              })}
-            </div>
+        {/* 皮肤解锁进度（细条） */}
+        <div className="fq-rise fq-card" style={{ textAlign: 'left', animationDelay: '0.2s' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13, marginBottom: 10, fontWeight: 700 }}>
+            <span>{locked.length ? t('home.skinProgress') : t('home.allSkinsUnlocked')}</span>
+            {locked.length > 0 && <span style={{ color: 'var(--muted)', fontVariantNumeric: 'tabular-nums' }}>{tp} / {nextCost}</span>}
           </div>
-        </>
-      )}
+          <div className="fq-bar"><i style={{ width: `${progress * 100}%` }} /></div>
+          <div style={{ display: 'flex', gap: 8, marginTop: 12, flexWrap: 'wrap' }}>
+            {SKINS.map((s) => {
+              const on = isSkinUnlocked(s.id, tp)
+              return (
+                <span key={s.id} className="fq-chip" style={{ opacity: on ? 1 : 0.5 }}>
+                  {on ? '' : '🔒 '}{t(`skin.${s.id}`)}
+                </span>
+              )
+            })}
+          </div>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+/** 首页成绩小药丸：emoji + 大数字 + 小标签 */
+function StatPill({ emoji, value, label, tint }: { emoji: string; value: number | string; label: string; tint: string }) {
+  return (
+    <div style={{ flex: '1 1 0', minWidth: 0, background: '#fff', border: '1px solid var(--line)', borderRadius: 18, padding: '12px 6px', boxShadow: 'var(--shadow)' }}>
+      <div style={{ fontSize: 17 }}>{emoji}</div>
+      <div style={{ fontSize: 24, fontWeight: 800, color: tint, lineHeight: 1.15, fontVariantNumeric: 'tabular-nums' }}>{value}</div>
+      <div style={{ fontSize: 11, color: 'var(--muted)', marginTop: 2, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{label}</div>
     </div>
   )
 }

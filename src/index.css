@@ -134,8 +134,22 @@ h1, h2, h3, h4, p { margin: 0; }
 /* 怪兽捕获角标：从右上角淡入→停顿→淡出，不阻断翻拍 */
 @keyframes fzpDexToast { 0% { opacity: 0; transform: translateY(-6px); } 20% { opacity: 1; transform: translateY(0); } 80% { opacity: 1; } 100% { opacity: 0; transform: translateY(-6px); } }
 
+/* ---------- 首页专属：氛围光斑 + 开始按钮呼吸光晕 ---------- */
+.fq-home { position: relative; overflow: hidden; min-height: calc(100vh - 57px); }
+.fq-home-blobs {
+  position: absolute; inset: 0; z-index: 0; pointer-events: none;
+  background:
+    radial-gradient(340px 260px at 10% 2%, rgba(124, 108, 240, 0.28), transparent 66%),
+    radial-gradient(320px 260px at 94% 12%, rgba(255, 138, 91, 0.24), transparent 66%),
+    radial-gradient(360px 300px at 84% 98%, rgba(255, 217, 61, 0.22), transparent 70%);
+}
+.fq-home-content { position: relative; z-index: 1; }
+/* 开始按钮身后的呼吸光晕，把孩子的注意力吸到主行动上 */
+@keyframes fqBreathe { 0%, 100% { opacity: 0.4; transform: scale(0.97); } 50% { opacity: 0.72; transform: scale(1.03); } }
+.fq-startglow { animation: fqBreathe 2.8s ease-in-out infinite; }
+
 @media (prefers-reduced-motion: reduce) {
-  .fq-rise, .fq-float { animation: none; }
+  .fq-rise, .fq-float, .fq-startglow { animation: none; }
   .fq-bar > i { transition: none; }
   .fq-cta, .fq-btn { transition: none; }
   /* 翻拍 🔄 不旋转，只静态显示；进度条仍走（是节奏提示，需保留） */

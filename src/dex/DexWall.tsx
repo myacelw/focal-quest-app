@@ -17,10 +17,8 @@ const RARITY_GLOW: Record<Rarity, string> = {
   epic: 'rgba(255,180,0,0.48)',
 }
 
-const WORLDS: { key: World; icon: string }[] = [
-  { key: 'space', icon: '🚀' },
-  { key: 'shrine', icon: '🏛' },
-]
+// 世界名（含 emoji）在 i18n 的 dex.world.* 里，不再单独存 icon，避免重复
+const WORLDS: { key: World }[] = [{ key: 'space' }, { key: 'shrine' }]
 
 export function DexWall() {
   const t = useT()
@@ -67,13 +65,12 @@ export function DexWall() {
       </div>
 
       {/* 按世界分组 */}
-      {WORLDS.map(({ key, icon }) => {
+      {WORLDS.map(({ key }) => {
         const list = monstersOfWorld(key)
         const ownedInWorld = list.filter((d) => capturedMap[d.id] !== undefined).length
         return (
           <section key={key} style={{ marginTop: 22 }}>
             <div className="fq-card-title" style={{ fontSize: 15 }}>
-              <span>{icon}</span>
               <span>{t(`dex.world.${key}`)}</span>
               <span style={{ marginLeft: 'auto', fontSize: 12, color: 'var(--muted)', fontWeight: 600 }}>
                 {ownedInWorld}/{list.length}
@@ -148,7 +145,7 @@ export function DexWall() {
   )
 }
 
-/** 图鉴格子：已捕获显示彩色图+名字+稀有度边框+捕获日期；未捕获黑色剪影+？？？ */
+/** 图鉴格子：已捕获显示彩色图+名字+稀有度边框+捕获日期；未捕获显示统一的"神秘格"（？）+？？？ */
 function MonsterCard({
   def, owned, capturedAt, onClick,
 }: {
@@ -173,15 +170,20 @@ function MonsterCard({
       }}
       title={owned ? t(def.nameKey) : t('dex.locked')}
     >
-      <div style={{
-        width: 80, height: 80, margin: '0 auto',
-        borderRadius: 12, overflow: 'hidden',
-        background: owned ? '#fafaff' : '#2a2540',
-        // 未捕获：黑色剪影——保留形状轮廓但不露色
-        opacity: owned ? 1 : 0.85,
-      }}>
-        <MonsterImage def={def} filter={owned ? undefined : 'brightness(0)'} />
-      </div>
+      {owned ? (
+        <div style={{ width: 80, height: 80, margin: '0 auto', borderRadius: 12, overflow: 'hidden', background: '#fafaff' }}>
+          <MonsterImage def={def} />
+        </div>
+      ) : (
+        // 未捕获：统一的"神秘格"——柔和薰衣草渐变 + 虚线环 + 大问号，有设计感、不再是难看的黑块
+        <div style={{
+          width: 80, height: 80, margin: '0 auto', borderRadius: 12,
+          display: 'grid', placeItems: 'center',
+          background: 'linear-gradient(135deg, #f4effe, #ece4fb)',
+          border: '2px dashed #d8ccf3',
+          color: '#c0b2ea', fontSize: 34, fontWeight: 800,
+        }}>?</div>
+      )}
       <div style={{
         fontSize: 12, marginTop: 6, fontWeight: 700,
         color: owned ? 'var(--ink)' : 'var(--muted)',
