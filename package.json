@@ -10,6 +10,7 @@
     "build": "vite build",
     "preview": "vite preview",
     "serve:static": "node scripts/serve-dist.mjs",
+    "lan": "node scripts/serve-lan.mjs",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "test:watch": "vitest",
