@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { getHomeStats, type HomeStats } from './data/checkin'
 import { toDateStr } from './data/date-utils'
-import { SKINS, skinUnlockCost, isSkinUnlocked, getSkinId, setSkinId, RANDOM_SKIN_ID } from './skins/registry'
+import { SKINS, isSkinUnlocked, getSkinId, setSkinId, RANDOM_SKIN_ID } from './skins/registry'
 import { useCountUp } from './useCountUp'
 import { asset } from './data/asset'
 import { getDexProgress, type DexProgress } from './dex/dex-service'
@@ -27,9 +27,6 @@ export function HomePage({ onStart, onOpenDex, onOpenRewards }: { onStart: () =>
   const tp = stats?.totalPoints ?? 0
   const streakN = useCountUp(stats?.streak ?? 0)
   const pointsN = useCountUp(tp)
-  const locked = SKINS.filter((s) => !isSkinUnlocked(s.id, tp))
-  const nextCost = locked.length ? Math.min(...locked.map((s) => skinUnlockCost(s.id))) : 0
-  const progress = nextCost ? Math.min(1, tp / nextCost) : 1
 
   return (
     <div className="fq-home">
@@ -171,24 +168,6 @@ export function HomePage({ onStart, onOpenDex, onOpenRewards }: { onStart: () =>
           </button>
         </div>
 
-        {/* 皮肤解锁进度（细条） */}
-        <div className="fq-rise fq-card" style={{ textAlign: 'left', animationDelay: '0.2s' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13, marginBottom: 10, fontWeight: 700 }}>
-            <span>{locked.length ? t('home.skinProgress') : t('home.allSkinsUnlocked')}</span>
-            {locked.length > 0 && <span style={{ color: 'var(--muted)', fontVariantNumeric: 'tabular-nums' }}>{tp} / {nextCost}</span>}
-          </div>
-          <div className="fq-bar"><i style={{ width: `${progress * 100}%` }} /></div>
-          <div style={{ display: 'flex', gap: 8, marginTop: 12, flexWrap: 'wrap' }}>
-            {SKINS.map((s) => {
-              const on = isSkinUnlocked(s.id, tp)
-              return (
-                <span key={s.id} className="fq-chip" style={{ opacity: on ? 1 : 0.5 }}>
-                  {on ? '' : '🔒 '}{t(`skin.${s.id}`)}
-                </span>
-              )
-            })}
-          </div>
-        </div>
       </div>
     </div>
   )
