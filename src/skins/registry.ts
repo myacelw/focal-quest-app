@@ -31,8 +31,8 @@ export function getSkin(id: string): Skin {
  */
 export const SKIN_UNLOCK_COST: Record<string, number> = {
   plain: 0,
-  space: 300,
-  shrine: 300,
+  space: 1000,   // ≈ 练几天解锁（第一个奖励皮肤）
+  shrine: 2500,  // ≈ 练两周解锁（进阶皮肤，比太空更难得）
 }
 
 export function skinUnlockCost(id: string): number {
