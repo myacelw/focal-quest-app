@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { getHomeStats, type HomeStats } from './data/checkin'
 import { toDateStr } from './data/date-utils'
-import { SKINS, skinUnlockCost, isSkinUnlocked } from './skins/registry'
+import { SKINS, skinUnlockCost, isSkinUnlocked, getSkinId, setSkinId, RANDOM_SKIN_ID } from './skins/registry'
 import { useCountUp } from './useCountUp'
 import { asset } from './data/asset'
 import { getDexProgress, type DexProgress } from './dex/dex-service'
@@ -14,6 +14,7 @@ export function HomePage({ onStart, onOpenDex, onOpenRewards }: { onStart: () =>
   const [dex, setDex] = useState<DexProgress | null>(null)
   const [available, setAvailable] = useState<number | null>(null)
   const [repair, setRepair] = useState<RepairStatus | null>(null)
+  const [skinSel, setSkinSel] = useState(() => getSkinId())
 
   useEffect(() => {
     const today = toDateStr(new Date())
@@ -68,6 +69,42 @@ export function HomePage({ onStart, onOpenDex, onOpenRewards }: { onStart: () =>
             {t('home.start')}
           </button>
         </div>
+
+        {/* 训练前快速选皮肤（含随机）——就在开始按钮下方，不用进设置 */}
+        <div className="fq-rise" style={{ display: 'flex', gap: 6, justifyContent: 'center', flexWrap: 'wrap', alignItems: 'center', animationDelay: '0.1s' }}>
+          <span style={{ fontSize: 12, color: 'var(--muted)', fontWeight: 600 }}>{t('home.skinPick')}</span>
+          {SKINS.map((s) => {
+            const on = isSkinUnlocked(s.id, tp)
+            const sel = skinSel === s.id
+            return (
+              <button
+                key={s.id}
+                className="fq-chip"
+                disabled={!on}
+                onClick={() => { setSkinId(s.id); setSkinSel(s.id) }}
+                style={{
+                  cursor: on ? 'pointer' : 'not-allowed', fontWeight: 700, border: '1.5px solid transparent',
+                  background: sel ? 'var(--violet)' : 'var(--chip-bg)', color: sel ? '#fff' : 'var(--violet)',
+                  opacity: on ? 1 : 0.5,
+                }}
+              >
+                {on ? '' : '🔒 '}{t(`skin.${s.id}`)}
+              </button>
+            )
+          })}
+          <button
+            className="fq-chip"
+            onClick={() => { setSkinId(RANDOM_SKIN_ID); setSkinSel(RANDOM_SKIN_ID) }}
+            style={{
+              cursor: 'pointer', fontWeight: 700, border: '1.5px solid transparent',
+              background: skinSel === RANDOM_SKIN_ID ? 'var(--coral)' : 'var(--chip-bg)',
+              color: skinSel === RANDOM_SKIN_ID ? '#fff' : 'var(--coral)',
+            }}
+          >
+            {t('skin.random')}
+          </button>
+        </div>
+
         <p style={{ fontSize: 12, color: 'var(--muted)', lineHeight: 1.6, margin: '-4px 0 0' }}>{t('home.calibHint')}</p>
 
         {/* 补签横幅：仅恰好漏 1 天时出现 */}

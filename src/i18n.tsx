@@ -396,6 +396,8 @@ const ZH: Dict = {
   'skin.plain': '朴素',
   'skin.space': '太空射击',
   'skin.shrine': '神庙勇者',
+  'skin.random': '🎲 随机',
+  'home.skinPick': '皮肤',
   // 徽章达标单位
   'unit.day': '天',
   'unit.session': '节',
@@ -733,6 +735,8 @@ const EN: Dict = {
   'skin.plain': 'Plain',
   'skin.space': 'Space Blaster',
   'skin.shrine': 'Shrine Hero',
+  'skin.random': '🎲 Random',
+  'home.skinPick': 'Skin',
   // Badge target units
   'unit.day': 'd',
   'unit.session': ' sessions',

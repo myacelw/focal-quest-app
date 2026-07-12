@@ -51,3 +51,13 @@ export function newlyUnlockedSkins(prevPoints: number, totalPoints: number): Ski
     return c > prevPoints && c <= totalPoints
   })
 }
+
+/** 首页/设置里可选的“随机皮肤”存储值：每节训练临时挑一个已解锁的游戏皮肤 */
+export const RANDOM_SKIN_ID = 'random'
+
+/** 选“随机”时为一节训练挑皮肤：只在已解锁的游戏皮肤（排除朴素）里选；一个都没有则回退朴素。 */
+export function pickRandomSkin(totalPoints: number, rand: number): string {
+  const pool = SKINS.filter((s) => s.id !== 'plain' && isSkinUnlocked(s.id, totalPoints))
+  if (pool.length === 0) return 'plain'
+  return pool[Math.min(pool.length - 1, Math.floor(rand * pool.length))].id
+}

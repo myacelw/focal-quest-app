@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { SKINS, getSkin, skinUnlockCost, isSkinUnlocked, newlyUnlockedSkins } from './registry'
+import { SKINS, getSkin, skinUnlockCost, isSkinUnlocked, newlyUnlockedSkins, pickRandomSkin } from './registry'
 
 describe('skin registry', () => {
   it('has plain, space and shrine', () => {
@@ -49,5 +49,20 @@ describe('newlyUnlockedSkins — 本次打卡跨门槛新解锁', () => {
   })
   it('免费的朴素(0分)不算“新解锁”', () => {
     expect(newlyUnlockedSkins(0, 0)).toEqual([])
+  })
+})
+
+describe('pickRandomSkin — 随机只在已解锁游戏皮肤里选', () => {
+  it('一个游戏皮肤都没解锁 → 回退朴素', () => {
+    expect(pickRandomSkin(0, 0)).toBe('plain')
+    expect(pickRandomSkin(999, 0.99)).toBe('plain')
+  })
+  it('只解锁太空(1000) → 任何 rand 都给太空', () => {
+    expect(pickRandomSkin(1000, 0)).toBe('space')
+    expect(pickRandomSkin(1000, 0.99)).toBe('space')
+  })
+  it('太空+神庙都解锁(2500+) → 按 rand 在两者间选', () => {
+    expect(pickRandomSkin(3000, 0)).toBe('space')
+    expect(pickRandomSkin(3000, 0.99)).toBe('shrine')
   })
 })

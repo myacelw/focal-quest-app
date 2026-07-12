@@ -14,7 +14,7 @@ import { asset } from '../data/asset'
 import { useT } from '../i18n'
 import { syncBadges } from '../badges/badge-service'
 import type { BadgeDef } from '../badges/badge-defs'
-import { getSkin, getSkinId, isSkinUnlocked, newlyUnlockedSkins } from '../skins/registry'
+import { getSkin, getSkinId, isSkinUnlocked, newlyUnlockedSkins, pickRandomSkin, RANDOM_SKIN_ID } from '../skins/registry'
 import type { Skin } from '../skins/types'
 import { captureMonster, captureDailyOnCheckin, getOwnedReserveIdsByWorld } from '../dex/dex-service'
 import type { MonsterDef, World, Rarity } from '../dex/monster-defs'
@@ -58,6 +58,8 @@ export function TrainingPage() {
   const [capturedThisSession, setCapturedThisSession] = useState<MonsterDef[]>([])
   // 皮肤池联动：按世界分组的已捕获储备怪 id，传给 Stage 扩展轮换池
   const [capturedByWorld, setCapturedByWorld] = useState<Record<World, string[]>>({ space: [], shrine: [] })
+  // 选“随机皮肤”时，本节临时挑定的皮肤（每节只解析一次，避免每次渲染重掷）
+  const [randomSkinId, setRandomSkinId] = useState<string | null>(null)
 
   const t = useT()
   const pxPerMm = readPxPerMm()
@@ -78,6 +80,13 @@ export function TrainingPage() {
   useEffect(() => { setMuted(muted) }, [muted])
 
   useEffect(() => { pausedRef.current = paused }, [paused])
+
+  // “随机皮肤”：本节只解析一次（挑一个已解锁的游戏皮肤），需等累计分加载完
+  useEffect(() => {
+    if (getSkinId() === RANDOM_SKIN_ID && totalPoints !== null && randomSkinId === null) {
+      setRandomSkinId(pickRandomSkin(totalPoints, Math.random()))
+    }
+  }, [totalPoints, randomSkinId])
 
   // 彩蛋捕获角标 1.2s 自动消失（不阻断翻拍节奏）
   useEffect(() => {
@@ -324,7 +333,9 @@ export function TrainingPage() {
 
   const sizeMm = Number(lsGet('fzp.optotypeSizeMm') ?? '1')
   sizeMmRef.current = sizeMm
-  const skinId = getSkinId()
+  // “随机”存储值先解析成本节挑定的皮肤（未解析完时暂用 plain，加载极快）
+  const storedSkinId = getSkinId()
+  const skinId = storedSkinId === RANDOM_SKIN_ID ? (randomSkinId ?? 'plain') : storedSkinId
   const heightPx = sizeMm * pxPerMm
   const progress = Math.min(1, session.elapsedSec / session.durationSec)
   // 生效皮肤：选中的若未解锁（如手改存储）则回退朴素；加载中(null)信任存储值避免闪烁
