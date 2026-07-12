@@ -25,6 +25,13 @@ const TRANSITION_MS = 900
 const VOSK_MODEL_URL = asset('/models/vosk-model-small-cn-0.22.tar.gz')
 const VOSK_GRAMMAR = ['上 下 左 右']
 const ARROW: Record<Direction, string> = { up: '↑', down: '↓', left: '←', right: '→' }
+/** 十字方向盘：每个方向按钮在 3×3 网格里的位置（列/行），与真实方位对应 */
+const DPAD: { dir: Direction; col: number; row: number }[] = [
+  { dir: 'up', col: 2, row: 1 },
+  { dir: 'left', col: 1, row: 2 },
+  { dir: 'right', col: 3, row: 2 },
+  { dir: 'down', col: 2, row: 3 },
+]
 
 function readPxPerMm(): number | null {
   const v = lsGet('fzp.cssPxPerMm')
@@ -498,19 +505,23 @@ export function TrainingPage() {
         )}
       </div>
 
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, padding: '12px 16px 22px' }}>
-        <span style={{ color: 'var(--muted)', fontSize: 13, fontWeight: 600 }}>{voskHint}</span>
-        <span style={{ display: 'inline-flex', gap: 8 }}>
-          {(['up', 'down', 'left', 'right'] as Direction[]).map((d) => (
+      <div style={{ padding: '8px 16px 22px' }}>
+        <div style={{ textAlign: 'center', color: 'var(--muted)', fontSize: 13, fontWeight: 600, minHeight: 18, marginBottom: 10 }}>{voskHint}</div>
+        {/* 十字方向盘：上下左右按方位摆，与视标 E 朝向一一对应，"朝哪开点哪" */}
+        <div className="fq-dpad">
+          {DPAD.map(({ dir, col, row }) => (
             <button
-              key={d}
-              onClick={() => handleAnswer(d)}
-              style={{ width: 52, height: 52, fontSize: 22, fontWeight: 700, borderRadius: 14, border: '1.5px solid var(--line)', background: '#fff', color: 'var(--violet)', cursor: 'pointer', boxShadow: 'var(--shadow)' }}
+              key={dir}
+              className="fq-dpad-btn"
+              aria-label={t(`direction.${dir}`)}
+              onClick={() => handleAnswer(dir)}
+              style={{ gridColumn: col, gridRow: row }}
             >
-              {ARROW[d]}
+              {ARROW[dir]}
             </button>
           ))}
-        </span>
+          <div className="fq-dpad-hub" style={{ gridColumn: 2, gridRow: 2 }}><i /></div>
+        </div>
       </div>
 
       {paused && (

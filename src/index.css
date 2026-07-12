@@ -109,6 +109,31 @@ h1, h2, h3, h4, p { margin: 0; }
 .fq-stat .n { font-size: 26px; font-weight: 800; color: var(--violet); line-height: 1; }
 .fq-stat .l { font-size: 12px; color: var(--muted); margin-top: 6px; }
 
+/* ---------- 训练答题：十字方向盘（D-pad） ---------- */
+.fq-dpad {
+  display: grid; grid-template-columns: repeat(3, 1fr); grid-template-rows: repeat(3, 1fr);
+  gap: 10px; width: min(268px, 80vw); aspect-ratio: 1; margin: 0 auto;
+}
+.fq-dpad-btn {
+  display: grid; place-items: center; font-family: inherit;
+  font-size: 34px; font-weight: 800; color: var(--violet);
+  background: linear-gradient(160deg, #ffffff, #f4f0ff);
+  border: 2px solid var(--line); border-radius: 20px;
+  box-shadow: var(--shadow); cursor: pointer;
+  transition: transform 0.1s ease, box-shadow 0.1s ease, background 0.1s ease, border-color 0.1s ease, color 0.1s ease;
+  touch-action: manipulation; -webkit-tap-highlight-color: transparent; -webkit-user-select: none; user-select: none;
+}
+.fq-dpad-btn:active {
+  transform: scale(0.9);
+  background: linear-gradient(160deg, var(--violet), var(--violet-2));
+  color: #fff; border-color: var(--violet);
+  box-shadow: 0 6px 14px -6px rgba(108, 75, 240, 0.55);
+}
+@media (hover: hover) { .fq-dpad-btn:hover { border-color: var(--violet); transform: translateY(-1px); } }
+/* 中心枢纽：让方向盘像个手柄，不可点 */
+.fq-dpad-hub { display: grid; place-items: center; }
+.fq-dpad-hub > i { width: 16px; height: 16px; border-radius: 999px; background: var(--line); }
+
 /* ---------- 动效 ---------- */
 @keyframes fqRise { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: none; } }
 .fq-rise { animation: fqRise 0.42s cubic-bezier(0.2, 0.8, 0.2, 1) both; }
