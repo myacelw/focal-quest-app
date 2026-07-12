@@ -21,9 +21,8 @@ export function ResetCard() {
   }
 
   return (
-    <div className="fq-card" style={{ marginTop: 14, textAlign: 'left', border: '1.5px solid #ff5c86' }}>
-      <div className="fq-card-title" style={{ color: '#e8590c' }}>{t('reset.title')}</div>
-      <p style={{ fontSize: 12, color: 'var(--muted)', margin: '4px 0 12px' }}>{t('reset.hint')}</p>
+    <>
+      <p style={{ fontSize: 12, color: 'var(--muted)', margin: '0 0 12px' }}>{t('reset.hint')}</p>
       <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
         <input
           value={word}
@@ -45,6 +44,6 @@ export function ResetCard() {
           {t('reset.button')}
         </button>
       </div>
-    </div>
+    </>
   )
 }

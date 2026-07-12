@@ -11,6 +11,7 @@ import { ExamConfig } from './exams/ExamConfig'
 import { BackupCard } from './backup/BackupCard'
 import { ReminderCard } from './reminder/ReminderCard'
 import { ResetCard } from './reset/ResetCard'
+import { Collapsible, SectionHeader } from './settings/Collapsible'
 
 function readPxPerMm(): number | null {
   const v = lsGet('fzp.cssPxPerMm')
@@ -58,16 +59,9 @@ export function SettingsPage({ onReplayGuide, onOpenSpeech, onOpenCalib }: { onR
       <h2 className="fq-h2">{t('settings.title')}</h2>
       <p className="fq-sub">{t('settings.sub')}</p>
 
-      <div className="fq-card" style={{ marginTop: 16, display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 8 }}>
-        <span style={{ fontSize: 14, fontWeight: 700 }}>{t('settings.language')}</span>
-        <div className="fq-seg">
-          {([['zh', '中文'], ['en', 'English']] as [Lang, string][]).map(([code, label]) => (
-            <button key={code} className={lang === code ? 'on' : ''} onClick={() => setLang(code)}>{label}</button>
-          ))}
-        </div>
-      </div>
+      <SectionHeader>{t('settings.group.training')}</SectionHeader>
 
-      <div className="fq-card" style={{ marginTop: 14, display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 8 }}>
+      <div className="fq-card" style={{ marginTop: 8, display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 8 }}>
         <div>
           <div className="fq-card-title" style={{ marginBottom: 4 }}>{t('settings.calib')}</div>
           <div style={{ fontSize: 12, color: 'var(--muted)' }}>
@@ -178,10 +172,25 @@ export function SettingsPage({ onReplayGuide, onOpenSpeech, onOpenCalib }: { onR
         </div>
       </div>
 
-      <RewardConfig />
-      <ExamConfig />
-      <BackupCard />
-      <ReminderCard />
+      <SectionHeader>{t('settings.group.rewards')}</SectionHeader>
+      <Collapsible title={t('reward.config')}><RewardConfig /></Collapsible>
+      <Collapsible title={t('reminder.title')}><ReminderCard /></Collapsible>
+
+      <SectionHeader>{t('settings.group.data')}</SectionHeader>
+      <Collapsible title={t('exam.title')}><ExamConfig /></Collapsible>
+      <Collapsible title={t('backup.title')}><BackupCard /></Collapsible>
+      <Collapsible title={t('reset.title')} danger><ResetCard /></Collapsible>
+
+      <SectionHeader>{t('settings.group.other')}</SectionHeader>
+
+      <div className="fq-card" style={{ marginTop: 8, display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 8 }}>
+        <span style={{ fontSize: 14, fontWeight: 700 }}>{t('settings.language')}</span>
+        <div className="fq-seg">
+          {([['zh', '中文'], ['en', 'English']] as [Lang, string][]).map(([code, label]) => (
+            <button key={code} className={lang === code ? 'on' : ''} onClick={() => setLang(code)}>{label}</button>
+          ))}
+        </div>
+      </div>
 
       <div className="fq-card" style={{ marginTop: 14, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
         <span style={{ fontSize: 14, fontWeight: 700 }}>{t('settings.guide')}</span>
@@ -193,17 +202,14 @@ export function SettingsPage({ onReplayGuide, onOpenSpeech, onOpenCalib }: { onR
         <button className="fq-btn" onClick={onOpenSpeech}>{t('settings.speechOpen')}</button>
       </div>
 
-      <div className="fq-card" style={{ marginTop: 14 }}>
-        <div className="fq-card-title">{t('settings.about')}</div>
+      <Collapsible title={t('settings.about')}>
         <ul style={{ fontSize: 13, color: 'var(--muted)', lineHeight: 1.75, paddingLeft: 18, margin: 0 }}>
           <li><Rich text={t('settings.about.li1')} /></li>
           <li><Rich text={t('settings.about.li2')} /></li>
           <li><Rich text={t('settings.about.li3')} /></li>
           <li><Rich text={t('settings.about.li4')} /></li>
         </ul>
-      </div>
-
-      <ResetCard />
+      </Collapsible>
 
       <p style={{ textAlign: 'center', marginTop: 20, color: 'var(--muted)', fontSize: 11 }}>
         {t('settings.version', { v: __APP_VERSION__ })}

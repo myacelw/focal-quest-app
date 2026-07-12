@@ -25,9 +25,8 @@ export function RewardConfig() {
   }
 
   return (
-    <div className="fq-card" style={{ marginTop: 14, textAlign: 'left' }}>
-      <div className="fq-card-title">{t('reward.config')}</div>
-      <p style={{ fontSize: 12, color: 'var(--muted)', margin: '4px 0 12px' }}>{t('reward.configHint')}</p>
+    <>
+      <p style={{ fontSize: 12, color: 'var(--muted)', margin: '0 0 12px' }}>{t('reward.configHint')}</p>
 
       {/* 添加表单 */}
       <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
@@ -61,6 +60,6 @@ export function RewardConfig() {
           </div>
         ))
       )}
-    </div>
+    </>
   )
 }

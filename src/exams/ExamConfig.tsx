@@ -29,9 +29,8 @@ export function ExamConfig() {
   }
 
   return (
-    <div className="fq-card" style={{ marginTop: 14, textAlign: 'left' }}>
-      <div className="fq-card-title">{t('exam.title')}</div>
-      <p style={{ fontSize: 12, color: 'var(--muted)', margin: '4px 0 12px' }}>{t('exam.hint')}</p>
+    <>
+      <p style={{ fontSize: 12, color: 'var(--muted)', margin: '0 0 12px' }}>{t('exam.hint')}</p>
       <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
         <input type="date" value={date} onChange={(e) => setDate(e.target.value)} style={{ padding: '8px 10px', borderRadius: 10, border: '1.5px solid var(--line)' }} />
         <input value={left} onChange={(e) => setLeft(e.target.value)} inputMode="decimal" placeholder={t('exam.left')} style={{ width: 76, padding: '8px 10px', borderRadius: 10, border: '1.5px solid var(--line)' }} />
@@ -46,6 +45,6 @@ export function ExamConfig() {
           <button className="fq-btn" onClick={async () => { if (!window.confirm(t('exam.deleteConfirm', { date: x.date }))) return; await deleteExam(x.id!); await refresh() }}>{t('exam.delete')}</button>
         </div>
       ))}
-    </div>
+    </>
   )
 }

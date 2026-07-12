@@ -29,9 +29,8 @@ export function BackupCard() {
   }
 
   return (
-    <div className="fq-card" style={{ marginTop: 14, textAlign: 'left' }}>
-      <div className="fq-card-title">{t('backup.title')}</div>
-      <p style={{ fontSize: 12, color: 'var(--muted)', margin: '4px 0 10px' }}>{t('backup.hint')}</p>
+    <>
+      <p style={{ fontSize: 12, color: 'var(--muted)', margin: '0 0 10px' }}>{t('backup.hint')}</p>
       <div style={{ fontSize: 13, fontWeight: 700, color: overdue ? '#e8590c' : 'var(--muted)', marginBottom: 10 }}>{lastText}</div>
       <div style={{ display: 'flex', gap: 8 }}>
         <button className="fq-btn" onClick={async () => { await exportBackup(); setLast(lastBackupAt()) }}>{t('backup.export')}</button>
@@ -45,6 +44,6 @@ export function BackupCard() {
         />
       </div>
       {msg && <p style={{ fontSize: 12, color: '#e8590c', marginTop: 8 }}>{msg}</p>}
-    </div>
+    </>
   )
 }

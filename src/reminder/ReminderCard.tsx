@@ -22,14 +22,13 @@ export function ReminderCard() {
   }
 
   return (
-    <div className="fq-card" style={{ marginTop: 14, textAlign: 'left' }}>
-      <div className="fq-card-title">{t('reminder.title')}</div>
-      <p style={{ fontSize: 12, color: 'var(--muted)', margin: '4px 0 12px' }}>{t('reminder.hint')}</p>
+    <>
+      <p style={{ fontSize: 12, color: 'var(--muted)', margin: '0 0 12px' }}>{t('reminder.hint')}</p>
       <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
         <span style={{ fontSize: 13 }}>{t('reminder.time')}</span>
         <input type="time" value={time} onChange={(e) => setTime(e.target.value)} style={{ padding: '8px 10px', borderRadius: 10, border: '1.5px solid var(--line)' }} />
         <button className="fq-btn" onClick={onAdd}>{t('reminder.add')}</button>
       </div>
-    </div>
+    </>
   )
 }
