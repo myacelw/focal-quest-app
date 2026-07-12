@@ -36,9 +36,9 @@ export function HomePage({ onStart, onOpenDex, onOpenRewards }: { onStart: () =>
         minHeight: 'calc(100vh - 57px)',
         display: 'flex',
         flexDirection: 'column',
-        justifyContent: 'center',
-        gap: 16,
-        padding: '28px 20px',
+        justifyContent: 'flex-start',
+        gap: 14,
+        padding: '18px 20px 40px',
         maxWidth: 440,
         margin: '0 auto',
         textAlign: 'center',
@@ -51,10 +51,10 @@ export function HomePage({ onStart, onOpenDex, onOpenRewards }: { onStart: () =>
           alt="变焦大冒险 · FocalQuest"
           style={{
             width: '100%',
-            maxWidth: 360,
+            maxWidth: 300,
             display: 'block',
-            margin: '0 auto 12px',
-            borderRadius: 22,
+            margin: '0 auto 8px',
+            borderRadius: 20,
             boxShadow: '0 16px 36px -12px rgba(124,108,240,.42)',
           }}
         />
@@ -62,6 +62,14 @@ export function HomePage({ onStart, onOpenDex, onOpenRewards }: { onStart: () =>
           {t('home.tagline')}
         </div>
       </div>
+
+      {/* 主操作：开始训练——紧跟 hero、一眼可点，且不等数据加载 */}
+      <button className="fq-cta" style={{ width: '100%', fontSize: 20, padding: '20px' }} onClick={onStart}>
+        {t('home.start')}
+      </button>
+      <p style={{ fontSize: 12, color: 'var(--muted)', lineHeight: 1.6, margin: '-6px 0 2px' }}>
+        {t('home.calibHint')}
+      </p>
 
       {stats === null ? (
         <div className="fq-card">{t('home.loading')}</div>
@@ -193,14 +201,6 @@ export function HomePage({ onStart, onOpenDex, onOpenRewards }: { onStart: () =>
               })}
             </div>
           </div>
-
-          <button className="fq-cta" style={{ width: '100%', fontSize: 20, padding: '20px' }} onClick={onStart}>
-            {t('home.start')}
-          </button>
-
-          <p style={{ fontSize: 12, color: 'var(--muted)', lineHeight: 1.6, margin: 0 }}>
-            {t('home.calibHint')}
-          </p>
         </>
       )}
     </div>
