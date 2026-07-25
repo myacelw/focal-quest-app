@@ -18,7 +18,7 @@
 - 迭代 2·彩蛋随机奖励 ✅ 完成并合并：连续答对 5 个→下一题变彩蛋（session TDD），视标金光✨/太空宝箱💎 + 专属音效 + 答对特殊庆祝（100 单测绿）。
 - 准备页皮肤实时预览 ✅ 完成并合并：选皮肤时下方 220px 预览框实时渲染当前皮肤 Stage（朴素/太空/神庙），不再盲选（100 单测绿）。
 - 资源体积优化 ✅ 完成并合并：勋章两张 4×4 宫格图 PNG→WebP q90（4.06MB→442KB，-89%），BadgeCard 引用改 .webp，删原 PNG；皮肤素材本就小未动。iPad 局域网加载更快。
-- 迭代 2·积分解锁皮肤 ✅ 完成并合并：累计分达门槛永久解锁（门槛派生、不扣分、零持久化），太空/神庙各 300 分、朴素免费；准备页锁态按钮 🔒+"再练 N 分"提示+生效皮肤兜底回退（未解锁→plain）；结算页打卡跨门槛时「🎨 解锁新皮肤」庆祝+音效；改 `SKIN_UNLOCK_COST` 一处即可调价/全开（110 单测绿）。**注意：这把原本全开的皮肤改成需解锁，属产品行为变更，待父女确认体验；不满意把价都设 0 即回退全开。**
+- 迭代 2·积分解锁皮肤 ✅ 完成并合并：累计分达门槛永久解锁（门槛派生、不扣分、零持久化），太空 1000 分 / 神庙 2500 分、朴素免费（当初记的"各 300 分"已在后续调价中改掉，此处以 `src/skins/registry.ts` 的 `SKIN_UNLOCK_COST` 为准）；准备页锁态按钮 🔒+"再练 N 分"提示+生效皮肤兜底回退（未解锁→plain）；结算页打卡跨门槛时「🎨 解锁新皮肤」庆祝+音效；改 `SKIN_UNLOCK_COST` 一处即可调价/全开（110 单测绿）。**注意：这把原本全开的皮肤改成需解锁，属产品行为变更，待父女确认体验；不满意把价都设 0 即回退全开。**
 - 迭代 2·神庙怪兽池 ✅ 完成并合并：神庙皮肤守护者抽成 GUARDIANS 池，每题按 guardianForSeq(答题数) 轮换一只怪兽承载视标 E（E 仍标准 Tumbling E 印核心圆底，变的是载体不是 E），怪兽名牌 + sprite/emoji 混池、HERO 提取常量便于换林克/四英杰（114 单测绿）。揭示通用变形框架：每皮肤 = 怪兽/英雄/场景/特效四个可换池。
 - 本地 Node+SQLite 后端 ✅ 完成并合并：数据从"只在浏览器 IndexedDB"扩成"双写同步到本机 SQLite"（防清缓存/换设备丢数据）。零第三方依赖（Node24 内置 node:sqlite + 原生跑 TS）、Vite proxy /api 免 CORS、后端没开不影响离线训练、启动幂等回填历史。见 server/README.md。**vercel/supabase 已核实国内用不了；当前只跑本机笔记本，部署后议。**
 - 界面美化 ✅ 完成并合并：风格 B「糖果能量」（闺女在三方向 mockup 中选定）全局主题（src/index.css，紫#6c4bf0/珊瑚/柠檬 + 圆角卡片 + 糖果渐变 + fq-* 基础类）；全 6 页统一（首页/训练全流程/统计/勋章/标定/语音）+ 图表糖果化（紫折线+面积渐变/渐变柱）+ 勋章卡金边；全局动效（fq-rise 入场/hover 微交互/进度条过渡/首页数字 count-up/🚀 浮动，均尊重 reduced-motion）；vosk 动态 import 首屏 6MB→293KB(-95%)；标定条 regression 已修。此前全 app 是浏览器默认宋体白底灰按钮。
@@ -32,7 +32,11 @@
 - 徽章解锁后保留说明 + 中英双语国际化 ✅ 完成并合并：①BadgeCard 修复——之前解锁后进度文案直接消失变空白，现改为显示「✓ 达标目标」（如 "✓ 10CPM"）②**全站中英双语**：新增 `src/i18n.tsx`（zh/en 字典 + `useT()` + `useLang()`/`setLang()` + `Rich` 组件解析 `**加粗**`），按浏览器语言自动选择、设置页可手动切换；覆盖导航/首页/训练全流程/统计/设置/勋章墙/标定页/Onboarding/语音测试调试页/图表 aria-label，含 30 枚徽章名、3 个皮肤名、太空 6 敌人名+神庙 6 守护者名（两者 name 字段改成稳定 slug，如 `enemy.name='ufo'`，渲染时 `t('space.enemy.'+name)`翻译，两皮肤 rotation 单测同步改断言值）、家长周报建议（`weeklyReport()` 吐 `suggestionKey` 而非拼好的中文串，渲染时才翻译）。vosk 语音语法常量（"上 下 左 右"）刻意保留中文，是喂给语音模型的识别词表和 UI 语言无关（124 单测绿）。
 - 托管方案探索（EdgeOne→GitHub Pages 反复）：曾短暂尝试切到 EdgeOne Pages（config.json 原生 COOP/COEP、模型分片供 CI 免联网下载构建），后来发现私有仓库要用 GH Pages 得改公开——用户已把仓库设为 public，于是**弃 EdgeOne 改回 GitHub Pages**（EdgeOne 相关 config.json/脚本已清理删除，仅模型切片方案保留，因分片本身也利于 GH Pages 构建）。托管现状仍以 30 行前的"托管定为 GitHub Pages"条目为准。
 - 皮肤怪兽出正式图 ✅ 完成并合并：太空/神庙各差 5 只怪兽的 emoji 占位，用 **Gemini 4×4 网格一次出图**（`docs/怪兽出图提示词.md` 含完整提示词+关键约束"透明背景/风格统一/不画分隔线"），切片转 webp 后接入代码——`Enemy`/`Guardian` 类型的 emoji 分支整个删掉（不再是 sprite/img/emoji 三态混池，太空全 img、神庙 sprite+img 两态），emoji 无兜底、直接换真图。每套另留 11 只储备（`public/skins/{space,shrine}/reserve/`），扩池不用再出图。两皮肤 CREDITS.md 补记 AI 出图来源。
-- 下一步：真机持续使用收集反馈；迭代 2 其余（限时挑战需确认节奏 / 深海动物需先验 vosk）；皮肤储备怪兽池扩充（已有 22 只素材待挑用）。
+- **本文档遗漏的已合并模块（2026-07-25 勘察补记）**：上面的条目漏记了若干已在 master 的功能，读代码时别以为是新东西——**怪兽图鉴**（`src/dex`，monsters 表，每日保底+彩蛋捕获）、**积分兑换现实奖励 + 补签卡**（`src/rewards`，rewards/redemptions 两表，可用积分=累计−消耗）、**线下验光记录**（`src/exams`，exams 表）、**JSON 备份导出/恢复**（`src/backup`）、**训练提醒 ICS**（`src/reminder`）、**清空数据**（`src/reset`）。故 Dexie 现为 **version 5、7 张表**（sessions/checkins/badges/monsters/rewards/redemptions/exams），不是早期条目暗示的 2-3 张。
+- 迭代 3·域名+账号+云同步 🚧 进行中（设计已定稿并批准，见 [spec](docs/superpowers/specs/2026-07-25-域名账号云同步-design.md)）：买 **.top 域名** → 迁 **Cloudflare Pages**（免备案、自有域名根路径）→ **Pages Functions + D1** 做同步后端（免费层，同域零 CORS）→ **家长邮箱+密码账号**（客户端 PBKDF2 拉伸、服务端单次哈希，适配 Workers ~10ms CPU）→ **归属制邀请码**（每账号专属码，落库 invited_by，注册来源可追溯）→ 本地优先增量同步（**LWW upsert + 墓碑**，非纯追加）→ 管理后台（DAU/MAU 从 records 表 SQL 派生）。关键调研结论：微信登录对个人主体在 Web 端不可行（网站应用需企业资质、个人小程序禁 web-view）；短信个人通道仅剩阿里云"短信认证"（平台预置签名）；**备案与海外免费托管互斥**（备案后域名必须解析到境内 IP）；Turnstile 因大陆 DNS 污染排除。
+  - **3a 基建搬家**：代码已完成（`public/_headers` 平台下发 COOP/COEP/CORP、`wrangler.toml`、`scripts/check-coi.mjs` 实测三头、CI `deploy-cf.yml` 含 test+typecheck 质量门、**SW 放行 `/api/`**——原 cache-first 会让同步拉到过期缓存，故前置到 3a 让已装机 iPad 先换 SW）。**待用户提供域名与 Cloudflare 账号后才能部署验证**；GitHub Pages 链保留热备。
+  - 待办：3b-1 服务端骨架（进行中）→ 3b-2 客户端接入 → 3c 多档案 → 3d 手机竖屏 → 3e 管理后台。
+- 下一步：真机持续使用收集反馈；迭代 3 按上述子迭代推进；迭代 2 其余（限时挑战需确认节奏 / 深海动物需先验 vosk）；皮肤储备怪兽池扩充（已有 22 只素材待挑用）。
 
 ## 关键决策（反复讨论后确定的边界，勿擅自推翻）
 1. **平台：只做 iPad Web**。不做手机 / 电脑 / 原生 App / Flutter（远期才议）。
@@ -73,6 +77,8 @@
 _(迭代 0 建立代码后补充)_
 
 ## 开发命令
+> 单测基线：**200 个**（2026-07-25 实测 `npm test`）。上面各条目里的"NN 单测绿"是当时的历史快照，别拿来当现值。
+
 - `npm install` — 装依赖
 - `pwsh scripts/prepare-vosk-model.ps1` — 准备方案B的 vosk 中文离线模型（~42MB，不入库，仅首次）
 - `npm run dev` — 本机开发（http://localhost:5173，localhost 即安全上下文，可用麦克风）
