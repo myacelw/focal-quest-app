@@ -2,6 +2,7 @@ import { db } from '../data/db'
 import { buildBackup, validateBackup, backupFilename, type BackupFile, type BackupTables } from './backup'
 import { toDateStr } from '../data/date-utils'
 import { lsGet, lsSet } from '../data/storage'
+import { pushAll } from '../data/api'
 
 /** 收集全部 fzp.* localStorage 键（不硬编码清单，将来加设置自动纳入） */
 function collectSettings(): Record<string, string> {
@@ -62,6 +63,14 @@ export async function restoreBackup(file: BackupFile): Promise<void> {
   for (const [k, v] of Object.entries(file.settings)) {
     if (k.startsWith('fzp.')) lsSet(k, v)
   }
+  // 恢复的是"别处的全量数据"，本地行的 uuid/updatedAt 随文件而来（v6 之前的老备份里干脆没有）。
+  // 全量重推一遍让云端与恢复后的本地一致；否则下一次拉取会把刚被覆盖掉的旧记录又拉回来。
+  //
+  // 之所以敢在这里 pushAll，全靠 uuid 是**确定性派生**的（Task 2）：bulkPut 会把行里原有的
+  // uuid 抹掉（老备份没这个字段），pushAll 再按行内业务字段重新派生，算出的还是同一个 uuid
+  // → 云端 LWW 收敛成一行。若 uuid 是随机的，这里就会在云端复制出一份"孤儿 + 新行"，
+  // 另一台设备 pull 后两行都插进本地 → 当日答对数翻倍 → 积分/统计/勋章判定全错。
+  await pushAll()
 }
 
 /** 上次备份时间戳，未备份为 null */

@@ -5,7 +5,6 @@ import { SpeechTestPage } from './speech/SpeechTestPage'
 import { TrainingPage } from './training/TrainingPage'
 import { StatsPage } from './stats/StatsPage'
 import { BadgeWall, type DexTab } from './badges/BadgeWall'
-import { pushAll } from './data/api'
 import { Onboarding } from './Onboarding'
 import { SettingsPage } from './SettingsPage'
 import { RewardsPage } from './rewards/RewardsPage'
@@ -33,8 +32,8 @@ export function App() {
   // 待确认兑换数量：挂载及每次切视图刷新（驱动设置导航红点）
   const [pendingCount, setPendingCount] = useState(0)
   useEffect(() => { void listPending().then((p) => setPendingCount(p.length)) }, [view])
-  // 启动时把本地数据回填到后端（best-effort，后端没开则忽略）
-  useEffect(() => { void pushAll() }, [])
+  // 全量重推只在注册/登录与恢复备份时做（见 data/api.ts 的 pushAll）；
+  // 启动时的增量同步由同步引擎负责，下面的 useEffect 在接入引擎后补上。
   return (
     <div>
       {showOnboard && (
