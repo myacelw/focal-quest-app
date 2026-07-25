@@ -37,6 +37,11 @@ jobs:
       - name: 类型检查（前端）
         run: npm run typecheck
 
+      # functions/ 用独立 tsconfig（Workers 类型与 DOM lib 冲突，故被主 tsconfig 排除），
+      # 不单独跑这一条，服务端的类型错误就没人管。
+      - name: 类型检查（Functions）
+        run: npm run typecheck:functions
+
       # vosk 模型已切片入库（public/models/*.part* + parts.json），无需下载。
       # 不设 VITE_BASE → 默认 '/'，自有域名根路径部署。
       # 3b-2 起**不再设 VITE_BACKEND=off**：本条链有同域 /api（Pages Functions + D1），

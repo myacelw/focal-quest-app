@@ -38,7 +38,13 @@
   - **3b-1 服务端骨架**：本地已全部完成（`functions/api/{auth/register,auth/login,sync/push,sync/pull}.ts` + `functions/lib/*` 纯函数 + `migrations/0001_init.sql` 四张表 + `scripts/test-api.mjs` 31 项集成断言）。**241 单测绿、两份 typecheck 干净、集成测试连跑三遍 31/31**。前端 `src/` 零改动。**待用户建线上 D1 与 secret 后才能上线**（`wrangler.toml` 现为占位 `database_id`；本地 `--local` 不需要账号）。
     - 注意：注册限速刻意是**两道额度**（成功 20/日 + 失败 10/小时），别合并成一个——合并会让手抄错邀请码的家长被锁一整天，`functions/lib/ratelimit.test.ts` 有测试锚定。
     - 本地跑集成测试：`npm run build && npm run db:migrate:local` → 后台 `npx wrangler pages dev dist --port 8788` → `npm run test:api`。撞 429 就先停服务再 `npm run db:reset:limits`（wrangler 持 D1 文件锁，运行期间清不掉）。
-  - 待办：3b-2 客户端接入 → 3c 多档案 → 3d 手机竖屏 → 3e 管理后台。
+  - **3b-2 客户端接入**：已完成。Dexie **v6**（7 表补 uuid/updatedAt/profileId + 新增 outbox/syncMeta）、`src/sync/*` 纯函数层（sync-keys 派生 uuid 与时钟钳制 / merge 按 kind 分派 / reconcile 重算打卡链 / authkey PBKDF2 / credentials 本地凭据校验 / sync-policy 退避、切批与失败分类）、同步引擎（outbox 推送 + 游标拉取 + 合并入库 + 重算回写，触发时机=启动/训练完成/网络恢复，失败静默退避）、设置页「☁️ 云同步」卡 + 隐私政策页 + 监护人同意勾选。**测试基建也在这一迭代补上**（新增 `vitest.config.ts` + `fake-indexeddb`，此前 241 个测试全是纯函数、碰不到 IndexedDB）。
+    - `src/data/api.ts` 的 7 个 `pushXxx` **签名一字未动**，实现从"POST 本机 Node 后端"换成"写 outbox + 唤引擎"，业务代码零改动；`server/`（本机 Node+SQLite）自此**不再被前端调用**。
+    - 六个反直觉但必须坚持的口径（都有单测锚定，勿"优化"掉）：①**勋章/怪兽取最早**而非 LWW——"首次达成时刻"才是正确语义；②**存量迁移的 updatedAt 取行内既有时间戳**而非 `Date.now()`——取 now 会让后迁移的设备凭 LWW 盖掉对面的修改；③**打卡链必须整体重算**，`streak`/`totalPoints` 是链式累积写死在行里的，LWW 修不了；④重算**只修链条、不重算 dailyPoints**——它是"打卡当时结算"的事实数据，按 sessions 重算会让"一天练两轮"和"补签过的日子"白涨分，而积分是能换现实奖励的货币；⑤**7 表 uuid 全部确定性派生**（`kind:profileId:自然键`，自增表用行内写入时刻），随机 uuid 会让同一条历史在云端变两行、拉回本地后当日答对数翻倍；⑥**推送失败必须分暂时/永久**——服务端整批全或无校验，把 400 当网络错误无限退避会让一条毒药记录彻底堵死这台设备的同步。
+    - 两处数据安全闸门：**登录不无条件全量上推**（`boundUserId` 分辨换号，防跨账号串账）、**退出登录保留 outbox 里的墓碑**（墓碑无从重建，清掉等于删除意图永久丢失、记录会被复活）。
+    - 已知缺口（明示接受）：两台设备离线各兑换一次会**超额**（余额校验纯本地）。家长端「奖励设置」超支时显示「⚠️ 已超支 N 分」，可人工取消一条。
+    - 部署开关：CF 那条链（`deploy-cf.yml`）**不再设** `VITE_BACKEND=off`（它有同域 `/api`）；GitHub Pages 那条链（`deploy.yml`）必须继续设 off。
+  - 待办：3c 多档案 → 3d 手机竖屏 → 3e 管理后台。
 - 下一步：真机持续使用收集反馈；迭代 3 按上述子迭代推进；迭代 2 其余（限时挑战需确认节奏 / 深海动物需先验 vosk）；皮肤储备怪兽池扩充（已有 22 只素材待挑用）。
 
 ## 关键决策（反复讨论后确定的边界，勿擅自推翻）
@@ -80,7 +86,7 @@
 _(迭代 0 建立代码后补充)_
 
 ## 开发命令
-> 单测基线：**241 个**（2026-07-25 实测 `npm test`，含 3b-1 服务端纯函数 41 个）。上面各条目里的"NN 单测绿"是当时的历史快照，别拿来当现值。
+> 单测基线：**400 个 / 44 个文件**（2026-07-25 实测 `npm test`，含 3b-1 服务端纯函数 41 个、3b-2 客户端同步层 159 个）。上面各条目里的"NN 单测绿"是当时的历史快照，别拿来当现值。
 
 - `npm install` — 装依赖
 - `pwsh scripts/prepare-vosk-model.ps1` — 准备方案B的 vosk 中文离线模型（~42MB，不入库，仅首次）
