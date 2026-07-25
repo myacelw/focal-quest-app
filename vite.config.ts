@@ -66,7 +66,9 @@ export default defineConfig(({ mode }) => {
       host: true,
       port: 5173,
       headers: COI_HEADERS,
-      proxy: { '/api': 'http://localhost:3001' }, // iPad 只连 Vite，/api 转发本地 Node 后端，免 CORS
+      // /api 转发到 `npm run cf:dev`（wrangler pages dev dist --port 8788）——
+      // 云同步后端已是 Pages Functions + D1；原本机 Node 后端（server/）不再被前端调用。
+      proxy: { '/api': 'http://127.0.0.1:8788' },
     },
     preview: {
       headers: COI_HEADERS,

@@ -76,10 +76,13 @@ const ip = localIP()
 console.log('\n🚀 变焦大冒险 · 一键启动中…')
 console.log(`📱 iPad 打开：  https://${ip}:5173   （首次需信任自签证书）`)
 console.log('💻 电脑打开：  http://localhost:5173')
+console.log('🔌 /api 由 wrangler(8788) 提供；首次需先跑 npm run build && npm run db:migrate:local')
 console.log('⏹  停止：按 Ctrl+C（两个服务会一起停）\n')
 
-freePort(3001)
+freePort(8788)
 freePort(5173)
 
-run('后端', 'node', ['--experimental-sqlite', 'server/index.ts'])
+// 云同步后端自 3b-2 起是 Pages Functions + D1（本机用 wrangler 跑），server/ 已不被前端调用。
+// 前置一次性准备：npm run build && npm run db:migrate:local（wrangler 要有 dist 才能起）
+run('后端', 'npx', ['wrangler', 'pages', 'dev', 'dist', '--port', '8788'])
 run('Vite', 'npm', ['run', 'dev:lan'])

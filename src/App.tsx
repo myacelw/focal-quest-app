@@ -10,6 +10,7 @@ import { SettingsPage } from './SettingsPage'
 import { RewardsPage } from './rewards/RewardsPage'
 import { listPending } from './rewards/rewards-service'
 import { lsGet, lsSet } from './data/storage'
+import { startSync } from './sync/engine'
 import { useT } from './i18n'
 
 type View = 'home' | 'train' | 'stats' | 'badges' | 'calib' | 'speech' | 'settings' | 'rewards'
@@ -32,8 +33,10 @@ export function App() {
   // 待确认兑换数量：挂载及每次切视图刷新（驱动设置导航红点）
   const [pendingCount, setPendingCount] = useState(0)
   useEffect(() => { void listPending().then((p) => setPendingCount(p.length)) }, [view])
-  // 全量重推只在注册/登录与恢复备份时做（见 data/api.ts 的 pushAll）；
-  // 启动时的增量同步由同步引擎负责，下面的 useEffect 在接入引擎后补上。
+  // 启动即同步一次；引擎自己挂 online 监听与入队钩子。
+  // 没登录 / 断网 / 后端挂了都只是静默跳过，训练照常（全量重推只在登录与恢复备份时做）。
+  // 返回 startSync 的清理函数：StrictMode 下 effect 会跑两次，否则 online 监听会叠加。
+  useEffect(() => startSync(), [])
   return (
     <div>
       {showOnboard && (

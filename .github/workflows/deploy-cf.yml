@@ -39,10 +39,10 @@ jobs:
 
       # vosk 模型已切片入库（public/models/*.part* + parts.json），无需下载。
       # 不设 VITE_BASE → 默认 '/'，自有域名根路径部署。
+      # 3b-2 起**不再设 VITE_BACKEND=off**：本条链有同域 /api（Pages Functions + D1），
+      # 云同步要靠它。GitHub Pages 那条链（deploy.yml）没有 /api，那边必须继续设 off。
       - name: 构建
         run: npm run build
-        env:
-          VITE_BACKEND: 'off'
 
       - name: 部署到 Cloudflare Pages
         uses: cloudflare/wrangler-action@v3
