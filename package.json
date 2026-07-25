@@ -16,6 +16,7 @@
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "test:watch": "vitest",
+    "test:api": "node scripts/test-api.mjs",
     "server": "node --experimental-sqlite server/index.ts",
     "db:migrate:local": "wrangler d1 migrations apply focal-quest-db --local",
     "db:migrate:remote": "wrangler d1 migrations apply focal-quest-db --remote",
