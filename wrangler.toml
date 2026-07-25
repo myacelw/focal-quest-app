@@ -2,3 +2,10 @@
 name = "focal-quest"
 compatibility_date = "2026-07-25"
 pages_build_output_dir = "dist"
+
+[[d1_databases]]
+binding = "DB"
+database_name = "focal-quest-db"
+# 本地开发（--local）不校验此值；Task 6 上线前换成 `wrangler d1 create` 输出的真实 id
+database_id = "local-dev-placeholder"
+migrations_dir = "migrations"
