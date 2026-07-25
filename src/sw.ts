@@ -11,6 +11,8 @@
  * 为什么手写而不用 Workbox 的 precacheAndRoute：那套会抢先 respondWith、把缓存响应
  * 直接返回，绕过我们的“补头”逻辑；跨域隔离就废了。所以自己掌控每一个响应。
  */
+import { shouldBypass } from './sw-route'
+
 const sw = self as unknown as ServiceWorkerGlobalScope
 
 type ManifestEntry = { url: string; revision: string | null }
@@ -84,6 +86,7 @@ sw.addEventListener('fetch', (event) => {
   if (req.method !== 'GET') return
   const url = new URL(req.url)
   if (url.origin !== sw.location.origin) return // 跨域资源不经手（本项目本无跨域）
+  if (shouldBypass(url.pathname)) return // /api/* 交给浏览器直连，不缓存不代理
 
   // 导航请求：SPA 一律回 index.html（补头后返回），离线也能开
   if (req.mode === 'navigate') {
