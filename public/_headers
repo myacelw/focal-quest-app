@@ -1,0 +1,7 @@
+# Cloudflare Pages 原生下发跨域隔离三件套——vosk 依赖 SharedArrayBuffer，需要 COOP+COEP；
+# 再给资源加 CORP 满足 require-corp。GitHub Pages 设不了响应头（只能靠 src/sw.ts 补），
+# Pages 能，于是首屏加载（SW 尚未接管时）就已隔离，不必靠"未隔离则刷新一次"兜底。
+/*
+  Cross-Origin-Opener-Policy: same-origin
+  Cross-Origin-Embedder-Policy: require-corp
+  Cross-Origin-Resource-Policy: cross-origin

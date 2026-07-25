@@ -1,0 +1,4 @@
+# Cloudflare Pages 项目声明。3b 会在此文件追加 D1 binding。
+name = "focal-quest"
+compatibility_date = "2026-07-25"
+pages_build_output_dir = "dist"
