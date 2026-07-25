@@ -1,0 +1,52 @@
+name: Deploy PWA to Cloudflare Pages
+
+# 推送 master 自动构建并部署到 Cloudflare Pages（自有域名、根路径）。
+# 与 deploy.yml（GitHub Pages 热备）并存：两者构建同一份源码，
+# 区别只在 VITE_BASE（此处为根路径，故不设）与发布目标。
+#
+# 需要两个仓库 secret（在 Settings → Secrets and variables → Actions 配置）：
+#   CLOUDFLARE_API_TOKEN   —— Cloudflare My Profile → API Tokens，用 "Edit Cloudflare Workers" 模板
+#   CLOUDFLARE_ACCOUNT_ID  —— Cloudflare 控制台右侧栏的 Account ID
+# 未配置前本流水线会在最后一步失败（不影响 GitHub Pages 那条链）。
+on:
+  push:
+    branches: [master]
+  workflow_dispatch:
+
+concurrency:
+  group: cf-pages
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+
+      - run: npm ci
+
+      # 质量门：此前 CI 只跑 build，测试红与类型错误都不会阻止发布。
+      - name: 单元测试
+        run: npm test
+
+      - name: 类型检查（前端）
+        run: npm run typecheck
+
+      # vosk 模型已切片入库（public/models/*.part* + parts.json），无需下载。
+      # 不设 VITE_BASE → 默认 '/'，自有域名根路径部署。
+      - name: 构建
+        run: npm run build
+        env:
+          VITE_BACKEND: 'off'
+
+      - name: 部署到 Cloudflare Pages
+        uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          command: pages deploy dist --project-name=focal-quest
