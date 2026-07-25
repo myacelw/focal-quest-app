@@ -5,8 +5,18 @@
  *   2) 另一个终端：node scripts/test-api.mjs
  * 退出码 0 = 全绿。
  *
- * 注：本地 D1 是持久的，脚本用随机邮箱保证可反复运行；BOOTSTRAP_INVITE_CODE
+ * 注：本地 D1 是持久的，脚本用随机邮箱避免撞 email 唯一约束；BOOTSTRAP_INVITE_CODE
  * 通过 .dev.vars 提供（见 Task 5 Step 2）。
+ *
+ * 限速计数会跨运行累积（存在 counters 表、按时间窗口分桶），但两道注册额度都留了
+ * 充裕余量（成功 20/日、失败 10/时，见 functions/lib/ratelimit.ts），本脚本每遍只成功
+ * 建 2 个号、失败 2 次，同一天反复跑不会撞上限。
+ *
+ * 万一真撞了 429：**先停掉 wrangler pages dev**（它持有本地 D1 文件锁，不停的话下面这条
+ * 命令会失败），再跑
+ *   npm run db:reset:limits
+ * 即可清空限速计数。不在本脚本里自动清，正是因为服务运行期间清不掉——留个必然失败的
+ * 假动作比没有更糟。
  */
 const BASE = process.argv[2] || 'http://127.0.0.1:8788'
 // 默认引导码必须本身通过 isValidInviteCodeShape：8 位、且不含被剔除的易混字符

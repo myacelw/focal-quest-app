@@ -20,7 +20,8 @@
     "server": "node --experimental-sqlite server/index.ts",
     "db:migrate:local": "wrangler d1 migrations apply focal-quest-db --local",
     "db:migrate:remote": "wrangler d1 migrations apply focal-quest-db --remote",
-    "typecheck:functions": "tsc -p functions/tsconfig.json"
+    "typecheck:functions": "tsc -p functions/tsconfig.json",
+    "db:reset:limits": "wrangler d1 execute focal-quest-db --local --command \"DELETE FROM counters WHERE metric LIKE 'rl.%'\""
   },
   "dependencies": {
     "dexie": "^4.4.4",
