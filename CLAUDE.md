@@ -35,7 +35,10 @@
 - **本文档遗漏的已合并模块（2026-07-25 勘察补记）**：上面的条目漏记了若干已在 master 的功能，读代码时别以为是新东西——**怪兽图鉴**（`src/dex`，monsters 表，每日保底+彩蛋捕获）、**积分兑换现实奖励 + 补签卡**（`src/rewards`，rewards/redemptions 两表，可用积分=累计−消耗）、**线下验光记录**（`src/exams`，exams 表）、**JSON 备份导出/恢复**（`src/backup`）、**训练提醒 ICS**（`src/reminder`）、**清空数据**（`src/reset`）。故 Dexie 现为 **version 5、7 张表**（sessions/checkins/badges/monsters/rewards/redemptions/exams），不是早期条目暗示的 2-3 张。
 - 迭代 3·域名+账号+云同步 🚧 进行中（设计已定稿并批准，见 [spec](docs/superpowers/specs/2026-07-25-域名账号云同步-design.md)）：买 **.top 域名** → 迁 **Cloudflare Pages**（免备案、自有域名根路径）→ **Pages Functions + D1** 做同步后端（免费层，同域零 CORS）→ **家长邮箱+密码账号**（客户端 PBKDF2 拉伸、服务端单次哈希，适配 Workers ~10ms CPU）→ **归属制邀请码**（每账号专属码，落库 invited_by，注册来源可追溯）→ 本地优先增量同步（**LWW upsert + 墓碑**，非纯追加）→ 管理后台（DAU/MAU 从 records 表 SQL 派生）。关键调研结论：微信登录对个人主体在 Web 端不可行（网站应用需企业资质、个人小程序禁 web-view）；短信个人通道仅剩阿里云"短信认证"（平台预置签名）；**备案与海外免费托管互斥**（备案后域名必须解析到境内 IP）；Turnstile 因大陆 DNS 污染排除。
   - **3a 基建搬家**：代码已完成（`public/_headers` 平台下发 COOP/COEP/CORP、`wrangler.toml`、`scripts/check-coi.mjs` 实测三头、CI `deploy-cf.yml` 含 test+typecheck 质量门、**SW 放行 `/api/`**——原 cache-first 会让同步拉到过期缓存，故前置到 3a 让已装机 iPad 先换 SW）。**待用户提供域名与 Cloudflare 账号后才能部署验证**；GitHub Pages 链保留热备。
-  - 待办：3b-1 服务端骨架（进行中）→ 3b-2 客户端接入 → 3c 多档案 → 3d 手机竖屏 → 3e 管理后台。
+  - **3b-1 服务端骨架**：本地已全部完成（`functions/api/{auth/register,auth/login,sync/push,sync/pull}.ts` + `functions/lib/*` 纯函数 + `migrations/0001_init.sql` 四张表 + `scripts/test-api.mjs` 31 项集成断言）。**241 单测绿、两份 typecheck 干净、集成测试连跑三遍 31/31**。前端 `src/` 零改动。**待用户建线上 D1 与 secret 后才能上线**（`wrangler.toml` 现为占位 `database_id`；本地 `--local` 不需要账号）。
+    - 注意：注册限速刻意是**两道额度**（成功 20/日 + 失败 10/小时），别合并成一个——合并会让手抄错邀请码的家长被锁一整天，`functions/lib/ratelimit.test.ts` 有测试锚定。
+    - 本地跑集成测试：`npm run build && npm run db:migrate:local` → 后台 `npx wrangler pages dev dist --port 8788` → `npm run test:api`。撞 429 就先停服务再 `npm run db:reset:limits`（wrangler 持 D1 文件锁，运行期间清不掉）。
+  - 待办：3b-2 客户端接入 → 3c 多档案 → 3d 手机竖屏 → 3e 管理后台。
 - 下一步：真机持续使用收集反馈；迭代 3 按上述子迭代推进；迭代 2 其余（限时挑战需确认节奏 / 深海动物需先验 vosk）；皮肤储备怪兽池扩充（已有 22 只素材待挑用）。
 
 ## 关键决策（反复讨论后确定的边界，勿擅自推翻）
@@ -77,7 +80,7 @@
 _(迭代 0 建立代码后补充)_
 
 ## 开发命令
-> 单测基线：**200 个**（2026-07-25 实测 `npm test`）。上面各条目里的"NN 单测绿"是当时的历史快照，别拿来当现值。
+> 单测基线：**241 个**（2026-07-25 实测 `npm test`，含 3b-1 服务端纯函数 41 个）。上面各条目里的"NN 单测绿"是当时的历史快照，别拿来当现值。
 
 - `npm install` — 装依赖
 - `pwsh scripts/prepare-vosk-model.ps1` — 准备方案B的 vosk 中文离线模型（~42MB，不入库，仅首次）
