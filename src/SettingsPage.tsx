@@ -12,6 +12,7 @@ import { BackupCard } from './backup/BackupCard'
 import { ReminderCard } from './reminder/ReminderCard'
 import { ResetCard } from './reset/ResetCard'
 import { Collapsible, SectionHeader } from './settings/Collapsible'
+import { CloudSyncCard } from './sync/CloudSyncCard'
 
 function readPxPerMm(): number | null {
   const v = lsGet('fzp.cssPxPerMm')
@@ -19,7 +20,7 @@ function readPxPerMm(): number | null {
 }
 
 /** 家长设置页：所有训练配置集中在此，配一次即可，孩子训练路径不再碰这些 */
-export function SettingsPage({ onReplayGuide, onOpenSpeech, onOpenCalib }: { onReplayGuide: () => void; onOpenSpeech: () => void; onOpenCalib: () => void }) {
+export function SettingsPage({ onReplayGuide, onOpenSpeech, onOpenCalib, onOpenPrivacy }: { onReplayGuide: () => void; onOpenSpeech: () => void; onOpenCalib: () => void; onOpenPrivacy: () => void }) {
   const t = useT()
   const lang = useLang()
   const [sizeMm, setSizeMm] = useState(() => {
@@ -180,6 +181,11 @@ export function SettingsPage({ onReplayGuide, onOpenSpeech, onOpenCalib }: { onR
       <Collapsible title={t('exam.title')}><ExamConfig /></Collapsible>
       <Collapsible title={t('backup.title')}><BackupCard /></Collapsible>
       <Collapsible title={t('reset.title')} danger><ResetCard /></Collapsible>
+
+      <SectionHeader>{t('settings.group.cloud')}</SectionHeader>
+      <Collapsible title={t('sync.title')}>
+        <CloudSyncCard onOpenPrivacy={onOpenPrivacy} />
+      </Collapsible>
 
       <SectionHeader>{t('settings.group.other')}</SectionHeader>
 

@@ -8,12 +8,13 @@ import { BadgeWall, type DexTab } from './badges/BadgeWall'
 import { Onboarding } from './Onboarding'
 import { SettingsPage } from './SettingsPage'
 import { RewardsPage } from './rewards/RewardsPage'
+import { PrivacyPage } from './PrivacyPage'
 import { listPending } from './rewards/rewards-service'
 import { lsGet, lsSet } from './data/storage'
 import { startSync } from './sync/engine'
 import { useT } from './i18n'
 
-type View = 'home' | 'train' | 'stats' | 'badges' | 'calib' | 'speech' | 'settings' | 'rewards'
+type View = 'home' | 'train' | 'stats' | 'badges' | 'calib' | 'speech' | 'settings' | 'rewards' | 'privacy'
 
 const NAV: { key: View; icon: string }[] = [
   { key: 'home', icon: '🏠' },
@@ -68,11 +69,13 @@ export function App() {
       {view === 'calib' && <CalibrationPage />}
       {view === 'speech' && <SpeechTestPage />}
       {view === 'rewards' && <RewardsPage />}
+      {view === 'privacy' && <PrivacyPage onBack={() => setView('settings')} />}
       {view === 'settings' && (
         <SettingsPage
           onReplayGuide={() => setShowOnboard(true)}
           onOpenSpeech={() => setView('speech')}
           onOpenCalib={() => setView('calib')}
+          onOpenPrivacy={() => setView('privacy')}
         />
       )}
     </div>
