@@ -1,6 +1,8 @@
 import { useEffect, useState } from 'react'
 import type { RewardRow, RedemptionRow } from '../data/db'
-import { listRewards, addReward, deactivateReward, listPending, fulfillRedemption, cancelRedemption } from './rewards-service'
+import { listRewards, addReward, deactivateReward, listPending, fulfillRedemption, cancelRedemption, listRedemptions } from './rewards-service'
+import { overspend } from './ledger'
+import { db } from '../data/db'
 import { useT } from '../i18n'
 
 export function RewardConfig() {
@@ -9,10 +11,14 @@ export function RewardConfig() {
   const [pending, setPending] = useState<RedemptionRow[]>([])
   const [title, setTitle] = useState('')
   const [cost, setCost] = useState('')
+  const [over, setOver] = useState(0)
 
   async function refresh() {
     setRewards(await listRewards())
     setPending(await listPending())
+    // 多设备并发兑换会让消耗超过累计积分，availablePoints 会把它夹到 0、家长看不见
+    const last = await db.checkins.orderBy('date').last()
+    setOver(overspend(last ? last.totalPoints : 0, await listRedemptions()))
   }
   useEffect(() => { void refresh() }, [])
 
@@ -59,6 +65,12 @@ export function RewardConfig() {
             </span>
           </div>
         ))
+      )}
+
+      {over > 0 && (
+        <p style={{ fontSize: 12, color: '#e8590c', marginTop: 12, lineHeight: 1.6 }}>
+          {t('reward.overspend', { n: over })}
+        </p>
       )}
     </>
   )

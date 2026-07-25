@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest'
 import {
-  REPAIR_COST, availablePoints, monthRepairCount, canRepair, findRepairTarget,
+  REPAIR_COST, availablePoints, monthRepairCount, canRepair, findRepairTarget, overspend,
 } from './ledger'
 import type { RedemptionRow, CheckinRow } from '../data/db'
 
@@ -106,5 +106,21 @@ describe('canRepair', () => {
   })
   it('可用分不足：no-points', () => {
     expect(canRepair({ ...base, available: 10 })).toEqual({ ok: false, reason: 'no-points' })
+  })
+})
+
+describe('overspend — 多设备并发兑换会超支，必须让家长看得见', () => {
+  it('未超支时为 0', () => {
+    expect(overspend(500, [red({ cost: 100 })])).toBe(0)
+    expect(overspend(500, [red({ cost: 500 })])).toBe(0)
+  })
+
+  it('两台设备各兑换一次 → 消耗翻倍 → 报出超支分数', () => {
+    // availablePoints 会把结果夹到 0，家长在 UI 上完全看不出来；这个函数专门把它挖出来
+    expect(overspend(500, [red({ cost: 400 }), red({ cost: 400 })])).toBe(300)
+  })
+
+  it('已取消的消耗不计（家长取消一条即可把超支纠正回来）', () => {
+    expect(overspend(500, [red({ cost: 400 }), red({ cost: 400, status: 'cancelled' })])).toBe(0)
   })
 })

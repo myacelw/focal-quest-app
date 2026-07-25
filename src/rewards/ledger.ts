@@ -12,6 +12,22 @@ export function availablePoints(totalEarned: number, redemptions: RedemptionRow[
   return Math.max(0, totalEarned - spent)
 }
 
+/**
+ * 超支分数（未超支为 0）。`availablePoints` 用 `Math.max(0, …)` 把超支夹到 0，
+ * 于是家长在 UI 上完全看不出账本已经对不上。
+ *
+ * 为什么会超支：3b-2 起账本是**多设备**的。两台设备离线时各自看到同样的余额、
+ * 各建一条 redemption（不同 uuid、都合法），合并后两条都存活、消耗翻倍。
+ * 余额校验纯在本地做，服务端不解析 payload、不校验余额（MVP 明示接受，见计划的已知限制）。
+ * 补救方式是让家长看见并人工取消一条——本函数就是那个提示的判据。
+ */
+export function overspend(totalEarned: number, redemptions: RedemptionRow[]): number {
+  const spent = redemptions
+    .filter((r) => r.status !== 'cancelled')
+    .reduce((sum, r) => sum + r.cost, 0)
+  return Math.max(0, spent - totalEarned)
+}
+
 /** 当月（本地 YYYY-MM）已用补签次数 */
 export function monthRepairCount(redemptions: RedemptionRow[], monthStr: string): number {
   return redemptions.filter(
