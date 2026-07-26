@@ -7,14 +7,34 @@
 
 | 项 | 值 |
 |---|---|
-| 域名 | `myacelw.top`（腾讯云注册，本人实名） |
+| **线上地址** | **https://fq.myacelw.top** |
+| 域名 | `myacelw.top`（腾讯云注册、本人实名；NS 已迁 Cloudflare：`alla` / `peter`.ns.cloudflare.com） |
 | Pages 项目 | **`focal-quest-app`** |
 | D1 数据库 | `focal-quest-db`，id `3b0cc46c-4b11-4f87-ba62-1bcccde659b7` |
 | D1 binding | **`DB`**（代码里按 `env.DB` 取库） |
+| 证书 | Cloudflare 自动签发（Google Trust Services），绑定后约数分钟就绪 |
+
+### 为什么 NS 必须迁到 Cloudflare（而不是在腾讯云加 CNAME）
+
+`*.pages.dev` 在国内被 DNS 污染（调研结论，多个独立来源）。若在腾讯云配 `fq CNAME → focal-quest-app.pages.dev`，客户端解析链最后一跳仍要查 `pages.dev`，照样中招。NS 迁到 Cloudflare 后它做 **CNAME 展平**——权威应答里直接返回自己的 anycast IP（实测 `104.21.83.77` / `172.67.217.140`），客户端根本不查 `pages.dev`。
+注意 Cloudflare **免费版不支持只托管子域名**（Subdomain Support 属企业版），所以只能整个根域迁过去。
+
+### 自定义域名的绑定步骤（wrangler 做不到，只能在控制台）
+
+`wrangler pages` 只有 dev/project/deployment/deploy/secret/download，**没有 domain 子命令**，全局也无 dns/zone 命令；走 API 需要 API token。所以这一步在 Dashboard 做：
+Workers & Pages → `focal-quest-app` → **Custom domains** → Set up a custom domain → 填 `fq.myacelw.top` → Activate。Cloudflare 会自动建 DNS 记录并签证书。
 
 ### ⚠️ 两个容易踩且报错不说人话的坑
 
 **① Pages 项目名不能叫 `focal-quest`。** 账号里已有一个同名 **Worker**（当初在控制台建项目时选成了 Worker——新版 Cloudflare 把 Workers 与 Pages 放同一入口，很容易点错；Worker 的域名是 `*.workers.dev`，Pages 的是 `*.pages.dev`，用这个区分）。两者共用命名空间，于是建同名 Pages 项目会被 API 拒绝，且报文只有一句 `An unknown error occurred [code: 8000000]`，完全不提"重名"。故项目名定为 `focal-quest-app`。那个误建的 Worker 留着不影响使用，看着碍眼可以在控制台删掉。
+
+**③ 绑域名后头几分钟 HTTPS 会握手失败**（curl exit 35 / SSL connect error），而 `http://` 已能返回 301。这是证书尚在签发，不是配置错——等几分钟重试即可。判断办法：用 `node -e` 起 tls 连接看证书 `valid_from`，若时间就在刚刚，说明刚签好。
+
+**④ 本机若挂了 fake-ip 模式的代理（Clash 等），DNS 诊断结果全是假的。** 曾据此误判"实测到 pages.dev 被污染"——实际 `198.18.1.113/115/116` 这种**连续递增**的 `198.18.x.x` 是代理为每个域名依次分配的虚拟 IP，真实流量由代理接管（所以会出现"解析到假地址却能 curl 通"的矛盾）。要看真实 DNS 记录，用 DoH 绕开本机 resolver：
+```bash
+curl -s "https://cloudflare-dns.com/dns-query?name=fq.myacelw.top&type=A" -H "accept: application/dns-json"
+```
+**更要紧的是：本机测得"能访问"不代表国内能访问**（本机流量过代理）。国内可达性只能在**关掉代理**的真机上用家宽/蜂窝实测，这一步无法由 agent 代劳。
 
 **② D1 的 binding 名不要照抄 `wrangler d1 create` 的输出。** 它会建议 `binding = "focal_quest_db"`，但 binding 名是自己定的、代码全部按 `env.DB` 取库（见 `functions/lib/db.ts` 的 `Env`）。照抄会让所有接口拿到 `undefined` 而在运行时崩，本地 `--local` 未必暴露。
 
