@@ -159,7 +159,8 @@ function MonsterCard({
     <div
       onClick={onClick}
       style={{
-        width: 108,
+        flex: '1 1 108px',
+        maxWidth: 132,
         padding: '10px 8px',
         borderRadius: 16,
         textAlign: 'center',

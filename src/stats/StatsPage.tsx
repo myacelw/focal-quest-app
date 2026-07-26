@@ -74,8 +74,8 @@ export function StatsPage() {
 
       <div className="fq-card" style={{ marginTop: 14, background: 'linear-gradient(135deg, #7c6cf0, #8b6cff)', border: 'none', color: '#fff', boxShadow: 'var(--shadow)' }}>
         <div style={{ fontSize: 14, fontWeight: 700, marginBottom: 12 }}>{t('stats.weekly')}</div>
-        <div style={{ display: 'flex', gap: 12, marginBottom: 12 }}>
-          <div style={{ flex: 1 }}>
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 12, marginBottom: 12 }}>
+          <div style={{ flex: '1 1 88px' }}>
             <div style={{ fontSize: 22, fontWeight: 800, lineHeight: 1 }}>
               {report.thisWeekCount}
               <span style={{ fontSize: 12, opacity: 0.85 }}> {t('stats.times')}</span>
@@ -84,14 +84,14 @@ export function StatsPage() {
               {t('stats.thisWeek')}{report.lastWeekCount > 0 ? t('stats.lastWeek', { n: report.lastWeekCount }) : ''}
             </div>
           </div>
-          <div style={{ flex: 1 }}>
+          <div style={{ flex: '1 1 88px' }}>
             <div style={{ fontSize: 22, fontWeight: 800, lineHeight: 1 }}>
               {report.avgReactionSec !== null ? `${report.avgReactionSec}s` : '—'}
               {trend}
             </div>
             <div style={{ fontSize: 11, opacity: 0.85, marginTop: 4 }}>{t('stats.avgReaction')}</div>
           </div>
-          <div style={{ flex: 1 }}>
+          <div style={{ flex: '1 1 88px' }}>
             <div style={{ fontSize: 22, fontWeight: 800, lineHeight: 1 }}>
               {report.accuracy !== null ? `${Math.round(report.accuracy * 100)}%` : '—'}
             </div>

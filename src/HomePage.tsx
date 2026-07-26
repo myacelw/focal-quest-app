@@ -140,11 +140,11 @@ export function HomePage({ onStart, onOpenDex, onOpenRewards }: { onStart: () =>
         </div>
 
         {/* 入口：图鉴 | 奖励（两列，省纵向空间） */}
-        <div className="fq-rise" style={{ display: 'flex', gap: 12, animationDelay: '0.16s' }}>
+        <div className="fq-rise" style={{ display: 'flex', flexWrap: 'wrap', gap: 12, animationDelay: '0.16s' }}>
           <button
             onClick={onOpenDex}
             className="fq-card"
-            style={{ flex: 1, textAlign: 'left', cursor: 'pointer', border: '1.5px solid var(--violet)', background: 'linear-gradient(160deg, #f3efff, #fff)', padding: 14 }}
+            style={{ flex: '1 1 150px', textAlign: 'left', cursor: 'pointer', border: '1.5px solid var(--violet)', background: 'linear-gradient(160deg, #f3efff, #fff)', padding: 14 }}
           >
             <div style={{ fontSize: 20 }}>📖</div>
             <div style={{ fontSize: 14, fontWeight: 800, marginTop: 4 }}>{t('dex.tab.dex').replace('📖 ', '')}</div>
@@ -159,7 +159,7 @@ export function HomePage({ onStart, onOpenDex, onOpenRewards }: { onStart: () =>
           <button
             onClick={onOpenRewards}
             className="fq-card"
-            style={{ flex: 1, textAlign: 'left', cursor: 'pointer', border: '1.5px solid var(--coral)', background: 'linear-gradient(160deg, #fff2ec, #fff)', padding: 14 }}
+            style={{ flex: '1 1 150px', textAlign: 'left', cursor: 'pointer', border: '1.5px solid var(--coral)', background: 'linear-gradient(160deg, #fff2ec, #fff)', padding: 14 }}
           >
             <div style={{ fontSize: 20 }}>🎁</div>
             <div style={{ fontSize: 14, fontWeight: 800, marginTop: 4 }}>{t('reward.homeCard').replace('🎁 ', '')}</div>

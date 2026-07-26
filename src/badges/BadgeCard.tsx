@@ -54,7 +54,9 @@ export function BadgeCard({ def, unlocked, current }: { def: BadgeDef; unlocked:
   return (
     <div
       style={{
-        width: 132,
+        // 在 flexWrap 容器里可伸缩：iPad 一行 3 张、手机竖屏一行 2 张且填满宽度
+        flex: '1 1 132px',
+        maxWidth: 168,
         padding: '14px 10px',
         borderRadius: 18,
         textAlign: 'center',
