@@ -4,8 +4,10 @@ compatibility_date = "2026-07-25"
 pages_build_output_dir = "dist"
 
 [[d1_databases]]
+# binding 名是我们自己定的，不要照抄 `wrangler d1 create` 输出里建议的 focal_quest_db——
+# functions/ 下全部代码按 env.DB 取库（见 functions/lib/db.ts 的 Env 接口），改名会让所有
+# 接口拿到 undefined 而在运行时崩，且本地 --local 未必暴露。
 binding = "DB"
 database_name = "focal-quest-db"
-# 本地开发（--local）不校验此值；Task 6 上线前换成 `wrangler d1 create` 输出的真实 id
-database_id = "local-dev-placeholder"
+database_id = "3b0cc46c-4b11-4f87-ba62-1bcccde659b7"
 migrations_dir = "migrations"
