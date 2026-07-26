@@ -141,8 +141,9 @@ npm run build && npm run cf:dev     # 终端 A：8788 上跑 Functions + 本地 
 npm run dev                          # 终端 B：5173，/api 已代理到 8788
 ```
 
-**iPad 局域网联调**（真机唯一路径）：终端 A 同上，终端 B 改成 `npm run dev:lan`，
-iPad 访问 `https://<电脑IP>:5173`（首次信任自签证书）。`npm start` 已把"后端"进程
+**真机局域网联调**（iPad / 手机，真机唯一路径）：终端 A 同上，终端 B 改成 `npm run dev:lan`，
+真机访问 `https://<电脑IP>:5173`（首次信任自签证书）。手机自迭代 3d 起也是目标形态（竖屏），
+同样按这条路径联调。`npm start` 已把"后端"进程
 从退役的 `server/`（3001）换成 wrangler（8788），所以一条 `npm start` 也能同时起两边——
 但**首次要先跑一次** `npm run build && npm run db:migrate:local`，wrangler 需要 `dist` 才能起。
 
