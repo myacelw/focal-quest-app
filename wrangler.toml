@@ -1,5 +1,9 @@
 # Cloudflare Pages 项目声明。3b 会在此文件追加 D1 binding。
-name = "focal-quest"
+#
+# 项目名是 focal-quest-app 而非 focal-quest：新版 Cloudflare 里 Workers 与 Pages 共用
+# 命名空间，账号里已有一个同名 Worker（误建，见 docs/部署到-Cloudflare-Pages.md），
+# 再建同名 Pages 项目会被 API 拒绝（错误码 8000000，报文并不会说明是重名）。
+name = "focal-quest-app"
 compatibility_date = "2026-07-25"
 pages_build_output_dir = "dist"
 

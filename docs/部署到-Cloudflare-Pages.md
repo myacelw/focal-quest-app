@@ -3,6 +3,23 @@
 前端是纯静态 PWA，后端是同域的 Pages Functions（`functions/api/*` → `/api/*`），数据在 D1。
 `public/_headers` 由平台下发 COOP/COEP/CORP（vosk 需要跨域隔离），不再依赖 Service Worker 补头。
 
+## 现有资源（2026-07-26）
+
+| 项 | 值 |
+|---|---|
+| 域名 | `myacelw.top`（腾讯云注册，本人实名） |
+| Pages 项目 | **`focal-quest-app`** |
+| D1 数据库 | `focal-quest-db`，id `3b0cc46c-4b11-4f87-ba62-1bcccde659b7` |
+| D1 binding | **`DB`**（代码里按 `env.DB` 取库） |
+
+### ⚠️ 两个容易踩且报错不说人话的坑
+
+**① Pages 项目名不能叫 `focal-quest`。** 账号里已有一个同名 **Worker**（当初在控制台建项目时选成了 Worker——新版 Cloudflare 把 Workers 与 Pages 放同一入口，很容易点错；Worker 的域名是 `*.workers.dev`，Pages 的是 `*.pages.dev`，用这个区分）。两者共用命名空间，于是建同名 Pages 项目会被 API 拒绝，且报文只有一句 `An unknown error occurred [code: 8000000]`，完全不提"重名"。故项目名定为 `focal-quest-app`。那个误建的 Worker 留着不影响使用，看着碍眼可以在控制台删掉。
+
+**② D1 的 binding 名不要照抄 `wrangler d1 create` 的输出。** 它会建议 `binding = "focal_quest_db"`，但 binding 名是自己定的、代码全部按 `env.DB` 取库（见 `functions/lib/db.ts` 的 `Env`）。照抄会让所有接口拿到 `undefined` 而在运行时崩，本地 `--local` 未必暴露。
+
+**为什么坚持 Pages 而不是 Worker**：整套后端按 Pages Functions 的**文件路由**组织（`functions/api/auth/login.ts` → `/api/auth/login`）。Worker 要用单入口 + 自己分发路由 + `assets` 配置托管静态文件，等于重写这一层。Pages 虽已进入维护模式，但本项目的用量与形态完全够用。
+
 ## 后端（D1 + Pages Functions，迭代 3b-1）
 
 | 端点 | 作用 |
