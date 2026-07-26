@@ -27,6 +27,12 @@ const OTHER_KEYS = ['reward.overspend']
 /** 竖屏适配新增文案（迭代 3d） */
 const PORTRAIT_KEYS = ['train.rotateHint', 'train.screenTooSmall']
 
+/** 标定页窄屏新增文案（迭代 3d） */
+const CALIB_PORTRAIT_KEYS = [
+  'calib.instructionShort', 'calib.edgeLong', 'calib.edgeShort',
+  'calib.shortEdgeWhy', 'calib.cantSave', 'calib.savedMismatch',
+]
+
 describe('云同步与隐私政策文案', () => {
   it('云同步 44 个文案键在 zh 与 en 字典里都存在（漏一份就会在另一种语言下回退成中文）', () => {
     expect(SYNC_KEYS.length).toBe(44)
@@ -52,6 +58,14 @@ describe('云同步与隐私政策文案', () => {
 
   it('竖屏适配新增文案在两种语言都存在', () => {
     for (const k of PORTRAIT_KEYS) {
+      expect(hasKey('zh', k), `zh 缺 ${k}`).toBe(true)
+      expect(hasKey('en', k), `en 缺 ${k}`).toBe(true)
+    }
+  })
+
+  it('标定页窄屏新增 6 条文案在两种语言都存在', () => {
+    expect(CALIB_PORTRAIT_KEYS.length).toBe(6)
+    for (const k of CALIB_PORTRAIT_KEYS) {
       expect(hasKey('zh', k), `zh 缺 ${k}`).toBe(true)
       expect(hasKey('en', k), `en 缺 ${k}`).toBe(true)
     }
