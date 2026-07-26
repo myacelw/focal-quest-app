@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState, type CSSProperties } from 'react'
 import { TumblingE } from '../../training/TumblingE'
 import type { StageProps } from '../types'
 import { asset } from '../../data/asset'
@@ -80,105 +80,114 @@ export function ShrineStage({ target, heightPx, phase, lastAnswer, isEgg, captur
   const transitioning = phase === 'transitioning'
   const hit = fx?.correct === true
   const miss = fx?.correct === false
+  // sprite 帧数交给 CSS 变量，让 keyframes 能按帧数算位移（帧宽 = 盒宽 = 37cqmin）
+  const spriteVars = { '--fzp-g-frames': guardian.kind === 'sprite' ? guardian.frames : 0 } as CSSProperties
 
   return (
     <div
-      style={{
-        position: 'relative',
-        width: '100%',
-        maxWidth: 420,
-        aspectRatio: '1 / 1',
-        margin: '0 auto',
-        borderRadius: 16,
-        overflow: 'hidden',
-        background: `url(${asset('/skins/shrine/bg.png')}) center / cover, #0b1a18`,
-        imageRendering: 'pixelated',
-      }}
+      className="fzp-skin-canvas"
+      style={{ background: `url(${asset('/skins/shrine/bg.png')}) center / cover, #0b1a18`, imageRendering: 'pixelated' }}
     >
       {/* 暗化 + 神庙青绿氛围光 */}
       <div style={{ position: 'absolute', inset: 0, background: 'radial-gradient(circle at 50% 42%, rgba(90,216,176,0.10), rgba(4,10,9,0.5) 75%)' }} />
 
       {/* 计数 */}
-      <div style={{ position: 'absolute', top: 10, left: 12, fontSize: 12, background: 'rgba(0,0,0,0.5)', border: '1px solid #2f6b5c', borderRadius: 99, padding: '3px 12px', color: '#c2ffe9', zIndex: 5 }}>
+      <div style={{ position: 'absolute', top: '2.4cqmin', left: '2.9cqmin', fontSize: 'max(9px, 2.9cqmin)', background: 'rgba(0,0,0,0.5)', border: '1px solid #2f6b5c', borderRadius: 99, padding: '3px 12px', color: '#c2ffe9', zIndex: 5 }}>
         {t('shrine.counter', { spirits, shrines })}
       </div>
 
       {/* 答错红闪 */}
       {miss && <div style={{ position: 'absolute', inset: 0, background: 'rgba(255,70,70,0.18)', animation: 'fzpFade 0.4s ease-out', zIndex: 4 }} />}
 
-      {/* 守护者（每题轮换）+ 核心符文 E */}
+      {/* 守护者（每题轮换）+ 核心符文 E。
+          原实现是 192×224 + transform: scale(0.8)，而 CSS transform 会作用于后代 ——
+          等于让视标 E 只有标定值的 80%（换皮肤就偷偷改训练强度）。这里把 0.8 折进
+          容器尺寸（192*0.8/420≈37%、224*0.8/420≈43%）并改用 cqmin 随画布等比，
+          祖先链上的 scale 归一为 1，E 从此严格等于 毫米设定 × 屏幕标定。 */}
       {phase === 'showing' && target && !hit && (
         <div
           style={{
             position: 'absolute',
             top: '36%',
             left: '50%',
-            width: 192,
-            height: 224,
-            transform: 'translate(-50%,-50%) scale(0.8)',
+            width: '37cqmin',
+            height: '43cqmin',
+            transform: 'translate(-50%,-50%)',
             animation: miss ? 'fzpShakeG 0.35s' : 'fzpFloat 2.6s ease-in-out infinite',
             filter: isEgg ? 'drop-shadow(0 0 14px gold)' : 'drop-shadow(0 0 10px rgba(255,120,40,0.5))',
           }}
         >
           {guardian.kind === 'sprite' ? (
-            <div style={{ position: 'absolute', inset: 0, backgroundImage: `url(${guardian.src})`, backgroundRepeat: 'no-repeat', animation: `fzpGuardian 0.9s steps(${guardian.frames}) infinite` }} />
+            <div
+              style={{
+                ...spriteVars,
+                position: 'absolute',
+                inset: 0,
+                backgroundImage: `url(${guardian.src})`,
+                backgroundRepeat: 'no-repeat',
+                backgroundSize: 'calc(var(--fzp-g-frames) * 37cqmin) 43cqmin',
+                animation: `fzpGuardian 0.9s steps(${guardian.frames}) infinite`,
+              }}
+            />
           ) : (
             <img src={guardian.src} alt="" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'contain', imageRendering: 'pixelated' }} />
           )}
           {/* 怪兽名牌，强化"每题变形"的代入感 */}
-          <div style={{ position: 'absolute', top: -28, left: '50%', transform: 'translateX(-50%)', fontSize: 11, letterSpacing: 1, color: '#ffd9a0', whiteSpace: 'nowrap', textShadow: '0 0 4px #000' }}>{t(`shrine.guardian.${guardian.name}`)}</div>
-          {/* 符文 E：深色圆底保证对比（铁律一：看清优先） */}
+          <div style={{ position: 'absolute', top: '-6.7cqmin', left: '50%', transform: 'translateX(-50%)', fontSize: 'max(9px, 2.6cqmin)', letterSpacing: 1, color: '#ffd9a0', whiteSpace: 'nowrap', textShadow: '0 0 4px #000' }}>{t(`shrine.guardian.${guardian.name}`)}</div>
+          {/* 符文 E：深色圆底保证对比（铁律一：看清优先）。padding 跟着 heightPx 走，
+              绝不能换成 cqmin —— 圆底必须与视标同比例，而不是与画布同比例。 */}
           <div style={{ position: 'absolute', top: '52%', left: '50%', transform: 'translate(-50%,-50%)', background: 'rgba(0,0,0,0.6)', borderRadius: '50%', padding: Math.max(6, heightPx * 0.4), display: 'flex' }}>
             <span style={{ color: '#ffffff' }}>
               <TumblingE direction={target} heightPx={heightPx} />
             </span>
           </div>
-          {isEgg && <div style={{ position: 'absolute', top: -12, left: '50%', transform: 'translateX(-50%)', fontSize: 20 }}>✨</div>}
+          {isEgg && <div style={{ position: 'absolute', top: '-2.9cqmin', left: '50%', transform: 'translateX(-50%)', fontSize: 'max(14px, 4.8cqmin)' }}>✨</div>}
         </div>
       )}
 
       {/* 翻拍：符文重组 */}
       {transitioning && !hit && (
-        <div style={{ position: 'absolute', top: '36%', left: '50%', transform: 'translate(-50%,-50%)', color: '#8fe8c8', fontSize: 16, textShadow: '0 0 8px #031', zIndex: 3 }}>
+        <div style={{ position: 'absolute', top: '36%', left: '50%', transform: 'translate(-50%,-50%)', color: '#8fe8c8', fontSize: 'max(12px, 3.8cqmin)', textShadow: '0 0 8px #031', zIndex: 3 }}>
           {t('shrine.reforging')}
         </div>
       )}
 
       {/* 答对：剑气光波 + 守护者爆散白闪 + 精灵飞出 */}
       {hit && (
-        <div key={`w${fx!.key}`} style={{ position: 'absolute', bottom: '18%', left: '24%', width: '52%', height: 5, background: 'linear-gradient(90deg, #fff, #7dffd4)', transform: 'rotate(-38deg)', transformOrigin: 'left bottom', animation: 'fzpSlash 0.3s ease-out', borderRadius: 3, boxShadow: '0 0 10px #7dffd4', zIndex: 3 }} />
+        <div key={`w${fx!.key}`} style={{ position: 'absolute', bottom: '18%', left: '24%', width: '52%', height: 'max(3px, 1.2cqmin)', background: 'linear-gradient(90deg, #fff, #7dffd4)', transform: 'rotate(-38deg)', transformOrigin: 'left bottom', animation: 'fzpSlash 0.3s ease-out', borderRadius: 3, boxShadow: '0 0 10px #7dffd4', zIndex: 3 }} />
       )}
       {hit && (
-        <div key={`x${fx!.key}`} style={{ position: 'absolute', top: '36%', left: '50%', width: 190, height: 190, transform: 'translate(-50%,-50%)', borderRadius: '50%', background: 'radial-gradient(circle, rgba(200,255,235,0.95), transparent 60%)', animation: 'fzpFade 0.45s 0.15s ease-out forwards', opacity: 0, zIndex: 2 }} />
+        <div key={`x${fx!.key}`} style={{ position: 'absolute', top: '36%', left: '50%', width: '45cqmin', height: '45cqmin', transform: 'translate(-50%,-50%)', borderRadius: '50%', background: 'radial-gradient(circle, rgba(200,255,235,0.95), transparent 60%)', animation: 'fzpFade 0.45s 0.15s ease-out forwards', opacity: 0, zIndex: 2 }} />
       )}
       {hit && (
-        <div key={`s${fx!.key}`} style={{ position: 'absolute', top: '36%', left: '50%', transform: 'translate(-50%,-50%)', fontSize: 28, animation: 'fzpSpirit 0.9s 0.2s ease-out forwards', opacity: 0, zIndex: 4 }}>
+        <div key={`s${fx!.key}`} style={{ position: 'absolute', top: '36%', left: '50%', transform: 'translate(-50%,-50%)', fontSize: 'max(16px, 6.7cqmin)', animation: 'fzpSpirit 0.9s 0.2s ease-out forwards', opacity: 0, zIndex: 4 }}>
           ✨
         </div>
       )}
 
-      {/* 勇者：idle 循环；答对时播攻击动画 */}
+      {/* 勇者：idle 循环；答对时播攻击动画。两条 strip 的帧宽 = 盒宽，故 background-size 也走 cqmin */}
       <div
         style={{
           position: 'absolute',
           bottom: '4%',
           left: hit ? '30%' : '22%',
-          width: hit ? 192 : 76,
-          height: 96,
+          width: hit ? '46cqmin' : '18cqmin',
+          height: '23cqmin',
           transition: 'left 0.15s',
           backgroundImage: hit ? `url(${HERO.attack})` : `url(${HERO.idle})`,
           backgroundRepeat: 'no-repeat',
+          backgroundSize: hit ? 'calc(6 * 46cqmin) 23cqmin' : 'calc(4 * 18cqmin) 23cqmin',
           animation: hit ? 'fzpHeroAtk 0.5s steps(6) forwards' : 'fzpHeroIdle 0.8s steps(4) infinite',
           zIndex: 3,
         }}
       />
 
       <style>{`
-        @keyframes fzpGuardian { from { background-position: 0 0 } to { background-position: -1536px 0 } }
-        @keyframes fzpHeroIdle { from { background-position: 0 0 } to { background-position: -304px 0 } }
-        @keyframes fzpHeroAtk { from { background-position: 0 0 } to { background-position: -1152px 0 } }
-        @keyframes fzpFloat { 0%,100% { transform: translate(-50%,-50%) scale(0.8) } 50% { transform: translate(-50%,-56%) scale(0.8) } }
-        @keyframes fzpShakeG { 25% { transform: translate(-56%,-50%) scale(0.8) } 75% { transform: translate(-44%,-50%) scale(0.8) } }
+        @keyframes fzpGuardian { from { background-position-x: 0 } to { background-position-x: calc(var(--fzp-g-frames) * -37cqmin) } }
+        @keyframes fzpHeroIdle { from { background-position-x: 0 } to { background-position-x: calc(4 * -18cqmin) } }
+        @keyframes fzpHeroAtk { from { background-position-x: 0 } to { background-position-x: calc(6 * -46cqmin) } }
+        @keyframes fzpFloat { 0%,100% { transform: translate(-50%,-50%) } 50% { transform: translate(-50%,-56%) } }
+        @keyframes fzpShakeG { 25% { transform: translate(-56%,-50%) } 75% { transform: translate(-44%,-50%) } }
         @keyframes fzpSlash { 0% { opacity: 0; width: 0 } 30% { opacity: 1 } 100% { opacity: 0; width: 52% } }
         @keyframes fzpSpirit { 0% { opacity: 0 } 25% { opacity: 1 } 100% { opacity: 0; transform: translate(-50%,-190%) scale(1.3) } }
         @keyframes fzpFade { from { opacity: 1 } to { opacity: 0 } }
