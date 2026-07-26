@@ -1,6 +1,6 @@
-export interface VoskController {
-  stop: () => void
-}
+import { makeVoskStarter, type VoskController } from './vosk-single'
+
+export type { VoskController }
 
 export interface StartVoskOpts {
   modelUrl: string
@@ -43,8 +43,13 @@ async function resolveModelUrl(modelUrl: string): Promise<{ url: string; revoke:
  * 加载 vosk 模型、打开麦克风、流式识别。
  * grammar 限定识别词表（大幅提升受限词准确率）；每出一个最终结果回调 onResult。
  * 返回的 stop() 释放麦克风与音频资源。
+ *
+ * ⚠️ 不要直接导出这个函数——它必须经 `makeVoskStarter` 单例化后才能对外用。
+ * 并发调用会同时加载两份 42MB 模型（各需 fetch 3×20MB 分片 + 60MB Blob + worker 解压），
+ * iPad 上的 PWA 会被 Safari 因内存压力直接终止（表现为纯白屏退回主屏，无任何报错页）。
+ * 详见 vosk-single.ts 的注释与 vosk-single.test.ts 的锚定用例。
  */
-export async function startVosk(opts: StartVoskOpts): Promise<VoskController> {
+async function startVoskUncached(opts: StartVoskOpts): Promise<VoskController> {
   // 动态 import：vosk-browser（含 wasm）只在真正开始训练时才加载，不拖累首屏
   const { createModel } = await import('vosk-browser')
   const { url: resolvedModelUrl, revoke } = await resolveModelUrl(opts.modelUrl)
@@ -111,3 +116,10 @@ export async function startVosk(opts: StartVoskOpts): Promise<VoskController> {
     },
   }
 }
+
+/**
+ * 对外的启动入口：**已单例化**。并发或重复调用只会加载一份模型，最后一次传入的
+ * onResult 生效（换眼后 handleAnswer 闭包会变，必须转发到最新的那个）。
+ * 加载失败允许重试；stop() 后可重新启动。
+ */
+export const startVosk = makeVoskStarter<StartVoskOpts>(startVoskUncached)

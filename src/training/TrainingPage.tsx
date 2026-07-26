@@ -81,12 +81,15 @@ export function TrainingPage() {
   const sumReactionRef = useRef(0)
   const reactionCountRef = useRef(0)
   const pausedRef = useRef(false)
+  // beginSession 是普通函数，闭包里的 voskStatus 可能是旧值，用 ref 读当下真值
+  const voskStatusRef = useRef<'idle' | 'loading' | 'ready' | 'failed'>('idle')
   const handleAnswerRef = useRef<(d: Direction) => void>(() => {})
 
   useEffect(() => { sessionRef.current = session }, [session])
   useEffect(() => { setMuted(muted) }, [muted])
 
   useEffect(() => { pausedRef.current = paused }, [paused])
+  useEffect(() => { voskStatusRef.current = voskStatus }, [voskStatus])
 
   // “随机皮肤”：本节只解析一次（挑一个已解锁的游戏皮肤），需等累计分加载完
   useEffect(() => {
@@ -224,6 +227,10 @@ export function TrainingPage() {
       setVoskStatus('ready')
       return
     }
+    // 加载中就别再发起了：voskRef 只在加载**成功后**才有值，光看它挡不住"模型还在下
+    // 就换眼"这个窗口。startVosk 本身已单例化（见 speech/vosk-single.ts，那才是根治），
+    // 这里是第二道：避免把 voskStatus 又打回 'loading' 让提示文案来回跳。
+    if (voskStatusRef.current === 'loading') return
     setVoskStatus('loading')
     startVosk({
       modelUrl: VOSK_MODEL_URL,
