@@ -179,3 +179,121 @@ npx wrangler d1 execute focal-quest-db --remote --command "SELECT kind, COUNT(*)
 | `network` | 断网 / 5xx / 429 / 异常 | 自动退避重试，无需干预 |
 | `unauthorized` | token 失效（改过密码 / 云端被清库） | **排程已停**，需在设置页重新登录 |
 | `rejected` | 有记录被服务端永久拒收，已隔离出队 | 云同步卡会显式提示；反复出现要查 payload 体量与设备时钟 |
+
+## 管理后台（迭代 3e）
+
+`GET /api/admin/stats` + PWA 内的懒加载管理页。入口在**设置 → 云同步分组**，
+**只有 `users.is_admin = 1` 的账号能看到**；端点自己也校验（没登录 401，登录了但不是管理员 403）。
+
+### 把自己设成管理员（不做提权 UI）
+
+刻意没有"提升为管理员"的界面：自用后台，提权入口是纯粹的攻击面——一个页面 + 一个端点，
+只为了一辈子按一次的操作。线上执行一次这条 SQL 即可：
+
+```bash
+npx wrangler d1 execute focal-quest-db --remote --command "UPDATE users SET is_admin = 1 WHERE email = 'your-parent-email@example.com'"
+npx wrangler d1 execute focal-quest-db --remote --command "SELECT email, is_admin FROM users WHERE is_admin = 1"
+```
+
+⚠️ **改完要在 App 里退出登录再重新登录一次。** 服务端每次请求都现读 `users.is_admin`，
+所以接口立刻生效；但客户端那份 `isAdmin` 是**登录响应写进 `syncMeta` 的快照**，
+不重新登录设置页里永远看不到入口。（一期刻意不做 token 刷新。）
+
+本地开发要跑管理员路径，用种子脚本（**必须在 `wrangler pages dev` 没在跑的时候**，
+它持着本地 D1 的文件锁）：
+
+```bash
+npm run db:seed:admin     # 种入 admin-seed@example.com / is_admin=1，供 npm run test:api
+```
+
+注意种子账号的 `authKey` 是脚本硬写的 64 位 hex，**真实登录界面派生不出同一个值**——
+它只给 `scripts/test-api.mjs` 用。想在浏览器里看管理页，就用上面那条 `UPDATE ... --local`
+把自己注册的本地账号设成管理员。
+
+### 后台展示什么
+
+| 区块 | 口径 |
+|---|---|
+| 注册账号 | `COUNT(*) FROM users` |
+| 云端记录 | 各 `kind` 计数之和（**刻意不再单独 `COUNT(*) FROM records`**，省一整遍全表扫，见下方配额说明） |
+| 活跃设备·30天 | `COUNT(*) FROM tokens WHERE last_seen_at >= 30 天前`。**不是 `COUNT(*)`**：`tokens` 行从不删除（退出登录只清本地 `syncMeta`，服务端没有任何 `DELETE FROM tokens`，365 天 TTL 也只在 `requireUser` 里判），累计数是"签发过多少令牌"、会一路涨 |
+| 日活 / 周活 / 月活 | 近 1 / 7 / 30 个**东八区日**内有 `kind='session'` 记录的**去重用户**，按 `updated_at` |
+| 打开过 App | `tokens.last_seen_at` 的去重用户（辅口径，"打开过"≠"练了"） |
+| 每日训练节数 | 近 30 天按 `updated_at` 分日（东八区）的 `kind='session'` 条数 |
+| 各类记录量 | `records` 按 `kind` 分组，7 类固定顺序、缺的补 0；括号里是近 7 天新增（增速） |
+| 最近注册 | `users` 按 `created_at` 倒序 20 条，邀请人 email 靠 `LEFT JOIN users p ON p.id = u.invited_by` |
+| 邀请排行 | 按 `invited_by` 聚合的邀请数与配额，同邀请数按邀请人注册时间倒序 |
+| 滥用与请求计数 | `counters` 近 30 天按 metric 汇总，**排除 `rl.%`** |
+
+**分日键用的是 `records.updated_at`（客户端写下记录的时刻，即"练的时候"），不是 `received_at`。**
+`updated_at` 是一**列**（客户端 `Date.now()`，超前的未来值在入队时已被 `clampUpdatedAt` 钳掉），
+读列不违反"服务端不解析 payload"那条铁律。不用 `received_at` 有两个硬理由：
+
+- 离线几天再联网，那几天的训练会全部堆到**补传当天**，曲线与 DAU 整体失真；
+- `functions/api/sync/push.ts` 的 `ON CONFLICT` 里写着 `received_at = excluded.received_at`，
+  任何一次 LWW 覆盖（checkins 重算后回推、恢复备份后 `updatedAt` 被抬高）都会把该行的
+  `received_at` 前移，于是**历史那根柱子会回溯变矮**，后台数字不可复现。
+
+`received_at` 仍然有用，但只用在下面的排障 SQL 里（"什么时候同步到的"）。
+
+**剩下的偏差**（后台底部也写着）：①分日从此依赖设备时钟——"时钟快"已被钳制，"时钟慢"会把训练
+记到更早的日子；②日界按**北京时间**（`strftime(..., '+8 hours')`），不按 UTC，因为 UTC 的日界
+等于北京时间早上 8 点，会把清晨的训练算到前一天、也不算进当天 DAU；作为代价，滥用计数那个
+30 天窗口的边界与 `counters.date`（UTC）错开最多一天，30 天窗口最远端差一天无信息损失。
+真要精确按训练日看，用前端「统计」页——那是从本地 `sessions` 算的。
+
+**为什么只有手动「刷新」、没有自动轮询**：这不只是 UX 取舍，主要是 **D1 免费层 500 万行读/日**
+的配额保护。一次刷新要扫 `records` 三遍（`GROUP BY kind` 全表 + 两条 `kind='session'` 分区扫）；
+push 端点允许单账号 10 万行（`MAX_TOTAL_RECORDS`），到那个量级一次刷新就是十几万行读。
+而这份配额**与云同步共用同一个 D1**——耗尽了不是"后台看不了"，而是"训练数据同步不上"。
+所以：8 条查询打成一次 `env.DB.batch()`、`云端记录` 由 kind 分组求和、永不自动刷新。
+（另注：改用 `updated_at` 后 `idx_records_kind(kind, received_at)` 只吃到 `kind` 前缀，
+家庭量级无所谓，这里记一笔以免将来困惑。）
+
+`rl.%` 前缀的行**不会出现在界面上**：它们是固定窗口限速的内部计数桶，
+metric 里编着 IP 与邮箱（`rl.login.<email>.<ip>.<窗口号>`）。要看只能在 D1 Console 里手查。
+
+### 即席查询不做 UI——直接跑 SQL
+
+复杂或一次性的问题不值得为它做界面，也没必要开放"任意 SQL"的 API 攻击面。
+去 Cloudflare 控制台 → D1 → `focal-quest-db` → Console，或用 `wrangler d1 execute ... --remote --command`。
+常用几条：
+
+```sql
+-- 某账号云端各 kind 条数
+SELECT kind, COUNT(*) AS n FROM records
+ WHERE user_id = (SELECT id FROM users WHERE email = 'x@y.com') GROUP BY kind;
+
+-- 谁的记录最多（排查异常写入 / 配额告警）
+SELECT u.email, COUNT(*) AS n FROM records r JOIN users u ON u.id = r.user_id
+ GROUP BY u.email ORDER BY n DESC;
+
+-- 邀请树（谁邀请了谁、什么时候）
+SELECT p.email AS inviter, c.email AS invitee, datetime(c.created_at / 1000, 'unixepoch') AS at
+  FROM users c LEFT JOIN users p ON p.id = c.invited_by ORDER BY c.created_at DESC;
+
+-- 限速桶（含 IP 与邮箱，界面刻意不展示）
+SELECT date, metric, value FROM counters WHERE metric LIKE 'rl.%' ORDER BY value DESC LIMIT 20;
+
+-- 封停某人的邀请码：配额改 0
+UPDATE users SET invite_quota = 0 WHERE email = 'x@y.com';
+
+-- 某账号最近同步了什么（只看元数据，不看 payload）。这里 received_at 用得其所：
+-- 它回答的正是"什么时候**同步到**的"；要看"什么时候**练**的"请用 updated_at（下一条）
+SELECT kind, datetime(received_at / 1000, 'unixepoch') AS at, seq FROM records
+ WHERE user_id = (SELECT id FROM users WHERE email = 'x@y.com') ORDER BY seq DESC LIMIT 20;
+
+-- 某账号按**训练日**（东八区）的节数，与后台曲线同口径
+SELECT strftime('%Y-%m-%d', updated_at / 1000, 'unixepoch', '+8 hours') AS day, COUNT(*) AS n
+  FROM records
+ WHERE kind = 'session' AND user_id = (SELECT id FROM users WHERE email = 'x@y.com')
+ GROUP BY day ORDER BY day DESC LIMIT 30;
+```
+
+### 明确不做
+
+- **不加匿名遥测**：统计只覆盖注册并同步的账号。给儿童应用加遥测的隐私与合规成本不值，
+  而家庭规模下装机量 ≈ 注册量，多花的代价换不到信息。
+- **不做即席查询 UI**（见上）。
+- **不做多档案维度**：3c 已决定不实施，`profile_id` 恒为 `'default'`。
+- **不做提权 / 封号 / 删号 UI**：一律 SQL。
