@@ -39,45 +39,53 @@ export function App() {
   // 返回 startSync 的清理函数：StrictMode 下 effect 会跑两次，否则 online 监听会叠加。
   useEffect(() => startSync(), [])
   return (
-    <div>
+    <div className="fq-app">
       {showOnboard && (
         <Onboarding onDone={() => { lsSet('fzp.onboarded', '1'); setShowOnboard(false) }} />
       )}
       <nav className="fq-nav">
         {NAV.map((n) => (
-          <button key={n.key} className={view === n.key ? 'on' : ''} onClick={() => { setBadgeTab('badges'); setView(n.key) }}>
+          <button
+            key={n.key}
+            className={view === n.key ? 'on' : ''}
+            aria-label={t(`nav.${n.key}`)}
+            onClick={() => { setBadgeTab('badges'); setView(n.key) }}
+          >
             <span aria-hidden style={{ position: 'relative' }}>
               {n.icon}
               {n.key === 'settings' && pendingCount > 0 && (
                 <span style={{ position: 'absolute', top: -2, right: -6, width: 8, height: 8, borderRadius: '50%', background: '#ff4d4f' }} />
               )}
             </span>
-            {t(`nav.${n.key}`)}
+            {/* 手机窄屏隐藏文案只留图标（aria-label 兜住无障碍），导航才不折行 */}
+            <span className="fq-nav-label">{t(`nav.${n.key}`)}</span>
           </button>
         ))}
       </nav>
-      {view === 'home' && (
-        <HomePage
-          onStart={() => setView('train')}
-          onOpenDex={() => { setBadgeTab('dex'); setView('badges') }}
-          onOpenRewards={() => setView('rewards')}
-        />
-      )}
-      {view === 'train' && <TrainingPage />}
-      {view === 'stats' && <StatsPage />}
-      {view === 'badges' && <BadgeWall initialTab={badgeTab} />}
-      {view === 'calib' && <CalibrationPage />}
-      {view === 'speech' && <SpeechTestPage />}
-      {view === 'rewards' && <RewardsPage />}
-      {view === 'privacy' && <PrivacyPage onBack={() => setView('settings')} />}
-      {view === 'settings' && (
-        <SettingsPage
-          onReplayGuide={() => setShowOnboard(true)}
-          onOpenSpeech={() => setView('speech')}
-          onOpenCalib={() => setView('calib')}
-          onOpenPrivacy={() => setView('privacy')}
-        />
-      )}
+      <main className="fq-app-main">
+        {view === 'home' && (
+          <HomePage
+            onStart={() => setView('train')}
+            onOpenDex={() => { setBadgeTab('dex'); setView('badges') }}
+            onOpenRewards={() => setView('rewards')}
+          />
+        )}
+        {view === 'train' && <TrainingPage />}
+        {view === 'stats' && <StatsPage />}
+        {view === 'badges' && <BadgeWall initialTab={badgeTab} />}
+        {view === 'calib' && <CalibrationPage />}
+        {view === 'speech' && <SpeechTestPage />}
+        {view === 'rewards' && <RewardsPage />}
+        {view === 'privacy' && <PrivacyPage onBack={() => setView('settings')} />}
+        {view === 'settings' && (
+          <SettingsPage
+            onReplayGuide={() => setShowOnboard(true)}
+            onOpenSpeech={() => setView('speech')}
+            onOpenCalib={() => setView('calib')}
+            onOpenPrivacy={() => setView('privacy')}
+          />
+        )}
+      </main>
     </div>
   )
 }

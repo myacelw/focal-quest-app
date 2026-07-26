@@ -53,6 +53,9 @@ export default defineConfig(({ mode }) => {
           background_color: '#faf7ff',
           display: 'standalone',
           start_url: '.',
+          // 刻意不锁方向：iPad 横竖屏与手机竖屏都要能用（iOS standalone 本就不吃这个字段，
+          // 写出来是为了让后来人知道"没锁"是决定，不是遗漏）
+          orientation: 'any',
           icons: [
             { src: 'icon-192.png', sizes: '192x192', type: 'image/png' },
             { src: 'icon-512.png', sizes: '512x512', type: 'image/png' },

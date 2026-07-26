@@ -30,6 +30,23 @@ body {
 }
 h1, h2, h3, h4, p { margin: 0; }
 
+/* ---------- 应用外壳：一列 flex，导航固定 + 内容区自己滚 ---------- */
+/* 干掉全站三处写死的导航高度魔法数（100vh 减 57px）：内容区高度交给 flex 算，导航折不折行都对。
+   100dvh 让移动 Safari 地址栏收放时不再抖（旧内核回退到前一条 100%）。 */
+.fq-app {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  height: 100dvh;
+}
+.fq-app-main {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior-y: contain;
+  -webkit-overflow-scrolling: touch;
+}
+
 /* 通用卡片 */
 .fq-card {
   background: var(--card);
@@ -71,10 +88,11 @@ h1, h2, h3, h4, p { margin: 0; }
 .fq-bar { height: 9px; border-radius: 999px; background: var(--line); overflow: hidden; }
 .fq-bar > i { display: block; height: 100%; background: linear-gradient(90deg, var(--lemon), var(--coral)); border-radius: 999px; }
 
-/* 顶部导航 */
+/* 顶部导航（在滚动容器之外，故不再需要 sticky） */
 .fq-nav {
-  position: sticky; top: 0; z-index: 20;
-  display: flex; gap: 6px; padding: 10px 12px; flex-wrap: wrap;
+  position: relative; z-index: 20; flex: 0 0 auto;
+  display: flex; gap: 6px; flex-wrap: wrap;
+  padding: max(10px, env(safe-area-inset-top, 0px)) max(12px, env(safe-area-inset-right, 0px)) 10px max(12px, env(safe-area-inset-left, 0px));
   background: rgba(255, 255, 255, 0.88);
   backdrop-filter: blur(10px);
   border-bottom: 1px solid var(--line);
@@ -160,7 +178,7 @@ h1, h2, h3, h4, p { margin: 0; }
 @keyframes fzpDexToast { 0% { opacity: 0; transform: translateY(-6px); } 20% { opacity: 1; transform: translateY(0); } 80% { opacity: 1; } 100% { opacity: 0; transform: translateY(-6px); } }
 
 /* ---------- 首页专属：氛围光斑 + 开始按钮呼吸光晕 ---------- */
-.fq-home { position: relative; overflow: hidden; min-height: calc(100vh - 57px); }
+.fq-home { position: relative; overflow: hidden; min-height: 100%; }
 .fq-home-blobs {
   position: absolute; inset: 0; z-index: 0; pointer-events: none;
   background:
@@ -172,6 +190,71 @@ h1, h2, h3, h4, p { margin: 0; }
 /* 开始按钮身后的呼吸光晕，把孩子的注意力吸到主行动上 */
 @keyframes fqBreathe { 0%, 100% { opacity: 0.4; transform: scale(0.97); } 50% { opacity: 0.72; transform: scale(1.03); } }
 .fq-startglow { animation: fqBreathe 2.8s ease-in-out infinite; }
+
+/* ---------- 训练页三段布局（顶栏 / 舞台 / 答题带） ---------- */
+/* 高度由 .fq-app-main 给定，故用 100%，不再算 100vh 减导航 */
+.fzp-train { position: relative; display: flex; flex-direction: column; height: 100%; overflow: hidden; }
+.fzp-train-top { flex: 0 0 auto; display: flex; align-items: center; gap: 10px; padding: 12px 16px; }
+/* 舞台是尺寸容器：画布用 100cqh 拿到"还剩多少高"，纯 CSS 无需 JS 测量 */
+.fzp-stage {
+  flex: 1 1 auto; min-height: 0; position: relative;
+  display: flex; align-items: center; justify-content: center; padding: 8px 0;
+  container-type: size;
+}
+.fzp-answer {
+  flex: 0 0 auto; display: grid; grid-template-columns: 1fr auto 1fr;
+  align-items: center; gap: 8px;
+  padding: 4px 14px calc(18px + env(safe-area-inset-bottom, 0px));
+}
+.fzp-voice-hint { color: var(--muted); font-size: 12px; font-weight: 600; text-align: right; line-height: 1.4; }
+
+/* ---------- 皮肤舞台画布：正方形，且永不超出舞台剩余高度 ---------- */
+/* 视标 E 仍是 mm×标定的绝对像素，只有"承载它的装饰"跟着画布等比（cqmin）。
+   禁止给画布或其祖先加 transform: scale —— 那会改变视标物理尺寸（医学参数）。 */
+.fzp-skin-canvas {
+  position: relative;
+  width: min(100%, 420px, 100cqh);
+  aspect-ratio: 1 / 1;
+  margin: 0 auto;
+  border-radius: 16px;
+  overflow: hidden;
+  container-type: size;
+}
+
+/* 屏幕太矮（低于 layout-budget 的 MIN_STAGE_PX 预算）：明确提示，绝不缩视标 */
+.fzp-tiny-warn { display: none; }
+@media (max-height: 359px) {
+  .fzp-tiny-warn {
+    display: block; position: absolute; top: 4px; left: 50%; transform: translateX(-50%);
+    z-index: 8; max-width: 92%; text-align: center;
+    font-size: 12px; font-weight: 700; color: #fff; line-height: 1.35;
+    background: rgba(199, 60, 60, 0.92); padding: 5px 12px; border-radius: 12px;
+  }
+}
+
+/* ---------- 手机窄屏（≤560px）：导航只留图标，腾出高度给训练 ---------- */
+/* 560 的由来见 src/layout/layout-budget.ts：5 项文字导航单行需 461px(中文)/531px(英文)，
+   低于此必折行；折行让导航从 57px 变 99px，正是"↓ 按钮掉出首屏"的根因。 */
+@media (max-width: 560px) {
+  .fq-nav { flex-wrap: nowrap; justify-content: space-around; gap: 2px; }
+  .fq-nav button { font-size: 22px; padding: 7px 10px; gap: 0; }
+  .fq-nav-label { display: none; }
+  .fq-page { padding: 16px 14px 32px; }
+  /* 手机竖屏：方向盘放大到 240（拇指可达），间距 7→10px 降误触 */
+  .fq-dpad { width: min(240px, 66vw, 30dvh); gap: 10px; }
+  .fq-dpad-btn { font-size: 32px; border-radius: 18px; }
+  /* 语音提示改为方向盘上方整行居中：窄屏挤成多行会顶掉方向盘 */
+  .fzp-answer { grid-template-columns: 1fr; justify-items: center; gap: 4px; padding: 2px 10px calc(14px + env(safe-area-inset-bottom, 0px)); }
+  .fzp-voice-hint { text-align: center; }
+  .fzp-answer-spacer { display: none; }
+}
+
+/* ---------- 矮屏（手机横屏 / 分屏）：方向盘按高度收缩，保证三段都在首屏 ---------- */
+/* 刻意写在手机块之后：两者同时命中时以高度为准（layout-budget 的 layoutMode 同序） */
+@media (max-height: 560px) {
+  .fq-dpad { width: min(210px, 58vw, 34dvh); gap: 6px; }
+  .fq-dpad-btn { font-size: 24px; }
+}
 
 @media (prefers-reduced-motion: reduce) {
   .fq-rise, .fq-float, .fq-startglow { animation: none; }

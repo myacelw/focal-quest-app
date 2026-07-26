@@ -2,9 +2,11 @@
 <html lang="zh-CN">
   <head>
     <meta charset="UTF-8" />
+    <!-- viewport-fit=cover：让内容延伸到刘海/Home 指示条区域，配合 env(safe-area-inset-*) 自己留白。
+         maximum-scale / user-scalable=no 刻意保留：双指缩放会整体放大"银行卡对齐"，直接毁掉物理标定。 -->
     <meta
       name="viewport"
-      content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"
+      content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover"
     />
     <title>变焦大冒险 · FocalQuest</title>
     <!-- iOS「添加到主屏幕」：图标 + 全屏 standalone -->

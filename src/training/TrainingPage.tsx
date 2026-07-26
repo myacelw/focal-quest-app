@@ -358,7 +358,7 @@ export function TrainingPage() {
           margin: '0 auto',
           padding: '40px 20px',
           textAlign: 'center',
-          minHeight: 'calc(100vh - 57px)',
+          minHeight: '100%',
           display: 'flex',
           flexDirection: 'column',
           justifyContent: 'center',
@@ -420,7 +420,7 @@ export function TrainingPage() {
   const mmss = `${Math.floor(remainSec / 60)}:${String(remainSec % 60).padStart(2, '0')}`
 
   return (
-    <div style={{ position: 'relative', display: 'flex', flexDirection: 'column', minHeight: 'calc(100vh - 57px)' }}>
+    <div style={{ position: 'relative', display: 'flex', flexDirection: 'column', minHeight: '100%' }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '12px 16px' }}>
         <span className="fq-chip">{eyeLabel}</span>
         <div className="fq-bar" style={{ flex: 1 }}>

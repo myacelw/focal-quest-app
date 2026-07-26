@@ -21,6 +21,10 @@ export default defineConfig({
   test: {
     // 与既有测试保持一致：node 环境、不开 globals（每个测试文件显式 import vitest）
     environment: 'node',
+    // CSS 契约测试（src/layout/css-contract.test.ts）要拿 index.css 的原文核对断点数字。
+    // vitest 默认把 .css 请求整个打成空串（连 ?raw 也拦），故这里显式打开；
+    // 目前只有那一个测试碰 CSS，对其余测试无影响。
+    css: true,
     globals: false,
     setupFiles: ['./src/test-setup.ts'],
     // 显式列出两处测试根目录，避免将来把 dist/ 或 scripts/ 里的文件误当测试收进来
