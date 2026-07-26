@@ -36,6 +36,8 @@ curl -s "https://cloudflare-dns.com/dns-query?name=fq.myacelw.top&type=A" -H "ac
 ```
 **更要紧的是：本机测得"能访问"不代表国内能访问**（本机流量过代理）。国内可达性只能在**关掉代理**的真机上用家宽/蜂窝实测，这一步无法由 agent 代劳。
 
+> ✅ **已实测**：2026-07-26 用户在国内 iPad 真机上访问 https://fq.myacelw.top 正常。所以这套「域名在腾讯云注册 + NS 迁 Cloudflare + Pages 绑自定义域名」的**免备案方案在国内确实可用**，不必退回备案路线。
+
 **② D1 的 binding 名不要照抄 `wrangler d1 create` 的输出。** 它会建议 `binding = "focal_quest_db"`，但 binding 名是自己定的、代码全部按 `env.DB` 取库（见 `functions/lib/db.ts` 的 `Env`）。照抄会让所有接口拿到 `undefined` 而在运行时崩，本地 `--local` 未必暴露。
 
 **为什么坚持 Pages 而不是 Worker**：整套后端按 Pages Functions 的**文件路由**组织（`functions/api/auth/login.ts` → `/api/auth/login`）。Worker 要用单入口 + 自己分发路由 + `assets` 配置托管静态文件，等于重写这一层。Pages 虽已进入维护模式，但本项目的用量与形态完全够用。
