@@ -45,11 +45,14 @@ export function SettingsPage({ onReplayGuide, onOpenSpeech, onOpenCalib, onOpenP
   // 管理后台入口：**只有 is_admin 账号才渲染**，其余人连这张卡都看不见。
   // 注意这份 isAdmin 是登录响应写进 syncMeta 的快照——在 D1 里改完 is_admin 要重新登录一次才生效。
   const [isAdmin, setIsAdmin] = useState(false)
+  // 账号变动计数：云同步卡就嵌在本页，页内登录不会让本组件重新挂载，
+  // 靠它把 isAdmin 重读一次，否则管理入口要切走再回来才出现。
+  const [accountRev, setAccountRev] = useState(0)
 
   useEffect(() => {
     void getHomeStats(toDateStr(new Date())).then((s) => setTotalPoints(s.totalPoints))
   }, [])
-  useEffect(() => { void getAccount().then((a) => setIsAdmin(a?.isAdmin === true)) }, [])
+  useEffect(() => { void getAccount().then((a) => setIsAdmin(a?.isAdmin === true)) }, [accountRev])
   useEffect(() => { lsSet('fzp.optotypeSizeMm', String(sizeMm)) }, [sizeMm])
   useEffect(() => { lsSet('fzp.durationSec', String(durationSec)) }, [durationSec])
   useEffect(() => { lsSet('fzp.flipperD', String(flipperD)) }, [flipperD])
@@ -189,7 +192,7 @@ export function SettingsPage({ onReplayGuide, onOpenSpeech, onOpenCalib, onOpenP
 
       <SectionHeader>{t('settings.group.cloud')}</SectionHeader>
       <Collapsible title={t('sync.title')}>
-        <CloudSyncCard onOpenPrivacy={onOpenPrivacy} />
+        <CloudSyncCard onOpenPrivacy={onOpenPrivacy} onAccountChange={() => setAccountRev((n) => n + 1)} />
       </Collapsible>
 
       {isAdmin && (

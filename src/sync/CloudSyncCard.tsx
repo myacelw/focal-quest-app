@@ -17,7 +17,15 @@ const FIELD: CSSProperties = { padding: '8px 10px', borderRadius: 10, border: '1
  *  - 已登录 → 账号、专属邀请码（可复制）、待上传条数、上次同步时间、手动同步、退出登录。
  * 红线：**不注册也能正常使用**，本卡片的任何失败都不影响训练。
  */
-export function CloudSyncCard({ onOpenPrivacy }: { onOpenPrivacy: () => void }) {
+export function CloudSyncCard({ onOpenPrivacy, onAccountChange }: {
+  onOpenPrivacy: () => void
+  /**
+   * 登录/注册/退出后回调。设置页据此重读 isAdmin 决定要不要显示管理后台入口——
+   * 它自己那个 effect 依赖是 []，只在挂载时读一次，而本卡片就嵌在同一页里，
+   * 在页内登录不会让设置页重新挂载，入口会一直不出现（要切走再回来才行）。
+   */
+  onAccountChange?: () => void
+}) {
   const t = useT()
   const [acc, setAcc] = useState<Account | null>(null)
   const [tab, setTab] = useState<Tab>('login')
@@ -43,6 +51,7 @@ export function CloudSyncCard({ onOpenPrivacy }: { onOpenPrivacy: () => void }) 
     setPending(n)
     setLastSyncedAt(at ? Number(at) : null)
     setLastError(err !== null && err !== '' ? err : null)
+    onAccountChange?.()
   }
 
   useEffect(() => { void refresh() }, [])
