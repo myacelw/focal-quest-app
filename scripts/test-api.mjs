@@ -177,6 +177,67 @@ check('超过 500 条的批次被拒 400', r.status === 400 && r.json?.error ===
 r = await api('/api/sync/push', { method: 'POST', token: token1, body: { records: [rec('u3', 'session', {}, Date.now() + 400 * 86400_000)] } })
 check('未来过远的 updatedAt 被拒（防 LWW 永久锁死）', r.status === 400, JSON.stringify(r.json))
 
+// ---- 管理后台（迭代 3e）----
+// 先推一条 session，让日活与训练量曲线有非零值可断言（前面推的都是 checkin/badge/exam）
+r = await api('/api/sync/push', {
+  method: 'POST', token: token1,
+  body: { records: [rec(`session:default:${t0}:left`, 'session', { startedAtMs: t0, eye: 'left', correct: 5, answered: 6 }, t0)] },
+})
+check('推入一条 session 供 admin 统计', r.status === 200, `实际 ${r.status} ${JSON.stringify(r.json)}`)
+
+r = await api('/api/admin/stats')
+check('无 token 访问 admin 端点得 401', r.status === 401, `实际 ${r.status}`)
+
+// token1 是用引导码注册的普通账号（register 一律写 is_admin=0），正是"登录了但没权限"
+r = await api('/api/admin/stats', { token: token1 })
+check('非管理员访问 admin 端点得 403（而非 401，区分"没登录"与"没权限"）',
+  r.status === 403 && r.json?.error === 'forbidden', `实际 ${r.status} ${JSON.stringify(r.json)}`)
+
+// 管理员账号由 `npm run db:seed:admin` 预先种入（wrangler 运行期间改不了本地 D1）
+r = await api('/api/auth/login', { method: 'POST', body: { email: 'admin-seed@example.com', authKey: 'a'.repeat(64) } })
+check('种子管理员可登录（若失败：先停 wrangler，跑 npm run db:seed:admin，再重启）',
+  r.status === 200 && r.json?.isAdmin === true, `实际 ${r.status} ${JSON.stringify(r.json)}`)
+const adminToken = r.json?.token
+
+r = await api('/api/admin/stats', { token: adminToken })
+const st = r.json
+check('管理员可读统计', r.status === 200, `实际 ${r.status} ${JSON.stringify(r.json)}`)
+check('响应含总量三项', typeof st?.totals?.users === 'number' && st.totals.users >= 3
+  && typeof st?.totals?.records === 'number' && typeof st?.totals?.tokens === 'number', JSON.stringify(st?.totals))
+check('kinds 覆盖 7 类记录（缺的补 0，界面不会时多时少）',
+  Array.isArray(st?.kinds) && st.kinds.length >= 7
+  && ['session', 'checkin', 'badge', 'monster', 'reward', 'redemption', 'exam']
+    .every((k) => st.kinds.some((x) => x.kind === k)),
+  JSON.stringify(st?.kinds))
+// spec §8 要的是"各 kind 记录量**与增速**"：30 天曲线只覆盖 session，
+// 其余 6 类靠这个 recent 才看得出在不在长
+check('kinds 每行都带 recent 增速列，且刚推的 session 落进近 7 天',
+  st?.kinds?.every((x) => typeof x.recent === 'number')
+  && st.kinds.find((x) => x.kind === 'session')?.recent >= 1,
+  JSON.stringify(st?.kinds))
+check('daily 是连续 30 天且末位是今天（东八区）',
+  Array.isArray(st?.daily) && st.daily.length === 30
+  && st.daily[29].date === new Date(Date.now() + 8 * 3600_000).toISOString().slice(0, 10),
+  JSON.stringify(st?.daily?.length) + ' ' + JSON.stringify(st?.daily?.[29]))
+check('今天的训练量与日活都算上了刚推的 session',
+  st?.daily?.[29]?.count >= 1 && st?.active?.dau >= 1,
+  `daily=${st?.daily?.[29]?.count} dau=${st?.active?.dau}`)
+check('辅口径（打开过 app）也有值', st?.active?.openDau >= 1, JSON.stringify(st?.active))
+// 这条是隐私红线：rl.* 桶的 metric 里编着 IP 与邮箱，绝不能出现在响应里
+check('滥用计数不含 rl.* 限速桶（metric 里编着 IP 与邮箱）',
+  Array.isArray(st?.abuse) && st.abuse.every((x) => !x.metric.startsWith('rl.')),
+  JSON.stringify(st?.abuse?.map((x) => x.metric)))
+check('最近注册列表带出邀请人邮箱（invited_by 自连接）',
+  st?.recentUsers?.some((u) => u.email === email2 && u.invitedByEmail === email1),
+  JSON.stringify(st?.recentUsers))
+// 刻意**不**断言本轮的 email1 出现在排行里：本地 D1 是持久的（见本文件头部注释），每跑一遍
+// 脚本就多一个 invited=1 的邀请人，而 SQL 是 LIMIT 20——跑到几十遍后本轮账号会被历史账号挤出
+// 榜单，断言就会无故变红，而失败输出只是一大串 JSON、指不到真正原因（是被 LIMIT 截掉了，
+// 不是 SQL 错了）。所以只断言"聚合本身对"。
+check('邀请排行有行且每行 invited ≥ 1（只列真的邀请过人的账号）',
+  Array.isArray(st?.inviters) && st.inviters.length > 0 && st.inviters.every((x) => x.invited >= 1),
+  JSON.stringify(st?.inviters))
+
 console.log(`\n通过 ${passed}，失败 ${failed}`)
 // 注意：这里用 process.exitCode 而非 process.exit()——Windows + Node 24 下若有未关闭的
 // fetch keep-alive 连接，process.exit() 会触发 libuv 断言崩溃、退出码变成 127
