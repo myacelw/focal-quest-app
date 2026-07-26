@@ -420,8 +420,12 @@ export function TrainingPage() {
   const mmss = `${Math.floor(remainSec / 60)}:${String(remainSec % 60).padStart(2, '0')}`
 
   return (
-    <div style={{ position: 'relative', display: 'flex', flexDirection: 'column', minHeight: '100%' }}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '12px 16px' }}>
+    <div className="fzp-train">
+      {/* 手机横屏才显示（纯 CSS 媒体查询控制）：竖屏方向盘更大、单手可达 */}
+      <div className="fzp-rotate-hint">{t('train.rotateHint')}</div>
+      {/* 屏幕矮到布局预算兜不住时明确提示——视标绝不缩小（那等于偷偷改训练强度） */}
+      <div className="fzp-tiny-warn">{t('train.screenTooSmall')}</div>
+      <div className="fzp-train-top">
         <span className="fq-chip">{eyeLabel}</span>
         <div className="fq-bar" style={{ flex: 1 }}>
           <i style={{ width: `${progress * 100}%` }} />
@@ -433,7 +437,7 @@ export function TrainingPage() {
         </button>
       </div>
 
-      <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '8px 0', position: 'relative' }}>
+      <div className="fzp-stage">
         <CurrentSkin.Stage
           target={session.target}
           heightPx={heightPx}
@@ -505,9 +509,9 @@ export function TrainingPage() {
         )}
       </div>
 
-      {/* 语音提示放左侧（次要信息，不占整行）；十字方向盘居中且紧凑 */}
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr auto 1fr', alignItems: 'center', gap: 8, padding: '4px 14px 18px' }}>
-        <span style={{ color: 'var(--muted)', fontSize: 12, fontWeight: 600, textAlign: 'right', lineHeight: 1.4 }}>{voskHint}</span>
+      {/* 宽屏：语音提示在方向盘左侧（不占整行）。手机窄屏：CSS 改成方向盘上方整行居中 */}
+      <div className="fzp-answer">
+        <span className="fzp-voice-hint">{voskHint}</span>
         {/* 上下左右按方位摆，与视标 E 朝向一一对应，"朝哪开点哪" */}
         <div className="fq-dpad">
           {DPAD.map(({ dir, col, row }) => (
@@ -523,7 +527,7 @@ export function TrainingPage() {
           ))}
           <div className="fq-dpad-hub" style={{ gridColumn: 2, gridRow: 2 }}><i /></div>
         </div>
-        <span aria-hidden />
+        <span className="fzp-answer-spacer" aria-hidden />
       </div>
 
       {paused && (
@@ -574,7 +578,7 @@ function CapturedMonsterReveal({ def, delayMs }: { def: MonsterDef; delayMs: num
           overflow: 'hidden',
           transition: 'transform 0.4s cubic-bezier(0.2,0.8,0.2,1)',
           transform: revealed ? 'scale(1)' : 'scale(0.85)',
-          animation: revealed ? 'none' : 'fzpFloat 2.6s ease-in-out infinite',
+          animation: revealed ? 'none' : 'fzpRevealFloat 2.6s ease-in-out infinite',
         }}
       >
         {revealed ? (

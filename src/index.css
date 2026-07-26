@@ -176,6 +176,9 @@ h1, h2, h3, h4, p { margin: 0; }
 @keyframes fzpCombo { 0% { opacity: 0; transform: translate(-50%, 12px) scale(0.8); } 25% { opacity: 1; transform: translate(-50%, 0) scale(1.12); } 100% { opacity: 0; transform: translate(-50%, -34px) scale(1); } }
 /* 怪兽捕获角标：从右上角淡入→停顿→淡出，不阻断翻拍 */
 @keyframes fzpDexToast { 0% { opacity: 0; transform: translateY(-6px); } 20% { opacity: 1; transform: translateY(0); } 80% { opacity: 1; } 100% { opacity: 0; transform: translateY(-6px); } }
+/* 结算页未揭晓的开箱盒：浮动 + 略缩。原先误用了未定义的 fzpFloat，动画不生效；
+   这里把 scale(0.85) 写进每一帧，才不会与元素上的 inline transform 打架。 */
+@keyframes fzpRevealFloat { 0%, 100% { transform: translateY(0) scale(0.85) } 50% { transform: translateY(-8px) scale(0.85) } }
 
 /* ---------- 首页专属：氛围光斑 + 开始按钮呼吸光晕 ---------- */
 .fq-home { position: relative; overflow: hidden; min-height: 100%; }
@@ -219,6 +222,17 @@ h1, h2, h3, h4, p { margin: 0; }
   border-radius: 16px;
   overflow: hidden;
   container-type: size;
+}
+
+/* 手机横屏（矮屏）提示竖屏更好用；iPad 横屏（高 768）不触发 */
+.fzp-rotate-hint { display: none; }
+@media (orientation: landscape) and (max-height: 560px) {
+  .fzp-rotate-hint {
+    display: block; position: absolute; top: 4px; left: 50%; transform: translateX(-50%);
+    z-index: 7; white-space: nowrap; pointer-events: none;
+    font-size: 12px; font-weight: 700; color: #fff;
+    background: rgba(51, 40, 90, 0.72); padding: 4px 12px; border-radius: 999px;
+  }
 }
 
 /* 屏幕太矮（低于 layout-budget 的 MIN_STAGE_PX 预算）：明确提示，绝不缩视标 */
