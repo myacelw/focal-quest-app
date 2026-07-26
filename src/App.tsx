@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { lazy, Suspense, useEffect, useState } from 'react'
 import { HomePage } from './HomePage'
 import { CalibrationPage } from './calibration/CalibrationPage'
 import { SpeechTestPage } from './speech/SpeechTestPage'
@@ -12,9 +12,22 @@ import { PrivacyPage } from './PrivacyPage'
 import { listPending } from './rewards/rewards-service'
 import { lsGet, lsSet } from './data/storage'
 import { startSync } from './sync/engine'
+import { ErrorBoundary } from './ErrorBoundary'
 import { useT } from './i18n'
 
-type View = 'home' | 'train' | 'stats' | 'badges' | 'calib' | 'speech' | 'settings' | 'rewards' | 'privacy'
+/**
+ * 管理后台只有站长会打开一次，首屏不该为它解析/执行这段代码 → 懒加载。
+ * 全仓此前没有 React.lazy 先例（唯一的代码分割是 vosk 的动态 import），
+ * 所以下面渲染处自带 Suspense fallback；保持项目的命名导出风格，用 .then 映射成 default。
+ *
+ * ⚠️ 注意"不进主包"≠"不下发"：vite.config.ts 的 injectManifest.globPatterns 第一条就是
+ * `**\/*.{js,css,html}`，所以 AdminPage-*.js 一定会进 SW 的 precache manifest、孩子那台
+ * iPad 装 PWA 时照样下载。这是有意的——正因为预缓存了，装好之后离线也能打开管理页。
+ * lazy 真正省下的是**首屏解析与执行**（以及首屏字节），不是"所有人都不下载"。
+ */
+const AdminPage = lazy(() => import('./admin/AdminPage').then((m) => ({ default: m.AdminPage })))
+
+type View = 'home' | 'train' | 'stats' | 'badges' | 'calib' | 'speech' | 'settings' | 'rewards' | 'privacy' | 'admin'
 
 const NAV: { key: View; icon: string }[] = [
   { key: 'home', icon: '🏠' },
@@ -77,12 +90,27 @@ export function App() {
         {view === 'speech' && <SpeechTestPage />}
         {view === 'rewards' && <RewardsPage />}
         {view === 'privacy' && <PrivacyPage onBack={() => setView('settings')} />}
+        {/* ErrorBoundary 不是装饰：React.lazy 的 import 一旦 reject（部署换了 hash 后旧
+            chunk 404、Safari 回收缓存后离线首次点进来、SW 还没完成 precache），拒绝会在
+            渲染期抛出，而全仓唯一的错误边界在 main.tsx 里包着整个 <App/>——那就变成
+            首页与训练一起显示全屏 😵，直接违反"admin 挂了不影响训练"。
+            这里就地兜住：出错只糊掉 <main> 里这一块，fq-nav 在 <main> 之外仍可点、
+            切走即恢复（view 变了这个 boundary 就整体卸载、state 归零）。
+            前车之鉴：commit 06b7de6「服务器停止后 iPad 离线训练白屏」。 */}
+        {view === 'admin' && (
+          <ErrorBoundary>
+            <Suspense fallback={<div className="fq-page">{t('admin.loading')}</div>}>
+              <AdminPage />
+            </Suspense>
+          </ErrorBoundary>
+        )}
         {view === 'settings' && (
           <SettingsPage
             onReplayGuide={() => setShowOnboard(true)}
             onOpenSpeech={() => setView('speech')}
             onOpenCalib={() => setView('calib')}
             onOpenPrivacy={() => setView('privacy')}
+            onOpenAdmin={() => setView('admin')}
           />
         )}
       </main>

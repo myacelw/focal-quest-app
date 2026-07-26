@@ -13,6 +13,7 @@ import { ReminderCard } from './reminder/ReminderCard'
 import { ResetCard } from './reset/ResetCard'
 import { Collapsible, SectionHeader } from './settings/Collapsible'
 import { CloudSyncCard } from './sync/CloudSyncCard'
+import { getAccount } from './sync/account'
 
 function readPxPerMm(): number | null {
   const v = lsGet('fzp.cssPxPerMm')
@@ -20,7 +21,7 @@ function readPxPerMm(): number | null {
 }
 
 /** 家长设置页：所有训练配置集中在此，配一次即可，孩子训练路径不再碰这些 */
-export function SettingsPage({ onReplayGuide, onOpenSpeech, onOpenCalib, onOpenPrivacy }: { onReplayGuide: () => void; onOpenSpeech: () => void; onOpenCalib: () => void; onOpenPrivacy: () => void }) {
+export function SettingsPage({ onReplayGuide, onOpenSpeech, onOpenCalib, onOpenPrivacy, onOpenAdmin }: { onReplayGuide: () => void; onOpenSpeech: () => void; onOpenCalib: () => void; onOpenPrivacy: () => void; onOpenAdmin: () => void }) {
   const t = useT()
   const lang = useLang()
   const [sizeMm, setSizeMm] = useState(() => {
@@ -41,10 +42,14 @@ export function SettingsPage({ onReplayGuide, onOpenSpeech, onOpenCalib, onOpenP
   })
   const [skinId, setSkinIdState] = useState(() => getSkinId())
   const [totalPoints, setTotalPoints] = useState<number | null>(null)
+  // 管理后台入口：**只有 is_admin 账号才渲染**，其余人连这张卡都看不见。
+  // 注意这份 isAdmin 是登录响应写进 syncMeta 的快照——在 D1 里改完 is_admin 要重新登录一次才生效。
+  const [isAdmin, setIsAdmin] = useState(false)
 
   useEffect(() => {
     void getHomeStats(toDateStr(new Date())).then((s) => setTotalPoints(s.totalPoints))
   }, [])
+  useEffect(() => { void getAccount().then((a) => setIsAdmin(a?.isAdmin === true)) }, [])
   useEffect(() => { lsSet('fzp.optotypeSizeMm', String(sizeMm)) }, [sizeMm])
   useEffect(() => { lsSet('fzp.durationSec', String(durationSec)) }, [durationSec])
   useEffect(() => { lsSet('fzp.flipperD', String(flipperD)) }, [flipperD])
@@ -186,6 +191,16 @@ export function SettingsPage({ onReplayGuide, onOpenSpeech, onOpenCalib, onOpenP
       <Collapsible title={t('sync.title')}>
         <CloudSyncCard onOpenPrivacy={onOpenPrivacy} />
       </Collapsible>
+
+      {isAdmin && (
+        <div className="fq-card" style={{ marginTop: 14, display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 8 }}>
+          <div>
+            <div className="fq-card-title" style={{ marginBottom: 4 }}>{t('admin.entry')}</div>
+            <div style={{ fontSize: 12, color: 'var(--muted)' }}>{t('admin.sub')}</div>
+          </div>
+          <button className="fq-btn" onClick={onOpenAdmin}>{t('admin.open')}</button>
+        </div>
+      )}
 
       <SectionHeader>{t('settings.group.other')}</SectionHeader>
 
