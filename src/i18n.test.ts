@@ -51,6 +51,18 @@ const ADMIN_KEYS = [
     .map((k) => `admin.kind.${k}`),
 ]
 
+/** 限时挑战文案（迭代 2·限时挑战） */
+const CHALLENGE_KEYS = [
+  'challenge.title', 'challenge.sub', 'challenge.notTraining',
+  'challenge.homeCard', 'challenge.homeCardHint',
+  'challenge.best', 'challenge.noBest', 'challenge.start',
+  'challenge.ready', 'challenge.readyHint', 'challenge.paceHint',
+  'challenge.score', 'challenge.time', 'challenge.timeout',
+  'challenge.done', 'challenge.newRecord',
+  'challenge.correctCount', 'challenge.wrongCount', 'challenge.timeoutCount',
+  'challenge.bestStreak', 'challenge.again', 'challenge.back',
+]
+
 describe('云同步与隐私政策文案', () => {
   it('云同步 44 个文案键在 zh 与 en 字典里都存在（漏一份就会在另一种语言下回退成中文）', () => {
     expect(SYNC_KEYS.length).toBe(44)
@@ -92,6 +104,14 @@ describe('云同步与隐私政策文案', () => {
   it('管理后台 50 个文案键在 zh 与 en 都存在（漏一份就会在另一种语言下回退成中文）', () => {
     expect(ADMIN_KEYS.length).toBe(50)
     for (const k of ADMIN_KEYS) {
+      expect(hasKey('zh', k), `zh 缺 ${k}`).toBe(true)
+      expect(hasKey('en', k), `en 缺 ${k}`).toBe(true)
+    }
+  })
+
+  it('限时挑战 22 个文案键在 zh 与 en 都存在（漏一份就会在另一种语言下回退成中文）', () => {
+    expect(CHALLENGE_KEYS.length).toBe(22)
+    for (const k of CHALLENGE_KEYS) {
       expect(hasKey('zh', k), `zh 缺 ${k}`).toBe(true)
       expect(hasKey('en', k), `en 缺 ${k}`).toBe(true)
     }
