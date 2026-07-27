@@ -120,13 +120,51 @@ describe('v5 → v6 存量数据迁移', () => {
   })
 })
 
+/** v6 的 schema（与 db.ts 里 version(6) 逐字一致），用来模拟"已经升到 v6 的真机" */
+const V6_SCHEMA = {
+  sessions: '++id, date, uuid',
+  checkins: 'date, uuid',
+  badges: 'id, uuid',
+  monsters: 'id, uuid',
+  rewards: '++id, uuid',
+  redemptions: '++id, kind, status, uuid',
+  exams: '++id, date, uuid',
+  outbox: '++id, uuid, kind',
+  syncMeta: 'key',
+}
+
+describe('v6 → v7 加 cards 空表', () => {
+  it('既有数据一行不丢，cards 表存在且为空', async () => {
+    const name = 'focalquest-mig-v6'
+    const legacy = new Dexie(name)
+    legacy.version(6).stores(V6_SCHEMA)
+    await legacy.open()
+    await legacy.table('checkins').bulkAdd([
+      { date: '2026-07-20', streak: 2, dailyPoints: 200, totalPoints: 400, uuid: 'checkin:default:2026-07-20', updatedAt: 111, profileId: 'default' },
+    ])
+    legacy.close()
+
+    const up = new FocalQuestDB(name) // 打开即触发 v6→v7
+    await up.open()
+    expect(up.verno).toBe(7)
+    expect(up.tables.map((t) => t.name)).toContain('cards')
+    expect(await up.cards.count()).toBe(0)
+    // 纯加表：既有行的业务字段与同步字段都不该被动过
+    const ck = await up.checkins.get('2026-07-20')
+    expect(ck?.totalPoints).toBe(400)
+    expect(ck?.updatedAt).toBe(111)
+    up.close()
+  })
+})
+
 describe('全新安装', () => {
-  it('没有 v5 数据时直接建到 v6，9 张表齐全且全空（Dexie 不跑 upgrade）', async () => {
-    const fresh = new FocalQuestDB('focalquest-fresh-v6')
+  it('没有历史数据时直接建到 v7，10 张表齐全且全空（Dexie 不跑 upgrade）', async () => {
+    const fresh = new FocalQuestDB('focalquest-fresh-v7')
     await fresh.open()
-    expect(fresh.verno).toBe(6)
-    expect(fresh.tables.length).toBe(9)
+    expect(fresh.verno).toBe(7)
+    expect(fresh.tables.length).toBe(10)
     expect(await fresh.sessions.count()).toBe(0)
+    expect(await fresh.cards.count()).toBe(0)
     expect(await fresh.outbox.count()).toBe(0)
     fresh.close()
   })

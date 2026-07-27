@@ -60,10 +60,15 @@ export interface RewardRow extends SyncableRow {
   createdAt: number
 }
 
-/** 积分消耗账本：兑换奖励 / 买补签卡（v4 新增） */
+/** 积分消耗账本：兑换奖励 / 补签 / 开卡包（v4 新增，v7 加 'pack'） */
 export interface RedemptionRow extends SyncableRow {
   id?: number           // ++id 自增
-  kind: 'reward' | 'repair'
+  /**
+   * 'pack'（开卡包）**恒为 status:'fulfilled'，永不进 pending、永不可撤销**——
+   * 撤销会退分而不收回卡，等于白得一张。撤销按钮只对 pending 渲染，天然安全，
+   * 但这条不变量由 cards-service.test.ts 锚死，不靠巧合。
+   */
+  kind: 'reward' | 'repair' | 'pack'
   title: string         // 名称快照
   cost: number
   createdAt: number
@@ -80,6 +85,17 @@ export interface ExamRow extends SyncableRow {
   left: number      // 左眼视力，小数记法
   right: number     // 右眼视力，小数记法
   note?: string     // 备注（如度数、医院名）
+}
+
+/**
+ * 卡册（v7 新增）。setId / rarity 都从 `src/cards/card-defs.ts` 派生、不落库——
+ * 存进来就会和数据层产生两份真相。
+ */
+export interface CardRow extends SyncableRow {
+  /** 主键 = CardDef.id，如 'pony-7'。**不含冒号**（同步 uuid 反解依赖） */
+  id: string
+  /** 首次获得时刻。合并**取最早**（语义同 monster.capturedAt），不走 LWW */
+  obtainedAt: number
 }
 
 /**
@@ -114,6 +130,7 @@ export class FocalQuestDB extends Dexie {
   rewards!: Table<RewardRow, number>
   redemptions!: Table<RedemptionRow, number>
   exams!: Table<ExamRow, number>
+  cards!: Table<CardRow, string>
   outbox!: Table<OutboxRow, number>
   syncMeta!: Table<SyncMetaRow, string>
 
@@ -193,6 +210,21 @@ export class FocalQuestDB extends Dexie {
           })
         }
       })
+
+    // v7：纯加 cards 空表。没有存量数据要回填，故**不需要 .upgrade()**——
+    // 也就不碰 v6 那条"逐行兜底防白屏"的老伤。
+    this.version(7).stores({
+      sessions: '++id, date, uuid',
+      checkins: 'date, uuid',
+      badges: 'id, uuid',
+      monsters: 'id, uuid',
+      rewards: '++id, uuid',
+      redemptions: '++id, kind, status, uuid',
+      exams: '++id, date, uuid',
+      cards: 'id, uuid',
+      outbox: '++id, uuid, kind',
+      syncMeta: 'key',
+    })
   }
 }
 
