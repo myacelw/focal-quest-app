@@ -124,3 +124,37 @@ describe('overspend — 多设备并发兑换会超支，必须让家长看得�
     expect(overspend(500, [red({ cost: 400 }), red({ cost: 400, status: 'cancelled' })])).toBe(0)
   })
 })
+
+describe('canRepair：训练完成门槛的配套闸门', () => {
+  const target = { missedDate: '2026-07-26', phantomStreak: 4, phantomTotal: 800 }
+
+  it('缺口日练了但没练够 → attempted，不可补', () => {
+    // 不堵这里，门槛的成本就只是 50 分——比认真练一轮还便宜。
+    expect(canRepair({ target, targetAttempted: true, monthRepairCount: 0, available: 999, cost: 50 }))
+      .toEqual({ ok: false, reason: 'attempted' })
+  })
+
+  it('attempted 排在 month-limit / no-points 之前（先说清根本原因，别让家长以为是次数或余额问题）', () => {
+    const r = canRepair({ target, targetAttempted: true, monthRepairCount: 2, available: 0, cost: 50 })
+    expect(r.reason).toBe('attempted')
+  })
+
+  it('没缺口时仍是 not-broken（attempted 不能盖住它）', () => {
+    expect(canRepair({ target: null, targetAttempted: true, monthRepairCount: 0, available: 999, cost: 50 }).reason)
+      .toBe('not-broken')
+  })
+
+  it('缺省 targetAttempted 时行为与从前完全一致（完全没练的日子照样能补）', () => {
+    expect(canRepair({ target, monthRepairCount: 0, available: 999, cost: 50 })).toEqual({ ok: true })
+    expect(canRepair({ target, targetAttempted: false, monthRepairCount: 2, available: 999, cost: 50 }).reason)
+      .toBe('month-limit')
+  })
+
+  it('targetAttempted 的语义是「练了但没练够」，不是「那天有记录」——练够却没点完成键的日子必须传 false（仍可补）', () => {
+    // 判据由 dayFellShort 算（goal.test.ts 锚定），这里锚定的是 canRepair 的契约：
+    // 服务层一旦把它退化成 "sessions.count() > 0"，最该补的那天（练到 40 个、
+    // 门槛 30，却被收走 iPad 没点按钮）就会被永久堵死。
+    expect(canRepair({ target, targetAttempted: false, monthRepairCount: 0, available: 999, cost: 50 }))
+      .toEqual({ ok: true })
+  })
+})

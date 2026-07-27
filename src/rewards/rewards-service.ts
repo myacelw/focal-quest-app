@@ -2,11 +2,28 @@ import { db, type RewardRow, type RedemptionRow, type CheckinRow } from '../data
 import { availablePoints, monthRepairCount, canRepair, findRepairTarget, REPAIR_COST, type RepairEligibility } from './ledger'
 import { toDateStr, addDays, monthOf } from '../data/date-utils'
 import { pushRewards, pushRedemptions, pushCheckin } from '../data/api'
+import { dayFellShort } from '../training/goal'
 
 /** 最新累计积分（来自 checkins 链的最后一条） */
 async function latestTotalPoints(): Promise<number> {
   const last = await db.checkins.orderBy('date').last()
   return last ? last.totalPoints : 0
+}
+
+/**
+ * 缺口日是不是「练了但没练够」。是则不可补签——见 spec §5.6。
+ *
+ * ⚠️ 刻意**不是** `sessions.count() > 0`：saveSession 只在计时走满时落库，
+ * 所以"有行"等价于"完整走完过一节"，用它当判据会把"练到 40 个（门槛 30）却没点
+ * 完成键就被收走 iPad"那天永久堵死（那是最该补的一天），同时放过"点开就退出"
+ * 的日子（一行都不落）。所以要**重算那天的门槛**，用那天各节真实的 elapsedSec。
+ */
+async function fellShortOn(dateStr: string): Promise<boolean> {
+  const rows = await db.sessions.where('date').equals(dateStr).toArray()
+  return dayFellShort(
+    rows.reduce((sum, r) => sum + r.correct, 0),
+    rows.map((r) => r.elapsedSec),
+  )
 }
 
 /** 上架奖励（active），家长与孩子都看这一份 */
@@ -88,8 +105,10 @@ export async function getRepairStatus(today: string): Promise<RepairStatus> {
     db.redemptions.toArray(),
   ])
   const target = findRepairTarget(checkins, today)
+  const targetAttempted = target ? await fellShortOn(target.missedDate) : false
   const elig = canRepair({
     target,
+    targetAttempted,
     monthRepairCount: monthRepairCount(reds, monthOf(today)),
     available,
     cost: REPAIR_COST,
@@ -114,7 +133,8 @@ export async function doRepair(today: string): Promise<boolean> {
     db.redemptions.toArray(),
   ])
   const target = findRepairTarget(checkins, today)
-  const elig = canRepair({ target, monthRepairCount: monthRepairCount(reds, monthOf(today)), available, cost: REPAIR_COST })
+  const targetAttempted = target ? await fellShortOn(target.missedDate) : false
+  const elig = canRepair({ target, targetAttempted, monthRepairCount: monthRepairCount(reds, monthOf(today)), available, cost: REPAIR_COST })
   if (!elig.ok || !target) return false
 
   const now = Date.now()
