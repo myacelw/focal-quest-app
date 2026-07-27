@@ -364,7 +364,7 @@ const ZH: Dict = {
   'repair.do': '补签',
   'repair.done': '✅ 补签成功，连续天数保住啦！',
   'repair.noPoints': '积分不够补签（需 {cost} 分）',
-  'repair.monthLimit': '本月补签次数已用完（每月 2 次）',
+  'repair.monthLimit': '本月补签次数已用完（每月 {max} 次）',
   'repair.attempted': '昨天练了但没练够——补签卡只能补完全没练的日子',
   // 语音测试（调试页）
   'speech.title': '🎤 语音测试',
@@ -867,7 +867,7 @@ const EN: Dict = {
   'repair.do': 'Repair',
   'repair.done': '✅ Streak saved!',
   'repair.noPoints': 'Not enough points to repair (need {cost})',
-  'repair.monthLimit': 'No repairs left this month (2/month)',
+  'repair.monthLimit': 'No repairs left this month ({max}/month)',
   'repair.attempted': 'You trained yesterday but not enough — repair cards only cover days with no training at all',
   // Speech test (debug page)
   'speech.title': '🎤 Speech test',

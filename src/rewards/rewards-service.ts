@@ -1,5 +1,5 @@
 import { db, type RewardRow, type RedemptionRow, type CheckinRow } from '../data/db'
-import { availablePoints, monthRepairCount, canRepair, findRepairTarget, REPAIR_COST, type RepairEligibility } from './ledger'
+import { availablePoints, monthRepairCount, canRepair, findRepairTarget, REPAIR_COST, REPAIR_MONTHLY_MAX, type RepairEligibility } from './ledger'
 import { toDateStr, addDays, monthOf } from '../data/date-utils'
 import { pushRewards, pushRedemptions, pushCheckin } from '../data/api'
 import { dayFellShort } from '../training/goal'
@@ -94,6 +94,7 @@ export async function cancelRedemption(id: number): Promise<void> {
 export interface RepairStatus extends RepairEligibility {
   streak: number       // 补签后可保住/达到的连续天数
   cost: number
+  monthlyMax: number   // 每月上限，供文案显示——UI 从这里拿，不直接 import 常量
   missedDate: string   // 漏掉的那天（= 昨天）
 }
 
@@ -118,6 +119,7 @@ export async function getRepairStatus(today: string): Promise<RepairStatus> {
     // 补签后可见的连续天数：今天已打卡→修正值，否则→补插行 streak
     streak: target ? (target.fixTodayStreak ?? target.phantomStreak) : 0,
     cost: REPAIR_COST,
+    monthlyMax: REPAIR_MONTHLY_MAX,
     missedDate: target ? target.missedDate : addDays(today, -1),
   }
 }

@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest'
 import {
-  REPAIR_COST, availablePoints, monthRepairCount, canRepair, findRepairTarget, overspend,
+  REPAIR_COST, REPAIR_MONTHLY_MAX, availablePoints, monthRepairCount, canRepair, findRepairTarget, overspend,
 } from './ledger'
 import type { RedemptionRow, CheckinRow } from '../data/db'
 
@@ -94,18 +94,39 @@ describe('findRepairTarget', () => {
 
 describe('canRepair', () => {
   const target = { missedDate: '2026-07-02', phantomStreak: 6, phantomTotal: 800, fixTodayStreak: undefined }
-  const base = { target, monthRepairCount: 0, available: 500, cost: REPAIR_COST }
+  // available 取一个明显够的值，别贴着 REPAIR_COST 写——贴着写的话这条"有分"的用例
+  // 会在下一次调价时变成边界用例，而它想验的根本不是边界
+  const base = { target, monthRepairCount: 0, available: 999_999, cost: REPAIR_COST }
   it('有缺口 + 有分 + 未超限：可补', () => {
     expect(canRepair(base)).toEqual({ ok: true })
   })
   it('无缺口：not-broken', () => {
     expect(canRepair({ ...base, target: null })).toEqual({ ok: false, reason: 'not-broken' })
   })
-  it('本月已补 2 次：month-limit', () => {
-    expect(canRepair({ ...base, monthRepairCount: 2 })).toEqual({ ok: false, reason: 'month-limit' })
+  it('本月已补 3 次：month-limit', () => {
+    expect(canRepair({ ...base, monthRepairCount: 3 })).toEqual({ ok: false, reason: 'month-limit' })
   })
   it('可用分不足：no-points', () => {
     expect(canRepair({ ...base, available: 10 })).toEqual({ ok: false, reason: 'no-points' })
+  })
+})
+
+describe('补签定价（改这两个常量即可调价 / 调松紧）', () => {
+  const target = { missedDate: '2026-07-19', phantomStreak: 3, phantomTotal: 100, fixTodayStreak: undefined }
+
+  it('补签 500 分、每月上限 3 次', () => {
+    expect(REPAIR_COST).toBe(500)
+    expect(REPAIR_MONTHLY_MAX).toBe(3)
+  })
+
+  it('到达上限 → month-limit（判据用常量，不是裸数字）', () => {
+    expect(canRepair({ target, monthRepairCount: REPAIR_MONTHLY_MAX, available: 999_999, cost: REPAIR_COST }))
+      .toEqual({ ok: false, reason: 'month-limit' })
+  })
+
+  it('本月已补 2 次仍可补 —— 上限从 2 放宽到 3 的回归锚', () => {
+    expect(canRepair({ target, monthRepairCount: 2, available: 999_999, cost: REPAIR_COST }))
+      .toEqual({ ok: true })
   })
 })
 
@@ -146,7 +167,9 @@ describe('canRepair：训练完成门槛的配套闸门', () => {
 
   it('缺省 targetAttempted 时行为与从前完全一致（完全没练的日子照样能补）', () => {
     expect(canRepair({ target, monthRepairCount: 0, available: 999, cost: 50 })).toEqual({ ok: true })
-    expect(canRepair({ target, targetAttempted: false, monthRepairCount: 2, available: 999, cost: 50 }).reason)
+    // monthRepairCount 必须用 REPAIR_MONTHLY_MAX 而不是写死的数字：
+    // 月上限从 2 调到 3 时，写死 2 的话这条会静默变成"未超限"，断言随之失效
+    expect(canRepair({ target, targetAttempted: false, monthRepairCount: REPAIR_MONTHLY_MAX, available: 999, cost: 50 }).reason)
       .toBe('month-limit')
   })
 

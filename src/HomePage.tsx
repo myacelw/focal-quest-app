@@ -147,7 +147,7 @@ export function HomePage({ onStart, onOpenDex, onOpenRewards, onOpenChallenge }:
           <div className="fq-card" style={{ color: 'var(--muted)', fontSize: 13 }}>{t('repair.noPoints', { cost: repair.cost })}</div>
         )}
         {repair && !repair.ok && repair.reason === 'month-limit' && (
-          <div className="fq-card" style={{ color: 'var(--muted)', fontSize: 13 }}>{t('repair.monthLimit')}</div>
+          <div className="fq-card" style={{ color: 'var(--muted)', fontSize: 13 }}>{t('repair.monthLimit', { max: repair.monthlyMax })}</div>
         )}
         {repair && !repair.ok && repair.reason === 'attempted' && (
           <div className="fq-card" style={{ color: 'var(--muted)', fontSize: 13 }}>{t('repair.attempted')}</div>
