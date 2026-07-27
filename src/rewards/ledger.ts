@@ -35,7 +35,7 @@ export function monthRepairCount(redemptions: RedemptionRow[], monthStr: string)
   ).length
 }
 
-export type RepairReason = 'not-broken' | 'no-points' | 'month-limit'
+export type RepairReason = 'not-broken' | 'attempted' | 'no-points' | 'month-limit'
 export interface RepairEligibility { ok: boolean; reason?: RepairReason }
 
 /** 可补的缺口目标：补插哪天、补插行 streak/total、以及（若今天已打卡被重置）今天行要修正成的 streak */
@@ -79,14 +79,33 @@ export function findRepairTarget(checkins: CheckinRow[], today: string): RepairT
   }
 }
 
-/** 补签资格：有可补缺口、每月上限内、余额充足；不满足给出首个原因 */
+/**
+ * 补签资格：有可补缺口、那天不是"练了但没练够"、每月上限内、余额充足；不满足给出首个原因。
+ *
+ * `targetAttempted`（训练完成门槛的配套闸门，spec §5.6）：缺口日若「练了但没练够」，
+ * 不可补。否则「每天挂机 30 秒 + 50 分补签」就能把门槛彻底架空，而 50 分只相当于
+ * 1-2 天打卡分，比认真练一轮还便宜。
+ *
+ * ⚠️ 语义**不是**"那天有 session 行"。`saveSession` 只在 `phase === 'finished'`
+ * （计时走满）时落库，所以"有行"真正等价的是"完整走完过一节"，拿它当判据会错两头：
+ *  - 练到 40 个（远超门槛 30）却没点完成键就被收走 iPad → 有行、无打卡行 →
+ *    **最该补的一天反而被永久堵死**；
+ *  - 中途退出不满一节 → 一行都不落 → "点开就退出"的日子照样能花 50 分买回连续。
+ * 所以判据必须**重算那天的门槛**（`dayFellShort`，用那天各节的 elapsedSec 算）。
+ *
+ * 为什么"练了没练够却不能补、压根没练反而能补"不反直觉：门槛失败是**当天可挽回**的
+ * （结算页就有「再练一轮」按钮，判据是当天累计），过了当天才变成缺口；
+ * 而补签卡的设计意图是"当天根本没机会练"（生病/外出），那才是不可挽回的。
+ */
 export function canRepair(p: {
   target: RepairTarget | null
   monthRepairCount: number
   available: number
   cost: number
+  targetAttempted?: boolean
 }): RepairEligibility {
   if (!p.target) return { ok: false, reason: 'not-broken' }
+  if (p.targetAttempted) return { ok: false, reason: 'attempted' }
   if (p.monthRepairCount >= 2) return { ok: false, reason: 'month-limit' }
   if (p.available < p.cost) return { ok: false, reason: 'no-points' }
   return { ok: true }
