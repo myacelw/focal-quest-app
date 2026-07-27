@@ -5,6 +5,7 @@ import {
   type SessionState,
 } from './session'
 import { playSfx, setMuted } from './sfx'
+import { dirForKey } from './key-map'
 import { startVosk, type VoskController } from '../speech/vosk'
 import { parseAnswer, type Direction } from '../speech/answer-mapping'
 import { saveSession, doCheckIn, getHomeStats, type CheckinResult } from '../data/checkin'
@@ -198,16 +199,10 @@ export function TrainingPage() {
   // 键盘作答：方向键最直观；1-4 / asdf / jkl; 按屏幕按钮顺序(上下左右)映射，方便单手/无语音时用。
   // 若将来出现数字视标，同样把 1-9 对到对应选项即可。
   useEffect(() => {
-    const KEY_MAP: Record<string, Direction> = {
-      arrowup: 'up', arrowdown: 'down', arrowleft: 'left', arrowright: 'right',
-      '1': 'up', '2': 'down', '3': 'left', '4': 'right',
-      a: 'up', s: 'down', d: 'left', f: 'right',
-      j: 'up', k: 'down', l: 'left', ';': 'right',
-    }
     const onKey = (e: KeyboardEvent) => {
       const t = e.target as HTMLElement | null
       if (t && /^(input|textarea|select)$/i.test(t.tagName)) return
-      const dir = KEY_MAP[e.key.toLowerCase()]
+      const dir = dirForKey(e.key)
       if (!dir) return
       e.preventDefault()
       handleAnswerRef.current(dir)

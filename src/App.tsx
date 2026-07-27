@@ -9,6 +9,7 @@ import { Onboarding } from './Onboarding'
 import { SettingsPage } from './SettingsPage'
 import { RewardsPage } from './rewards/RewardsPage'
 import { PrivacyPage } from './PrivacyPage'
+import { ChallengePage } from './challenge/ChallengePage'
 import { listPending } from './rewards/rewards-service'
 import { lsGet, lsSet } from './data/storage'
 import { startSync } from './sync/engine'
@@ -27,7 +28,7 @@ import { useT } from './i18n'
  */
 const AdminPage = lazy(() => import('./admin/AdminPage').then((m) => ({ default: m.AdminPage })))
 
-type View = 'home' | 'train' | 'stats' | 'badges' | 'calib' | 'speech' | 'settings' | 'rewards' | 'privacy' | 'admin'
+type View = 'home' | 'train' | 'stats' | 'badges' | 'calib' | 'speech' | 'settings' | 'rewards' | 'privacy' | 'admin' | 'challenge'
 
 const NAV: { key: View; icon: string }[] = [
   { key: 'home', icon: '🏠' },
@@ -90,6 +91,8 @@ export function App() {
         {view === 'speech' && <SpeechTestPage />}
         {view === 'rewards' && <RewardsPage />}
         {view === 'privacy' && <PrivacyPage onBack={() => setView('settings')} />}
+        {/* 挑战页不进 NAV：入口只在首页"当天已练完"时出现（spec §7），与 privacy 同构 */}
+        {view === 'challenge' && <ChallengePage onBack={() => setView('home')} />}
         {/* ErrorBoundary 不是装饰：React.lazy 的 import 一旦 reject（部署换了 hash 后旧
             chunk 404、Safari 回收缓存后离线首次点进来、SW 还没完成 precache），拒绝会在
             渲染期抛出，而全仓唯一的错误边界在 main.tsx 里包着整个 <App/>——那就变成

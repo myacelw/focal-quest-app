@@ -1,4 +1,4 @@
-type SfxKind = 'correct' | 'wrong' | 'flip' | 'finish' | 'checkin' | 'badge' | 'egg'
+type SfxKind = 'correct' | 'wrong' | 'flip' | 'finish' | 'checkin' | 'badge' | 'egg' | 'timeout'
 
 let ctx: AudioContext | null = null
 let muted = false
@@ -36,6 +36,12 @@ export function playSfx(kind: SfxKind): void {
       break
     case 'wrong':
       tone(300, 0, 0.22, 0.15)
+      break
+    // 超时 = 没跟上，不是答错（spec §4.5）：用一个短促下滑音，和 wrong 那记刺耳低频区分开，
+    // 好让孩子听得出自己是"看错了"还是"没跟上"——这正是结算页把两者分成两格的同一个理由。
+    case 'timeout':
+      tone(520, 0, 0.09, 0.13, 'triangle')
+      tone(390, 0.08, 0.12, 0.11, 'triangle')
       break
     case 'flip':
       tone(400, 0, 0.05, 0.17, 'square')
