@@ -1,4 +1,5 @@
 import { makeVoskStarter, type VoskController } from './vosk-single'
+import { makeUtteranceGate } from './utterance-gate'
 
 export type { VoskController }
 
@@ -72,9 +73,24 @@ async function startVoskUncached(opts: StartVoskOpts): Promise<VoskController> {
     JSON.stringify([...opts.grammar, '[unk]']),
   )
 
+  // 听 partial 而不只听 final，是这里最要紧的一处提速：
+  // final（'result'）要等 vosk 检测到说完后的静音（endpointing）才吐，实测约 1 秒；
+  // partial 在说话过程中就持续吐。本项目词表只有「上下左右」四个词，partial 里一旦出现
+  // 方向词答案就已确定，不存在"说完变成另一个词"，所以可以当场接受。
+  // 去重交给 utterance-gate（partial 会连吐同一句，不挡会一次发声连答好几题）。
+  const gate = makeUtteranceGate()
+
+  recognizer.on('partialresult', (message: any) => {
+    const partial: string = message?.result?.partial ?? ''
+    const accepted = gate.onPartial(partial)
+    if (accepted !== null) opts.onResult(accepted)
+  })
+
   recognizer.on('result', (message: any) => {
     const text: string = message?.result?.text ?? ''
-    if (text) opts.onResult(text)
+    // partial 已放行则返回 null（不重复答题）；partial 没识别出来时由 final 兜底
+    const accepted = gate.onFinal(text)
+    if (accepted !== null) opts.onResult(accepted)
   })
 
   const source = audioContext.createMediaStreamSource(stream)
