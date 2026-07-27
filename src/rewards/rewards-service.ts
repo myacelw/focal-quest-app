@@ -148,19 +148,26 @@ export async function doRepair(today: string): Promise<boolean> {
   const phantom: CheckinRow = {
     date: target.missedDate, streak: target.phantomStreak, dailyPoints: 0, totalPoints: target.phantomTotal,
   }
-  const id = await db.redemptions.add(redemption)
-  await db.checkins.put(phantom)
+  // 路径 B：今天已打卡被重置，把今天行接续（只改 streak，保留已赚 dailyPoints/totalPoints）。
+  // 事务外先算好，事务里只写、事务后统一 push。
+  let fixedToday: CheckinRow | undefined
+  const fixStreak = target.fixTodayStreak
+  if (fixStreak !== undefined) {
+    const todayRow = checkins.find((c) => c.date === today)
+    if (todayRow) fixedToday = { ...todayRow, streak: fixStreak }
+  }
+
+  // 一个事务包住"记消耗 + 补插打卡"。不包事务时中间失败会扣了分却没补上签——
+  // 补签价 500 之后这是真事故，而且账本对不上没法自动修（家长只能手动取消那条消耗）。
+  let id = 0
+  await db.transaction('rw', db.redemptions, db.checkins, async () => {
+    id = await db.redemptions.add(redemption)
+    await db.checkins.put(phantom)
+    if (fixedToday !== undefined) await db.checkins.put(fixedToday)
+  })
+
   pushRedemptions([{ ...redemption, id }])
   pushCheckin(phantom)
-
-  // 路径 B：今天已打卡被重置，把今天行接续（只改 streak，保留已赚 dailyPoints/totalPoints）
-  if (target.fixTodayStreak !== undefined) {
-    const todayRow = checkins.find((c) => c.date === today)
-    if (todayRow) {
-      const fixed: CheckinRow = { ...todayRow, streak: target.fixTodayStreak }
-      await db.checkins.put(fixed)
-      pushCheckin(fixed)
-    }
-  }
+  if (fixedToday !== undefined) pushCheckin(fixedToday)
   return true
 }
