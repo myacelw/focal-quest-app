@@ -1,8 +1,8 @@
 /**
  * 同步身份（uuid）与墓碑。设计见 spec §6.1。
  *
- * **7 类全部派生确定性 uuid**，形状 `kind:profileId:自然键`：
- *  - checkin 取 date、badge / monster 取 id（本地主键就是自然键）；
+ * **8 类全部派生确定性 uuid**，形状 `kind:profileId:自然键`：
+ *  - checkin 取 date、badge / monster / card 取 id（本地主键就是自然键）；
  *  - session / reward / redemption / exam 是 `++id` 自增表，**本地 id 不能当身份**
  *    （各设备独立编号），改用行内的写入时刻：startedAtMs+eye / createdAt / date+视力值。
  *
@@ -14,14 +14,14 @@
  * profileId 必须编进 uuid：服务端 records 主键是 `(user_id, uuid)`，profile_id 只是普通列，
  * 不带这一维，3c 多档案上线后两个孩子会互相覆盖（而 uuid 上云后极难改）。
  */
-export const KINDS = ['session', 'checkin', 'badge', 'monster', 'reward', 'redemption', 'exam'] as const
+export const KINDS = ['session', 'checkin', 'badge', 'monster', 'reward', 'redemption', 'exam', 'card'] as const
 export type SyncKind = (typeof KINDS)[number]
 
 /**
  * 本地主键**就是**自然键的三类。这个谓词只管两件事：payload 要不要剥 `id`、
  * 找本地行是 `table.get(key)` 还是 `where('uuid')`。**与"能否派生确定性 uuid"无关**（7 类都能）。
  */
-export const KEYED_KINDS = ['checkin', 'badge', 'monster'] as const
+export const KEYED_KINDS = ['checkin', 'badge', 'monster', 'card'] as const
 
 export function isKeyedKind(kind: SyncKind): boolean {
   return (KEYED_KINDS as readonly string[]).includes(kind)
@@ -43,6 +43,7 @@ export function naturalKeyOf(kind: SyncKind, row: Record<string, unknown>): stri
       return typeof row.date === 'string' && row.date.length > 0 ? row.date : null
     case 'badge':
     case 'monster':
+    case 'card':
       return typeof row.id === 'string' && row.id.length > 0 ? row.id : null
     case 'session': {
       const at = str(row.startedAtMs)

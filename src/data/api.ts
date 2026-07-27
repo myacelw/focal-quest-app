@@ -1,6 +1,6 @@
 import {
   db, type SessionRow, type CheckinRow, type BadgeRow, type MonsterRow,
-  type RewardRow, type RedemptionRow, type ExamRow,
+  type RewardRow, type RedemptionRow, type ExamRow, type CardRow,
 } from './db'
 import { recordUuid, toPayload, clampUpdatedAt, TOMBSTONE, type SyncKind } from '../sync/sync-keys'
 import { syncFieldsFor } from '../sync/migrate-fields'
@@ -31,6 +31,9 @@ const TABLE_OF: Record<SyncKind, string> = {
   reward: 'rewards',
   redemption: 'redemptions',
   exam: 'exams',
+  // ⚠️ TABLE_OF 有两份（这里与 src/sync/engine.ts）。漏这份会让入队时 db.table(undefined)
+  // 直接抛错；漏那份会让拉回来的记录静默写不进本地。加 kind 时两处都要改。
+  card: 'cards',
 }
 
 /**
@@ -75,7 +78,7 @@ export async function enqueuePut(
   }
 }
 
-/** 7 个 pushXxx 共用：入队后唤引擎；任何失败都静默——同步绝不打扰训练 */
+/** 8 个 pushXxx 共用：入队后唤引擎；任何失败都静默——同步绝不打扰训练 */
 function fire(kind: SyncKind, rows: readonly object[]): void {
   void enqueuePut(kind, rows)
     .then(() => {
@@ -107,6 +110,9 @@ export function pushRedemptions(rows: RedemptionRow[]): void {
 export function pushExams(rows: ExamRow[]): void {
   fire('exam', rows)
 }
+export function pushCards(rows: CardRow[]): void {
+  fire('card', rows)
+}
 
 /**
  * 验光记录删除 → 推墓碑。**这是对既有策略的有意变更**（spec §6.1）：
@@ -126,14 +132,14 @@ export function pushExamDeleted(uuid: string): void {
 }
 
 /**
- * 全量入队：注册 / 登录成功、以及恢复备份之后调用，把本地 7 表整体推一遍（存量上云）。
+ * 全量入队：注册 / 登录成功、以及恢复备份之后调用，把本地 8 张业务表整体推一遍（存量上云）。
  * 服务端按 uuid 幂等（`ON CONFLICT DO UPDATE … WHERE excluded.updated_at > records.updated_at`），
  * 重复推不产生重复行。
  * ⚠️ **不再在每次启动时调用**——启动只需增量同步（引擎负责），全量入队会白白刷满 outbox。
  */
 export async function pushAll(): Promise<void> {
   try {
-    const [sessions, checkins, badges, monsters, rewards, redemptions, exams] = await Promise.all([
+    const [sessions, checkins, badges, monsters, rewards, redemptions, exams, cards] = await Promise.all([
       db.sessions.toArray(),
       db.checkins.toArray(),
       db.badges.toArray(),
@@ -141,6 +147,7 @@ export async function pushAll(): Promise<void> {
       db.rewards.toArray(),
       db.redemptions.toArray(),
       db.exams.toArray(),
+      db.cards.toArray(),
     ])
     const keep = { keepUpdatedAt: true }
     await enqueuePut('session', sessions, keep)
@@ -150,6 +157,7 @@ export async function pushAll(): Promise<void> {
     await enqueuePut('reward', rewards, keep)
     await enqueuePut('redemption', redemptions, keep)
     await enqueuePut('exam', exams, keep)
+    await enqueuePut('card', cards, keep)
     if (!TEST_MODE && SYNC_ENABLED) kickSync()
   } catch {
     // 忽略：本地仍是可靠源

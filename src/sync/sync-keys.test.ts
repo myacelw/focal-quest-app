@@ -8,15 +8,28 @@ import {
 const P = 'default'
 
 describe('KINDS', () => {
-  it('恰为 7 类，且与服务端白名单逐字一致（functions/lib/sync-validate.ts）', () => {
-    expect([...KINDS].sort()).toEqual(['badge', 'checkin', 'exam', 'monster', 'redemption', 'reward', 'session'])
+  it('恰为 8 类，且与服务端白名单逐字一致（functions/lib/sync-validate.ts）', () => {
+    expect([...KINDS].sort()).toEqual(['badge', 'card', 'checkin', 'exam', 'monster', 'redemption', 'reward', 'session'])
   })
 })
 
-describe('KEYED_KINDS — 本地主键就是自然键的三类', () => {
-  it('只有 checkin / badge / monster；其余四类是 ++id 自增', () => {
-    expect([...KEYED_KINDS]).toEqual(['checkin', 'badge', 'monster'])
+describe('card 的同步身份', () => {
+  it('自然键取行内 id，uuid 形如 card:default:pony-7', () => {
+    expect(naturalKeyOf('card', { id: 'pony-7' })).toBe('pony-7')
+    expect(naturalKeyOf('card', {})).toBeNull()
+    expect(recordUuid('card', { id: 'pony-7' }, P)).toBe('card:default:pony-7')
+  })
+
+  it('uuid 能反解回卡 id（墓碑要靠它找本地行，所以卡 id 不许含冒号）', () => {
+    expect(naturalKeyFromUuid('card:default:pony-7')).toBe('pony-7')
+  })
+})
+
+describe('KEYED_KINDS — 本地主键就是自然键的四类', () => {
+  it('只有 checkin / badge / monster / card；其余四类是 ++id 自增', () => {
+    expect([...KEYED_KINDS]).toEqual(['checkin', 'badge', 'monster', 'card'])
     expect(isKeyedKind('checkin')).toBe(true)
+    expect(isKeyedKind('card')).toBe(true)
     expect(isKeyedKind('session')).toBe(false)
   })
 })

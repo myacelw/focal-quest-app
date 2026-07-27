@@ -9,13 +9,14 @@ export interface RemoteRecord {
 export type MergeOutcome = { op: 'put' } | { op: 'delete' } | { op: 'skip' }
 
 /**
- * badge / monster 的"首次达成时刻"字段——合并取更早者。
- * ⚠️ 这一条是本文件存在的理由：两台设备各自解开同一枚勋章时，LWW 会留下**较晚**的
- * unlockedAt，而勋章墙和统计都按"首次达成时刻"呈现，取晚的就是错的。
+ * badge / monster / card 的"首次达成（获得）时刻"字段——合并取更早者。
+ * ⚠️ 这一条是本文件存在的理由：两台设备各自解开同一枚勋章（或开出同一张卡）时，
+ * LWW 会留下**较晚**的时刻，而勋章墙、图鉴、卡册都按"首次"呈现，取晚的就是错的。
  */
 const EARLIEST_FIELD: Partial<Record<SyncKind, string>> = {
   badge: 'unlockedAt',
   monster: 'capturedAt',
+  card: 'obtainedAt',
 }
 
 function num(v: unknown): number | null {

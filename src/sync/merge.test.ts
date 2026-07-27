@@ -50,6 +50,18 @@ describe('mergeRecord — LWW（session / checkin / reward / redemption / exam�
   })
 })
 
+describe('mergeRecord — badge / monster / card 取最早', () => {
+  it('card 按 obtainedAt 取最早 —— "首次获得时刻"才是正确语义', () => {
+    const local = { id: 'pony-7', obtainedAt: T, updatedAt: T }
+    // 远端更早：覆盖本地
+    expect(mergeRecord('card', local, { payload: { id: 'pony-7', obtainedAt: T - 1 }, updatedAt: T + 5 }))
+      .toEqual({ op: 'put' })
+    // 远端更晚：即使 updatedAt 更大也保留本地（LWW 会在这里犯错）
+    expect(mergeRecord('card', local, { payload: { id: 'pony-7', obtainedAt: T + 1 }, updatedAt: T + 5 }))
+      .toEqual({ op: 'skip' })
+  })
+})
+
 describe('mergeRecord — badge / monster 取最早', () => {
   it('远端 unlockedAt 更早则覆盖（首次达成时刻才是正确语义）', () => {
     const local = { id: 'streak-7', unlockedAt: T, updatedAt: T }

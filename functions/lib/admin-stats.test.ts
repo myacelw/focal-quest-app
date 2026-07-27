@@ -4,6 +4,8 @@ import {
   fillDailyCounts, fillKindCounts, sumAbuse, shapeAdminStats,
   type RawAdminStats,
 } from './admin-stats'
+// 条数与顺序一律从 KINDS 派生，别再写死数字——加一种 kind 时写死的断言会在这里绊一跤
+import { KINDS } from './sync-validate'
 
 const DAY = 86_400_000
 // 固定一个时刻做基准：2026-07-26T10:30:00Z = 北京时间 18:30，同一天
@@ -119,15 +121,15 @@ describe('fillDailyCounts', () => {
 })
 
 describe('fillKindCounts', () => {
-  it('7 类记录一律出现且顺序固定（缺的补 0，界面不会时多时少地跳）', () => {
+  it('已知的每一类都出现且顺序 = KINDS（缺的补 0，界面不会时多时少地跳）', () => {
     const out = fillKindCounts([
       { kind: 'session', count: 5, recent: 2 },
       { kind: 'exam', count: 2, recent: 0 },
     ])
-    expect(out.map((k) => k.kind)).toEqual(
-      ['session', 'checkin', 'badge', 'monster', 'reward', 'redemption', 'exam'],
-    )
-    expect(out.map((k) => k.count)).toEqual([5, 0, 0, 0, 0, 0, 2])
+    expect(out.map((k) => k.kind)).toEqual([...KINDS])
+    // 只有传进去的两类有值，其余补 0；位置按 KINDS 的顺序
+    const expected = KINDS.map((k) => (k === 'session' ? 5 : k === 'exam' ? 2 : 0))
+    expect(out.map((k) => k.count)).toEqual(expected)
   })
 
   // spec §8 第一条指标要的是"各 kind 记录量**与增速**"：只给累计量看不出 checkin/badge/
@@ -141,14 +143,15 @@ describe('fillKindCounts', () => {
 
   it('未知 kind 追加在末尾（将来加了新表、后台先看见它，而不是静默丢掉）', () => {
     const out = fillKindCounts([{ kind: 'profile', count: 1, recent: 1 }])
-    expect(out.length).toBe(8)
-    expect(out[7]).toEqual({ kind: 'profile', count: 1, recent: 1 })
+    expect(out.length).toBe(KINDS.length + 1)
+    expect(out[KINDS.length]).toEqual({ kind: 'profile', count: 1, recent: 1 })
   })
 
-  it('空输入也给出 7 个 0（count 与 recent 都是 0）', () => {
+  it('空输入也给出每类一个 0（count 与 recent 都是 0）', () => {
     const out = fillKindCounts([])
-    expect(out.map((k) => k.count)).toEqual([0, 0, 0, 0, 0, 0, 0])
-    expect(out.map((k) => k.recent)).toEqual([0, 0, 0, 0, 0, 0, 0])
+    const zeros = KINDS.map(() => 0)
+    expect(out.map((k) => k.count)).toEqual(zeros)
+    expect(out.map((k) => k.recent)).toEqual(zeros)
   })
 })
 

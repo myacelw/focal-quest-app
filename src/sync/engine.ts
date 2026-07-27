@@ -94,6 +94,7 @@ const TABLE_OF: Record<SyncKind, string> = {
   reward: 'rewards',
   redemption: 'redemptions',
   exam: 'exams',
+  card: 'cards',
 }
 
 /** 本地主键：checkin 是 date，其余（badge/monster 的字符串 id、自增表的数字 id）都是 id */

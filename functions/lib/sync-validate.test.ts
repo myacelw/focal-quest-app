@@ -6,8 +6,8 @@ function rec(over: Record<string, unknown> = {}) {
 }
 
 describe('KINDS', () => {
-  it('覆盖全部 7 类业务记录（与 Dexie 七张表一一对应）', () => {
-    expect([...KINDS].sort()).toEqual(['badge', 'checkin', 'exam', 'monster', 'redemption', 'reward', 'session'])
+  it('覆盖全部 8 类业务记录（与 Dexie 八张业务表一一对应）', () => {
+    expect([...KINDS].sort()).toEqual(['badge', 'card', 'checkin', 'exam', 'monster', 'redemption', 'reward', 'session'])
   })
 })
 

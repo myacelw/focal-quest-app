@@ -1,7 +1,7 @@
 import { recordUuid, newUuid, type SyncKind } from './sync-keys'
 
 /**
- * 每类记录"行内既有的时间戳"字段。7 张表恰好都有一个——
+ * 每类记录"行内既有的时间戳"字段。8 张业务表恰好都有一个——
  * 这不是巧合而是运气好，正因如此迁移才能完全不依赖 Date.now()（见 syncFieldsFor 的注释）。
  */
 const TIME_FIELD: Record<SyncKind, string> = {
@@ -12,6 +12,7 @@ const TIME_FIELD: Record<SyncKind, string> = {
   reward: 'createdAt',
   redemption: 'createdAt',
   exam: 'date', // 同 checkin
+  card: 'obtainedAt',
 }
 
 /** 'YYYY-MM-DD' → UTC 零点毫秒；形状不对返回 null */

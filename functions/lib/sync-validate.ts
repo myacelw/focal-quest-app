@@ -2,7 +2,7 @@
  * push 批次校验。服务端不解析 payload 语义（分析在前端），只把关"形状与体量"，
  * 防止塞垃圾数据或用超大 payload 撑爆 D1 免费 5GB。
  */
-export const KINDS = ['session', 'checkin', 'badge', 'monster', 'reward', 'redemption', 'exam'] as const
+export const KINDS = ['session', 'checkin', 'badge', 'monster', 'reward', 'redemption', 'exam', 'card'] as const
 
 export interface PushRecord {
   uuid: string
