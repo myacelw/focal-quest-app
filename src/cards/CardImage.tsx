@@ -1,9 +1,10 @@
 import { useState } from 'react'
-import { cardSheetPos, cardSheetUrl, type CardDef } from './card-defs'
+import { SHEET_GRID, cardSheetPos, cardSheetUrl, type CardDef } from './card-defs'
 
 /**
- * 从 4×4 宫格图切一格显示（与 `BadgeCard` 同一套 background-position 约定：
- * backgroundSize 400%，位置按 col/3、row/3 的百分比）。
+ * 从宫格图切一格显示（与 `BadgeCard` 同一套 background-position 约定，
+ * 只是网格边长改成由 `SHEET_GRID` 派生：backgroundSize = N×100%，
+ * 位置按 col/(N-1)、row/(N-1) 的百分比）。
  *
  * 图缺失时回落到「渐变 + 编号」，两个理由：
  *  ① 正式卡图是后补的美术资源，图还没到之前功能要能完整开发与验收；
@@ -37,8 +38,8 @@ export function CardImage({ def, size }: { def: CardDef; size: number }) {
         style={{
           width: size, height: size, borderRadius: 12,
           backgroundImage: `url(${url})`,
-          backgroundSize: '400% 400%',
-          backgroundPosition: `${(col / 3) * 100}% ${(row / 3) * 100}%`,
+          backgroundSize: `${SHEET_GRID * 100}% ${SHEET_GRID * 100}%`,
+          backgroundPosition: `${(col / (SHEET_GRID - 1)) * 100}% ${(row / (SHEET_GRID - 1)) * 100}%`,
           backgroundRepeat: 'no-repeat',
         }}
       />

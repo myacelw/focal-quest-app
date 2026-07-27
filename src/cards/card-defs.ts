@@ -13,6 +13,22 @@ export type CardRarity = 'common' | 'rare' | 'shiny'
 /** 档位遍历顺序，喂给 pickWeighted；顺序固定才能确定性测试 */
 export const CARD_RARITY_ORDER: readonly CardRarity[] = ['common', 'rare', 'shiny']
 
+/**
+ * 宫格图的边长（格/行）。**改这一个常量就能换网格**，路径与坐标全是派生的。
+ *
+ * 取 2 而不是 4 是画质决定：Gemini 输出恒为 1024×1024，4×4 时单格只有 256px，
+ * 而卡片放大态是 240 CSS px、在 iPad 视网膜屏上等于 480 物理像素——要拉伸 1.9 倍，
+ * 明显发软。2×2 单格 512px 正好原生不拉伸。代价是每套要出 8 张图而不是 2 张。
+ *
+ * 附带好处：32 张按 4 张/图切开后，**最后一张图恰好是那 4 张闪卡**，
+ * 出图提示词能纯粹地写"这四张全是传说级"，不必在一张图里同时交代三个稀有度档次
+ * （4×4 那版就是因为混着写，符文被串到了别的格子上）。
+ */
+export const SHEET_GRID = 2
+
+/** 每张宫格图的格数 */
+export const PER_SHEET = SHEET_GRID * SHEET_GRID
+
 export interface CardDef {
   /** 主键，如 'pony-7'。**不得含冒号**（同步 uuid 反解依赖，见 sync-keys.naturalKeyFromUuid） */
   id: string
@@ -20,9 +36,9 @@ export interface CardDef {
   rarity: CardRarity
   /** 完整 i18n key，渲染时 t(nameKey)。缺失时 UI 回落到「套名 #编号」（见 CardAlbum.cardName） */
   nameKey: string
-  /** 在哪张宫格图：第 1-16 张在 sheet1，第 17-32 张在 sheet2 */
-  sheet: 1 | 2
-  /** 宫格图里的格子，0..15（行优先） */
+  /** 在第几张宫格图（1 起） */
+  sheet: number
+  /** 宫格图里的格子，0..PER_SHEET-1（行优先） */
   index: number
 }
 
@@ -32,8 +48,11 @@ export interface CardSet {
   cards: CardDef[]
 }
 
-/** 每套张数 = 两张 4×4 宫格图 */
+/** 每套张数。按 PER_SHEET 切开即每套的宫格图张数（32 / 4 = 8 张） */
 export const PER_SET = 32
+
+/** 每套的宫格图张数 */
+export const SHEETS_PER_SET = PER_SET / PER_SHEET
 
 /**
  * 稀有度按位置分配：第 1-18 张普通、19-28 稀有、29-32 闪卡。
@@ -56,8 +75,8 @@ function makeSet(setId: string): CardSet {
       rarity,
       // nameKey 补零（card.pony.07）纯为对齐好读；id 不补零（pony-7）是为了短
       nameKey: `card.${setId}.${String(n).padStart(2, '0')}`,
-      sheet: (n <= 16 ? 1 : 2) as 1 | 2,
-      index: (n - 1) % 16,
+      sheet: Math.floor(i / PER_SHEET) + 1,
+      index: i % PER_SHEET,
     }
   })
   return { id: setId, nameKey: `card.set.${setId}`, cards }
@@ -80,9 +99,9 @@ export function getCardDef(id: string): CardDef | undefined {
   return undefined
 }
 
-/** 宫格图里的行列（与 BadgeCard.spritePos 同一套 4×4 约定） */
+/** 宫格图里的行列（行优先，网格边长 = SHEET_GRID） */
 export function cardSheetPos(def: CardDef): { row: number; col: number } {
-  return { row: Math.floor(def.index / 4), col: def.index % 4 }
+  return { row: Math.floor(def.index / SHEET_GRID), col: def.index % SHEET_GRID }
 }
 
 /** 宫格图 URL。路径不写进数据，避免 64 条重复字符串 */
