@@ -14,6 +14,7 @@ import { ResetCard } from './reset/ResetCard'
 import { Collapsible, SectionHeader } from './settings/Collapsible'
 import { CloudSyncCard } from './sync/CloudSyncCard'
 import { getAccount } from './sync/account'
+import { goalPerRound, sanitizeDurationSec, GOAL_CORRECT_PER_MIN } from './training/goal'
 
 function readPxPerMm(): number | null {
   const v = lsGet('fzp.cssPxPerMm')
@@ -28,10 +29,10 @@ export function SettingsPage({ onReplayGuide, onOpenSpeech, onOpenCalib, onOpenP
     const v = lsGet('fzp.optotypeSizeMm')
     return v ? Number(v) : 1
   })
-  const [durationSec, setDurationSec] = useState(() => {
-    const v = lsGet('fzp.durationSec')
-    return v ? Number(v) : 180
-  })
+  // 时长口径只有一个出处：脏值（'abc'→NaN、'0'→0）在这里就被兜成默认 180，
+  // 否则下面的门槛提示会显示成"× NaN 分钟"，四个档位按钮也会全都不高亮。
+  // Number(null) 是 0，同样被 sanitize 兜成 180，与改动前行为一致。
+  const [durationSec, setDurationSec] = useState(() => sanitizeDurationSec(Number(lsGet('fzp.durationSec'))))
   const [flipperD, setFlipperD] = useState(() => {
     const v = lsGet('fzp.flipperD')
     return v ? Number(v) : 2
@@ -133,6 +134,12 @@ export function SettingsPage({ onReplayGuide, onOpenSpeech, onOpenCalib, onOpenP
               </button>
             ))}
           </div>
+          {/* 家长唯一能看到门槛数值的地方——孩子说"我练了但没打上卡"时得有处可查。
+              这行说的是「按当前档位一天要答对几个」，不是"今天实际的门槛"：若今天已练过更长
+              的一节，当天真实门槛按那节算（goalForDay，spec §3.5），首页第三态显示的才是它。 */}
+          <p style={{ flexBasis: '100%', margin: 0, fontSize: 12, color: 'var(--muted)', lineHeight: 1.6 }}>
+            {t('goal.settingsHint', { n: goalPerRound(durationSec), per: GOAL_CORRECT_PER_MIN, min: sanitizeDurationSec(durationSec) / 60 })}
+          </p>
         </div>
       </Collapsible>
 

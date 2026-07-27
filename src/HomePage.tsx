@@ -9,6 +9,7 @@ import { getAvailablePoints, getRepairStatus, doRepair, type RepairStatus } from
 import { useT } from './i18n'
 import { ChallengeCard } from './challenge/ChallengeCard'
 import { challengeUnlocked } from './challenge/challenge-unlock'
+import { readDurationSec } from './training/goal'
 
 export function HomePage({ onStart, onOpenDex, onOpenRewards, onOpenChallenge }: { onStart: () => void; onOpenDex: () => void; onOpenRewards: () => void; onOpenChallenge: () => void }) {
   const t = useT()
@@ -20,7 +21,8 @@ export function HomePage({ onStart, onOpenDex, onOpenRewards, onOpenChallenge }:
 
   useEffect(() => {
     const today = toDateStr(new Date())
-    getHomeStats(today).then(setStats)
+    // 传时长：首页要显示准确的当天门槛（"练了 12/30"）
+    getHomeStats(today, readDurationSec()).then(setStats)
     void getDexProgress().then(setDex)
     void getAvailablePoints().then(setAvailable)
     void getRepairStatus(today).then(setRepair)
@@ -48,9 +50,23 @@ export function HomePage({ onStart, onOpenDex, onOpenRewards, onOpenChallenge }:
           <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--muted)' }}>{t('home.tagline')}</div>
         </div>
 
-        {/* 今日状态 */}
-        <div className="fq-rise" style={{ fontSize: 15, fontWeight: 800, color: stats?.checkedInToday ? 'var(--mint)' : 'var(--ink)', animationDelay: '0.05s' }}>
-          {stats?.checkedInToday ? t('home.checkedToday') : t('home.notYetToday')}
+        {/* 今日状态三态：已完成 / 练了但没练够 / 一点没练。
+            第三态是训练完成门槛的配套——只说"今天还没练"会和统计页"今天 1 次"打架，
+            而 correctToday > 0 这个条件保证答对 0 个时不会出现"今天练了 0/30"这种怪话。 */}
+        <div
+          className="fq-rise"
+          style={{
+            fontSize: 15,
+            fontWeight: 800,
+            color: stats?.checkedInToday ? 'var(--mint)' : stats && stats.correctToday > 0 ? 'var(--coral)' : 'var(--ink)',
+            animationDelay: '0.05s',
+          }}
+        >
+          {stats?.checkedInToday
+            ? t('home.checkedToday')
+            : stats && stats.correctToday > 0
+              ? t('home.partial', { n: stats.correctToday, goal: stats.goalToday })
+              : t('home.notYetToday')}
         </div>
 
         {/* 主行动：开始训练——呼吸光晕聚焦，一眼可点、不等数据加载 */}
@@ -117,7 +133,7 @@ export function HomePage({ onStart, onOpenDex, onOpenRewards, onOpenChallenge }:
                 const ok = await doRepair(toDateStr(new Date()))
                 if (ok) {
                   const today = toDateStr(new Date())
-                  setStats(await getHomeStats(today))
+                  setStats(await getHomeStats(today, readDurationSec()))
                   setRepair(await getRepairStatus(today))
                   setAvailable(await getAvailablePoints())
                 }
@@ -132,6 +148,9 @@ export function HomePage({ onStart, onOpenDex, onOpenRewards, onOpenChallenge }:
         )}
         {repair && !repair.ok && repair.reason === 'month-limit' && (
           <div className="fq-card" style={{ color: 'var(--muted)', fontSize: 13 }}>{t('repair.monthLimit')}</div>
+        )}
+        {repair && !repair.ok && repair.reason === 'attempted' && (
+          <div className="fq-card" style={{ color: 'var(--muted)', fontSize: 13 }}>{t('repair.attempted')}</div>
         )}
 
         {/* 成绩小药丸：连续 / 累计 / 可用 */}
