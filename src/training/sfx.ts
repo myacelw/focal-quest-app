@@ -1,4 +1,4 @@
-type SfxKind = 'correct' | 'wrong' | 'flip' | 'finish' | 'checkin' | 'badge' | 'egg' | 'timeout'
+type SfxKind = 'correct' | 'wrong' | 'flip' | 'finish' | 'checkin' | 'badge' | 'egg' | 'timeout' | 'shiny'
 
 let ctx: AudioContext | null = null
 let muted = false
@@ -58,6 +58,12 @@ export function playSfx(kind: SfxKind): void {
       break
     case 'egg':
       ;[784, 1047, 1319, 1568, 2093].forEach((f, i) => tone(f, i * 0.08, 0.16))
+      break
+    // 闪卡 = 抽到最稀有的一档。**必须与普通/稀有的庆祝音区分开**：界面刚用金边分出的
+    // 稀有度，若耳朵里是同一个声音就等于没分（与 'timeout' 不能沿用 'wrong' 同一个理由）。
+    // 更高、更亮、多一段上冲。
+    case 'shiny':
+      ;[1047, 1568, 2093, 2637, 3136].forEach((f, i) => tone(f, i * 0.07, 0.24, 0.16, 'triangle'))
       break
   }
 }
