@@ -10,6 +10,9 @@ import { SettingsPage } from './SettingsPage'
 import { RewardsPage } from './rewards/RewardsPage'
 import { PrivacyPage } from './PrivacyPage'
 import { ChallengePage } from './challenge/ChallengePage'
+// 不用 React.lazy：管理页那处 lazy 是因为它低频且要离线可开；卡册是孩子高频入口，
+// 省下的首屏解析远不值那点点击延迟
+import { CardAlbum } from './cards/CardAlbum'
 import { listPending } from './rewards/rewards-service'
 import { lsGet, lsSet } from './data/storage'
 import { startSync } from './sync/engine'
@@ -28,8 +31,13 @@ import { useT } from './i18n'
  */
 const AdminPage = lazy(() => import('./admin/AdminPage').then((m) => ({ default: m.AdminPage })))
 
-type View = 'home' | 'train' | 'stats' | 'badges' | 'calib' | 'speech' | 'settings' | 'rewards' | 'privacy' | 'admin' | 'challenge'
+type View = 'home' | 'train' | 'stats' | 'badges' | 'calib' | 'speech' | 'settings' | 'rewards' | 'privacy' | 'admin' | 'challenge' | 'cards'
 
+/**
+ * 常驻导航恒 5 项。手机竖屏 560px 断点是按「5 项英文导航单行所需 531px」算出来的，
+ * 加第 6 项会让英文导航折行、破掉 3d 迭代刚修好的手机布局（src/nav.test.ts 锚着）。
+ * 卡册 / 挑战 / 隐私 / 管理后台一律走"页面 + 页内入口卡"。
+ */
 const NAV: { key: View; icon: string }[] = [
   { key: 'home', icon: '🏠' },
   { key: 'train', icon: '🎯' },
@@ -82,6 +90,7 @@ export function App() {
             onStart={() => setView('train')}
             onOpenDex={() => { setBadgeTab('dex'); setView('badges') }}
             onOpenRewards={() => setView('rewards')}
+            onOpenCards={() => setView('cards')}
             onOpenChallenge={() => setView('challenge')}
           />
         )}
@@ -96,6 +105,8 @@ export function App() {
         {view === 'privacy' && <PrivacyPage onBack={() => setView('settings')} />}
         {/* 挑战页不进 NAV：入口只在首页"当天已练完"时出现（spec §7），与 privacy 同构 */}
         {view === 'challenge' && <ChallengePage onBack={() => setView('home')} />}
+        {/* 卡册也不进 NAV：入口在首页与图鉴并排（spec §9.2） */}
+        {view === 'cards' && <CardAlbum />}
         {/* ErrorBoundary 不是装饰：React.lazy 的 import 一旦 reject（部署换了 hash 后旧
             chunk 404、Safari 回收缓存后离线首次点进来、SW 还没完成 precache），拒绝会在
             渲染期抛出，而全仓唯一的错误边界在 main.tsx 里包着整个 <App/>——那就变成

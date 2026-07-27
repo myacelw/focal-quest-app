@@ -76,6 +76,18 @@ const GOAL_KEYS = [
 /** 设置页「📐 视标与时长」折叠卡（spec §7.7：影响训练量的两项降低可达性） */
 const TRAINING_LOAD_KEYS = ['settings.trainingLoad', 'settings.trainingLoadHint']
 
+/**
+ * 卡册用到的界面文案键。
+ * 64 个卡名**刻意不在此列**——它们随正式卡图一起补，缺失时 CardAlbum.cardName
+ * 会回落到「套名 #编号」，所以不加也不会在界面上露出 'card.pony.07' 这种字样。
+ */
+const CARD_KEYS = [
+  'card.pageTitle', 'card.homeCard', 'card.open', 'card.complete', 'card.allComplete',
+  'card.notEnough', 'card.locked', 'card.progress', 'card.obtainedAt', 'card.got',
+  'card.rarity.common', 'card.rarity.rare', 'card.rarity.shiny',
+  'card.set.pony', 'card.set.deep',
+]
+
 describe('云同步与隐私政策文案', () => {
   it('云同步 44 个文案键在 zh 与 en 字典里都存在（漏一份就会在另一种语言下回退成中文）', () => {
     expect(SYNC_KEYS.length).toBe(44)
@@ -144,6 +156,14 @@ describe('云同步与隐私政策文案', () => {
   it('设置页折叠卡 2 个文案键在 zh 与 en 都存在', () => {
     expect(TRAINING_LOAD_KEYS.length).toBe(2)
     for (const k of TRAINING_LOAD_KEYS) {
+      expect(hasKey('zh', k), `zh 缺 ${k}`).toBe(true)
+      expect(hasKey('en', k), `en 缺 ${k}`).toBe(true)
+    }
+  })
+
+  it('卡册 15 个文案键在 zh 与 en 都存在（漏一份就会在另一种语言下回退成中文）', () => {
+    expect(CARD_KEYS.length).toBe(15)
+    for (const k of CARD_KEYS) {
       expect(hasKey('zh', k), `zh 缺 ${k}`).toBe(true)
       expect(hasKey('en', k), `en 缺 ${k}`).toBe(true)
     }

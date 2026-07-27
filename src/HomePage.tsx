@@ -5,16 +5,22 @@ import { SKINS, isSkinUnlocked, getSkinId, setSkinId, RANDOM_SKIN_ID } from './s
 import { useCountUp } from './useCountUp'
 import { asset } from './data/asset'
 import { getDexProgress, type DexProgress } from './dex/dex-service'
+import { getSetProgress, type SetProgress } from './cards/cards-service'
 import { getAvailablePoints, getRepairStatus, doRepair, type RepairStatus } from './rewards/rewards-service'
 import { useT } from './i18n'
 import { ChallengeCard } from './challenge/ChallengeCard'
+
+/** 卡册入口卡的两个合计数（跨全部卡套） */
+const cardOwned = (p: SetProgress[]): number => p.reduce((s, x) => s + x.owned, 0)
+const cardTotal = (p: SetProgress[]): number => p.reduce((s, x) => s + x.total, 0)
 import { challengeUnlocked } from './challenge/challenge-unlock'
 import { readDurationSec } from './training/goal'
 
-export function HomePage({ onStart, onOpenDex, onOpenRewards, onOpenChallenge }: { onStart: () => void; onOpenDex: () => void; onOpenRewards: () => void; onOpenChallenge: () => void }) {
+export function HomePage({ onStart, onOpenDex, onOpenRewards, onOpenCards, onOpenChallenge }: { onStart: () => void; onOpenDex: () => void; onOpenRewards: () => void; onOpenCards: () => void; onOpenChallenge: () => void }) {
   const t = useT()
   const [stats, setStats] = useState<HomeStats | null>(null)
   const [dex, setDex] = useState<DexProgress | null>(null)
+  const [cardProg, setCardProg] = useState<SetProgress[] | null>(null)
   const [available, setAvailable] = useState<number | null>(null)
   const [repair, setRepair] = useState<RepairStatus | null>(null)
   const [skinSel, setSkinSel] = useState(() => getSkinId())
@@ -24,6 +30,7 @@ export function HomePage({ onStart, onOpenDex, onOpenRewards, onOpenChallenge }:
     // 传时长：首页要显示准确的当天门槛（"练了 12/30"）
     getHomeStats(today, readDurationSec()).then(setStats)
     void getDexProgress().then(setDex)
+    void getSetProgress().then(setCardProg)
     void getAvailablePoints().then(setAvailable)
     void getRepairStatus(today).then(setRepair)
   }, [])
@@ -189,6 +196,23 @@ export function HomePage({ onStart, onOpenDex, onOpenRewards, onOpenChallenge }:
             <div style={{ fontSize: 14, fontWeight: 800, marginTop: 4 }}>{t('reward.homeCard').replace('🎁 ', '')}</div>
             <div style={{ fontSize: 12, color: 'var(--muted)', marginTop: 2, lineHeight: 1.4 }}>{t('reward.homeCardHint')}</div>
             <div style={{ fontSize: 13, color: 'var(--coral)', fontWeight: 800, marginTop: 8 }}>→</div>
+          </button>
+
+          {/* 卡册：与图鉴同级的第二个收藏系统（图鉴靠训练免费得，卡册花积分买）。
+              刻意不进 NAV——第 6 个导航项会让英文导航在手机竖屏折行（见 src/nav.test.ts）。 */}
+          <button
+            onClick={onOpenCards}
+            className="fq-card"
+            style={{ flex: '1 1 150px', textAlign: 'left', cursor: 'pointer', border: '1.5px solid var(--lemon)', background: 'linear-gradient(160deg, #fffbe8, #fff)', padding: 14 }}
+          >
+            <div style={{ fontSize: 20 }}>🃏</div>
+            <div style={{ fontSize: 14, fontWeight: 800, marginTop: 4 }}>{t('card.homeCard').replace('🃏 ', '')}</div>
+            <div style={{ fontSize: 12, color: 'var(--violet)', fontWeight: 700, fontVariantNumeric: 'tabular-nums', marginTop: 2 }}>
+              {cardProg ? `${cardOwned(cardProg)}/${cardTotal(cardProg)}` : '—'}
+            </div>
+            <div className="fq-bar" style={{ marginTop: 8 }}>
+              <i style={{ width: `${cardProg ? Math.round((cardOwned(cardProg) / cardTotal(cardProg)) * 100) : 0}%` }} />
+            </div>
           </button>
         </div>
 
