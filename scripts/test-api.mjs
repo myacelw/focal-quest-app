@@ -157,6 +157,18 @@ check('旧数据没有覆盖新数据', ck2?.payload?.streak === 99, JSON.string
 r = await api('/api/sync/push', { method: 'POST', token: token1, body: { records: [rec('exam-abc', 'exam', { _deleted: true }, Date.now())] } })
 check('墓碑记录可推送', r.status === 200, `实际 ${r.status}`)
 
+// card 是 v7 新增的第 8 类。服务端 kind 白名单是**整批全或无**，所以这两条不只验"能存下"，
+// 更是验"card 已经进了 functions/lib/sync-validate.ts 的 KINDS"——漏了的话，孩子那台设备
+// 只要开过一包卡，整批 push 就 400，而 400 被判永久错误，连训练记录一起上不去。
+r = await api('/api/sync/push', {
+  method: 'POST', token: token1,
+  body: { records: [rec('card:default:pony-7', 'card', { id: 'pony-7', obtainedAt: t0 }, t0)] },
+})
+check('推送 card 记录被接受（第 8 类 kind 已进服务端白名单）', r.status === 200 && r.json?.accepted === 1, `实际 ${r.status} ${JSON.stringify(r.json)}`)
+r = await api('/api/sync/pull?since=0', { token: token1 })
+const cardRec = r.json?.records?.find((x) => x.uuid === 'card:default:pony-7')
+check('拉回来的 card 记录 kind 与 payload 原样保留', cardRec?.kind === 'card' && cardRec?.payload?.id === 'pony-7', JSON.stringify(cardRec))
+
 // 账号隔离
 r = await api('/api/sync/pull?since=0', { token: token2 })
 check('另一个账号拉不到别人的记录（数据隔离）', r.json?.records?.length === 0, JSON.stringify(r.json))
@@ -204,9 +216,9 @@ const st = r.json
 check('管理员可读统计', r.status === 200, `实际 ${r.status} ${JSON.stringify(r.json)}`)
 check('响应含总量三项', typeof st?.totals?.users === 'number' && st.totals.users >= 3
   && typeof st?.totals?.records === 'number' && typeof st?.totals?.tokens === 'number', JSON.stringify(st?.totals))
-check('kinds 覆盖 7 类记录（缺的补 0，界面不会时多时少）',
-  Array.isArray(st?.kinds) && st.kinds.length >= 7
-  && ['session', 'checkin', 'badge', 'monster', 'reward', 'redemption', 'exam']
+check('kinds 覆盖全部 8 类记录（缺的补 0，界面不会时多时少）',
+  Array.isArray(st?.kinds) && st.kinds.length >= 8
+  && ['session', 'checkin', 'badge', 'monster', 'reward', 'redemption', 'exam', 'card']
     .every((k) => st.kinds.some((x) => x.kind === k)),
   JSON.stringify(st?.kinds))
 // spec §8 要的是"各 kind 记录量**与增速**"：30 天曲线只覆盖 session，
