@@ -82,6 +82,7 @@ export function App() {
             onStart={() => setView('train')}
             onOpenDex={() => { setBadgeTab('dex'); setView('badges') }}
             onOpenRewards={() => setView('rewards')}
+            onOpenChallenge={() => setView('challenge')}
           />
         )}
         {view === 'train' && <TrainingPage />}

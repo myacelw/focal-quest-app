@@ -7,8 +7,10 @@ import { asset } from './data/asset'
 import { getDexProgress, type DexProgress } from './dex/dex-service'
 import { getAvailablePoints, getRepairStatus, doRepair, type RepairStatus } from './rewards/rewards-service'
 import { useT } from './i18n'
+import { ChallengeCard } from './challenge/ChallengeCard'
+import { challengeUnlocked } from './challenge/challenge-unlock'
 
-export function HomePage({ onStart, onOpenDex, onOpenRewards }: { onStart: () => void; onOpenDex: () => void; onOpenRewards: () => void }) {
+export function HomePage({ onStart, onOpenDex, onOpenRewards, onOpenChallenge }: { onStart: () => void; onOpenDex: () => void; onOpenRewards: () => void; onOpenChallenge: () => void }) {
   const t = useT()
   const [stats, setStats] = useState<HomeStats | null>(null)
   const [dex, setDex] = useState<DexProgress | null>(null)
@@ -138,6 +140,9 @@ export function HomePage({ onStart, onOpenDex, onOpenRewards }: { onStart: () =>
           <StatPill emoji="⭐" value={pointsN} label={t('reward.total')} tint="var(--violet)" />
           <StatPill emoji="💎" value={available ?? '—'} label={t('reward.available')} tint="var(--mint)" />
         </div>
+
+        {/* 限时挑战入口：只在当天已完成训练时出现（spec §7），未解锁则整卡不渲染 */}
+        {challengeUnlocked(stats) && <ChallengeCard onOpen={onOpenChallenge} />}
 
         {/* 入口：图鉴 | 奖励（两列，省纵向空间） */}
         <div className="fq-rise" style={{ display: 'flex', flexWrap: 'wrap', gap: 12, animationDelay: '0.16s' }}>
