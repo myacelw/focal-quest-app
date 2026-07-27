@@ -6,6 +6,7 @@ import {
 } from './session'
 import { playSfx, setMuted } from './sfx'
 import { dirForKey } from './key-map'
+import { readDurationSec, shortfall } from './goal'
 import { startVosk, type VoskController } from '../speech/vosk'
 import { parseAnswer, type Direction } from '../speech/answer-mapping'
 import { saveSession, doCheckIn, getHomeStats, type CheckinResult } from '../data/checkin'
@@ -21,7 +22,6 @@ import { captureMonster, captureDailyOnCheckin, getOwnedReserveIdsByWorld } from
 import type { MonsterDef, World, Rarity } from '../dex/monster-defs'
 import { MonsterImage } from '../dex/MonsterImage'
 
-const DURATION_SEC = 180
 const TRANSITION_MS = 900
 const VOSK_MODEL_URL = asset('/models/vosk-model-small-cn-0.22.tar.gz')
 const VOSK_GRAMMAR = ['上 下 左 右']
@@ -39,18 +39,13 @@ function readPxPerMm(): number | null {
   return v ? Number(v) : null
 }
 
-function readDurationSec(): number {
-  const v = lsGet('fzp.durationSec')
-  return v ? Number(v) : DURATION_SEC
-}
-
 // 翻拍过渡时长（ms）：给孩子留出物理翻拍的时间，设置页可调（快/适中/慢）
 function readFlipMs(): number {
   const v = lsGet('fzp.flipMs')
   return v ? Number(v) : TRANSITION_MS
 }
 
-export function TrainingPage() {
+export function TrainingPage({ onHome }: { onHome: () => void }) {
   const [muted, setMutedState] = useState(false)
   const [session, setSession] = useState<SessionState>(() => createSession('left', readDurationSec()))
   const [checkin, setCheckin] = useState<CheckinResult | null>(null)
@@ -76,6 +71,16 @@ export function TrainingPage() {
   const sessionRef = useRef(session)
   const voskRef = useRef<VoskController | null>(null)
   const savedRef = useRef(false)
+  /**
+   * 本轮训练的日期，在**左眼节开始时**算一次，左右两节与打卡全都用它。
+   *
+   * 原实现 saveSession / doCheckIn 各自现算 toDateStr(new Date())，一轮跨零点时左眼节
+   * 落到昨天、右眼节落到今天，correctToday 只剩右眼那一节（3 分钟档大概率 20-40 个，
+   * 而门槛是整次的 30）。加门槛后这会让整轮判 below-goal，而昨天同样没写打卡行
+   * （doCheckIn 从未在零点前被调用）→ **两天都没打卡、连续天数直接断**，孩子却真练满了 6 分钟。
+   * 代价（可接受）：23:50 开始的一轮整体记到前一天。
+   */
+  const roundDateRef = useRef(toDateStr(new Date()))
   const sizeMmRef = useRef(1)
   const seqRef = useRef(0)
   const targetShownAtRef = useRef(0)
@@ -124,7 +129,7 @@ export function TrainingPage() {
     savedRef.current = true
     playSfx('finish')
     void saveSession({
-      date: toDateStr(new Date()),
+      date: roundDateRef.current,
       startedAtMs: Date.now() - session.elapsedSec * 1000,
       eye: session.eye,
       answered: session.answered,
@@ -214,6 +219,8 @@ export function TrainingPage() {
   function beginSession() {
     // 立即出视标（触控就能玩），vosk 后台异步加载——不让用户干等 42MB 模型
     savedRef.current = false
+    // 左眼节 = 一轮的开始：此刻定下本轮日期（换右眼时不刷新，否则又会跨零点裂成两天）
+    if (sessionRef.current.eye === 'left') roundDateRef.current = toDateStr(new Date())
     sumReactionRef.current = 0
     reactionCountRef.current = 0
     setPaused(false)
@@ -246,29 +253,80 @@ export function TrainingPage() {
     if (session.eye === 'left') {
       savedRef.current = false
       setSession(createSession('right', readDurationSec()))
-    } else {
-      const todayStr = toDateStr(new Date())
-      const result = await doCheckIn(todayStr)
-      const unlocked = await syncBadges(Date.now())
-      // 保底捕获：当天首次完成训练打卡时必得 1 只新怪兽
-      let dailyCaptured: MonsterDef | null = null
-      if (!result.alreadyCheckedIn) {
-        dailyCaptured = await captureDailyOnCheckin(false, todayStr, Date.now())
-        if (dailyCaptured) {
-          setCapturedThisSession((arr) => [...arr, dailyCaptured!])
-          if (dailyCaptured.rarity !== 'common') {
-            setCapturedByWorld((prev) => ({ ...prev, [dailyCaptured!.world]: [...prev[dailyCaptured!.world], dailyCaptured!.id] }))
-          }
+      return
+    }
+    const result = await doCheckIn(roundDateRef.current, session.durationSec)
+
+    // 勋章必须在分流**之前**判定：它衡量的是 sessions 的跨天累计成果，
+    // 与"今天算不算完成"无关。挪到分流之后 = 不达标日的勋章被推迟到下次打卡，
+    // unlockedAt 从此失真（CLAUDE.md：勋章/怪兽取最早，首次达成时刻才是正确语义）。
+    const unlocked = await syncBadges(Date.now())
+    setNewBadges(unlocked)
+
+    if (result.outcome === 'below-goal') {
+      // 今天答对太少 = 今天不算完成：不打卡、不加分、不发保底怪、不算皮肤解锁、
+      // 不放完成音（'finish' 在节结束时已经响过了）。只有勋章这个"累计事实"可以响。
+      setNewSkins([])
+      if (unlocked.length > 0) playSfx('badge')
+      setCheckin(result)
+      return
+    }
+
+    // 保底捕获：当天首次完成训练打卡时必得 1 只新怪兽
+    let dailyCaptured: MonsterDef | null = null
+    if (result.outcome === 'checked-in') {
+      dailyCaptured = await captureDailyOnCheckin(false, roundDateRef.current, Date.now())
+      if (dailyCaptured) {
+        setCapturedThisSession((arr) => [...arr, dailyCaptured!])
+        if (dailyCaptured.rarity !== 'common') {
+          setCapturedByWorld((prev) => ({ ...prev, [dailyCaptured!.world]: [...prev[dailyCaptured!.world], dailyCaptured!.id] }))
         }
       }
-      const prevPoints = result.alreadyCheckedIn ? result.totalPoints : result.totalPoints - result.dailyPoints
-      const skins = newlyUnlockedSkins(prevPoints, result.totalPoints)
-      // 任何"额外收获"都用 badge 音效，纯打卡用 checkin
-      playSfx(unlocked.length > 0 || skins.length > 0 || dailyCaptured ? 'badge' : 'checkin')
-      setNewBadges(unlocked)
-      setNewSkins(skins)
-      setCheckin(result)
     }
+    const prevPoints = result.outcome === 'already' ? result.totalPoints : result.totalPoints - result.dailyPoints
+    const skins = newlyUnlockedSkins(prevPoints, result.totalPoints)
+    // 任何"额外收获"都用 badge 音效，纯打卡用 checkin
+    playSfx(unlocked.length > 0 || skins.length > 0 || dailyCaptured ? 'badge' : 'checkin')
+    setNewSkins(skins)
+    setCheckin(result)
+  }
+
+  /**
+   * 「再练一轮」：不达标后就地重来。
+   *
+   * 刻意**不用** `key` 让组件重挂载——卸载会跑 `voskRef.current?.stop()`，
+   * 而 vosk-single 的 stop() 清空单例，重挂载就要重拉 3 个模型分片、拼 60MB Blob、
+   * 让 worker 重新解压模型。那正是 commit 89743b6「iPad 换眼时白屏退出——vosk 模型
+   * 并发加载把内存打爆」修过的路径。组件不卸载还顺带让语音一直在线，点完立刻能练。
+   *
+   * 代价是所有跨轮次状态都得手工复位，漏一个的后果都很隐蔽：
+   *  - savedRef 不复位 → 新一轮的 session 根本不落库（finished effect 直接 return）
+   *  - sumReactionRef/reactionCountRef 不复位 → 上一轮的反应样本混进 avgReactionMs，污染周报趋势
+   *  - checkin 不复位 → 一进 finished 就被结算页抢先渲染成旧结果
+   *  - capturedThisSession 不复位 → 上一轮的怪兽会在新一轮结算页再开箱一次
+   * 这份清单由 src/training/goal-gate.test.ts 逐条锚定。
+   *
+   * 刻意**不**复位的：capturedByWorld（已拥有的储备怪，跨轮有效）、randomSkinId
+   * （本次进页已挑定的皮肤，重掷会与 totalPoints 加载竞态）、totalPoints（只读缓存）、
+   * muted / voskStatus / voskRef（语音与静音跨轮保持）。
+   */
+  function restartRound() {
+    savedRef.current = false
+    seqRef.current = 0
+    targetShownAtRef.current = 0
+    sumReactionRef.current = 0
+    reactionCountRef.current = 0
+    setCheckin(null)
+    setNewBadges([])
+    setNewSkins([])
+    setCapturedThisSession([])
+    setLastAnswer(null)
+    setComboFx(null)
+    setEggCaptureFx(null)
+    setPaused(false)
+    // 新一轮重新定日期（上一轮可能是零点前开始的）
+    roundDateRef.current = toDateStr(new Date())
+    setSession(createSession('left', readDurationSec()))
   }
 
   if (pxPerMm === null) {
@@ -283,19 +341,73 @@ export function TrainingPage() {
     )
   }
 
+  // 不达标结算页。插在 if (checkin) 之前，靠 outcome 分流（同一个 state，天然互斥）。
+  if (checkin && checkin.outcome === 'below-goal') {
+    const need = shortfall(checkin.correctToday, checkin.goal)
+    const pct = checkin.goal > 0 ? Math.min(1, checkin.correctToday / checkin.goal) : 1
+    return (
+      <div style={{ maxWidth: 420, margin: '0 auto', padding: '40px 20px', textAlign: 'center' }}>
+        <div style={{ fontSize: 54 }}>😅</div>
+        <h2 style={{ fontSize: 22, fontWeight: 800, marginTop: 6 }}>{t('goal.title')}</h2>
+        <div className="fq-card" style={{ marginTop: 18 }}>
+          <div style={{ fontSize: 22, fontWeight: 800, color: 'var(--violet)', fontVariantNumeric: 'tabular-nums' }}>
+            {t('goal.progress', { n: checkin.correctToday, goal: checkin.goal })}
+          </div>
+          <div className="fq-bar" style={{ marginTop: 10 }}><i style={{ width: `${pct * 100}%` }} /></div>
+          <p style={{ fontSize: 14, fontWeight: 700, marginTop: 12 }}>{t('goal.short', { n: need })}</p>
+        </div>
+        <p style={{ fontSize: 13, color: 'var(--muted)', marginTop: 12, lineHeight: 1.6 }}>{t('goal.why')}</p>
+        <p style={{ fontSize: 13, color: 'var(--muted)', marginTop: 6 }}>{t('goal.noCheckin')}</p>
+        {checkin.streak > 0 && (
+          <p style={{ fontSize: 13, color: 'var(--coral)', fontWeight: 700, marginTop: 8 }}>
+            {t('goal.streakWarn', { n: checkin.streak })}
+          </p>
+        )}
+        <p style={{ fontSize: 12, color: 'var(--muted)', marginTop: 8 }}>{t('goal.kept')}</p>
+        {newBadges.length > 0 && (
+          <div className="fq-card" style={{ marginTop: 14 }}>
+            <p style={{ fontSize: 13, fontWeight: 700 }}>{t('goal.badgeStill')}</p>
+            <div style={{ display: 'flex', gap: 10, justifyContent: 'center', flexWrap: 'wrap', marginTop: 8 }}>
+              {newBadges.map((b) => (
+                <span key={b.id} className="fq-chip">{b.emoji} {t(`badge.${b.id}`)}</span>
+              ))}
+            </div>
+          </div>
+        )}
+        {/* 彩蛋怪在答对 5 连的瞬间就已落库（与打卡无关），是真实收获，藏起来反而奇怪 */}
+        {capturedThisSession.length > 0 && (
+          <div className="fq-card" style={{ marginTop: 14 }}>
+            <p style={{ fontWeight: 700, marginBottom: 12 }}>{t('dex.openBox')}</p>
+            <div style={{ display: 'flex', gap: 14, justifyContent: 'center', flexWrap: 'wrap' }}>
+              {capturedThisSession.map((m, i) => (
+                <CapturedMonsterReveal key={`${m.id}-${i}`} def={m} delayMs={i * 500} />
+              ))}
+            </div>
+          </div>
+        )}
+        <button className="fq-cta coral" style={{ width: '100%', marginTop: 16 }} onClick={restartRound}>
+          {t('goal.retry')}
+        </button>
+        <button className="fq-btn" style={{ width: '100%', marginTop: 10 }} onClick={onHome}>
+          {t('goal.later')}
+        </button>
+      </div>
+    )
+  }
+
   if (checkin) {
     return (
       <div style={{ maxWidth: 420, margin: '0 auto', padding: '40px 20px', textAlign: 'center' }}>
-        <div style={{ fontSize: 54 }}>{checkin.alreadyCheckedIn ? '✓' : '🎉'}</div>
+        <div style={{ fontSize: 54 }}>{checkin.outcome === 'already' ? '✓' : '🎉'}</div>
         <h2 style={{ fontSize: 22, fontWeight: 800, marginTop: 6 }}>
-          {checkin.alreadyCheckedIn ? t('train.checkedAlready') : t('train.checkedSuccess')}
+          {checkin.outcome === 'already' ? t('train.checkedAlready') : t('train.checkedSuccess')}
         </h2>
         <div
           className="fq-card"
           style={{ marginTop: 18, background: 'linear-gradient(135deg,#ff8a5b,#ff5c86)', border: 'none', color: '#fff', boxShadow: 'var(--shadow-coral)' }}
         >
           <div style={{ fontSize: 22, fontWeight: 800 }}>{t('train.streakDays', { n: checkin.streak })}</div>
-          {!checkin.alreadyCheckedIn && <div style={{ fontSize: 14, marginTop: 8, opacity: 0.95 }}>{t('train.todayPoints', { n: checkin.dailyPoints })}</div>}
+          {checkin.outcome !== 'already' && <div style={{ fontSize: 14, marginTop: 8, opacity: 0.95 }}>{t('train.todayPoints', { n: checkin.dailyPoints })}</div>}
           <div style={{ fontSize: 14, marginTop: 6, opacity: 0.95 }}>{t('train.totalPoints', { n: checkin.totalPoints })}</div>
         </div>
         {newBadges.length > 0 && (
@@ -406,7 +518,7 @@ export function TrainingPage() {
           </div>
         </div>
         <button className="fq-cta coral" style={{ width: '100%', marginTop: 16 }} onClick={nextEyeOrFinish}>
-          {session.eye === 'left' ? t('train.nextEye') : t('train.finishCheckin')}
+          {session.eye === 'left' ? t('train.nextEye') : t('train.finishRound')}
         </button>
       </div>
     )

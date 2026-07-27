@@ -85,7 +85,9 @@ export function App() {
             onOpenChallenge={() => setView('challenge')}
           />
         )}
-        {view === 'train' && <TrainingPage />}
+        {/* onHome：不达标结算页的「回首页」次按钮。注意**不要**加 key——用重挂载来"重来"
+            会 stop 掉 vosk 再重启，正是换眼白屏那条内存尖峰路径（见 TrainingPage.restartRound） */}
+        {view === 'train' && <TrainingPage onHome={() => setView('home')} />}
         {view === 'stats' && <StatsPage />}
         {view === 'badges' && <BadgeWall initialTab={badgeTab} />}
         {view === 'calib' && <CalibrationPage />}
