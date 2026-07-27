@@ -80,43 +80,61 @@ export function SettingsPage({ onReplayGuide, onOpenSpeech, onOpenCalib, onOpenP
         <button className="fq-btn" onClick={onOpenCalib}>{pxPerMm !== null ? t('settings.recalib') : t('settings.goCalib')}</button>
       </div>
 
-      <div className="fq-card" style={{ marginTop: 14 }}>
-        <div className="fq-card-title">{t('settings.optotype')}</div>
-        {pxPerMm !== null ? (
-          <>
-            <div style={{ fontSize: 14 }}>
-              <b style={{ color: 'var(--violet)' }}>{sizeMm.toFixed(1)} mm</b>
-              <span style={{ color: 'var(--muted)' }}>{t('settings.acuity', { v: acuityFromHeightMm(sizeMm).toFixed(2) })}</span>
-            </div>
-            <input
-              type="range"
-              min={0.3}
-              max={2}
-              step={0.1}
-              value={sizeMm}
-              onChange={(e) => setSizeMm(Number(e.target.value))}
-              style={{ width: '100%', marginTop: 10, accentColor: 'var(--violet)' }}
-            />
-            <div style={{ marginTop: 12, display: 'grid', placeItems: 'center', minHeight: 56, color: 'var(--ink)' }}>
-              <TumblingE direction="up" heightPx={sizeMm * pxPerMm} />
-            </div>
-            <p style={{ fontSize: 12, color: 'var(--muted)', marginTop: 6 }}>{t('settings.optotypeHint')}</p>
-          </>
-        ) : (
-          <p style={{ fontSize: 13, color: 'var(--muted)' }}>{t('settings.optotypeNeedCalib')}</p>
-        )}
-      </div>
+      {/* 「影响训练量与难度」的两项收进折叠区（spec §7.7，用户 2026-07-27 拍板）。
+          ⚠️ 定性是**降低可达性，不是权限闸门**：孩子展开一样能改，这是已知且接受的。
+          为什么要折：训练完成门槛按时长**等比缩放**（医学口径不可动摇——固定门槛会惩罚
+          调节慢的孩子，而那正是最该练的），代价就是"把单眼时长点到 1 分 → 训练量与门槛
+          一起砍到 1/3"。「练完之后」改档追溯降低当天门槛那一半已由 goalForDay 堵死
+          （spec §3.5）；「练之前就调低」这一半门槛堵不住，只能靠可达性。视标大小同理
+          （调大 = 变简单，且它直接决定训练的医学有效性）。
+          只折这两项：标定首次必做（藏起来会让新用户卡住）、翻拍速度只改节奏观感、
+          拍子度数软件只记录不参与计算、皮肤是给孩子的奖励本该显眼——判据是
+          "改了会不会改变训练量或难度"。锚定见 src/settings/settings-fold.test.ts。
+          实现两个坑：①不传 defaultOpen（传 true 等于什么都没做）；
+          ②内层两块不再套 className="fq-card"（Collapsible 自身就是一张卡，套娃出双层圆角与内边距）。 */}
+      <Collapsible title={t('settings.trainingLoad')}>
+        <p style={{ margin: '0 0 14px', fontSize: 12, color: 'var(--muted)', lineHeight: 1.6 }}>
+          {t('settings.trainingLoadHint')}
+        </p>
 
-      <div className="fq-card" style={{ marginTop: 14, display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 8 }}>
-        <span style={{ fontSize: 14, fontWeight: 700 }}>{t('settings.duration')}</span>
-        <div className="fq-seg">
-          {[60, 120, 180, 300].map((sec) => (
-            <button key={sec} className={durationSec === sec ? 'on' : ''} onClick={() => setDurationSec(sec)}>
-              {sec / 60}{t('settings.minute')}
-            </button>
-          ))}
+        <div>
+          <div className="fq-card-title">{t('settings.optotype')}</div>
+          {pxPerMm !== null ? (
+            <>
+              <div style={{ fontSize: 14 }}>
+                <b style={{ color: 'var(--violet)' }}>{sizeMm.toFixed(1)} mm</b>
+                <span style={{ color: 'var(--muted)' }}>{t('settings.acuity', { v: acuityFromHeightMm(sizeMm).toFixed(2) })}</span>
+              </div>
+              <input
+                type="range"
+                min={0.3}
+                max={2}
+                step={0.1}
+                value={sizeMm}
+                onChange={(e) => setSizeMm(Number(e.target.value))}
+                style={{ width: '100%', marginTop: 10, accentColor: 'var(--violet)' }}
+              />
+              <div style={{ marginTop: 12, display: 'grid', placeItems: 'center', minHeight: 56, color: 'var(--ink)' }}>
+                <TumblingE direction="up" heightPx={sizeMm * pxPerMm} />
+              </div>
+              <p style={{ fontSize: 12, color: 'var(--muted)', marginTop: 6 }}>{t('settings.optotypeHint')}</p>
+            </>
+          ) : (
+            <p style={{ fontSize: 13, color: 'var(--muted)' }}>{t('settings.optotypeNeedCalib')}</p>
+          )}
         </div>
-      </div>
+
+        <div style={{ marginTop: 14, paddingTop: 14, borderTop: '1px solid var(--line)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 8 }}>
+          <span style={{ fontSize: 14, fontWeight: 700 }}>{t('settings.duration')}</span>
+          <div className="fq-seg">
+            {[60, 120, 180, 300].map((sec) => (
+              <button key={sec} className={durationSec === sec ? 'on' : ''} onClick={() => setDurationSec(sec)}>
+                {sec / 60}{t('settings.minute')}
+              </button>
+            ))}
+          </div>
+        </div>
+      </Collapsible>
 
       <div className="fq-card" style={{ marginTop: 14, display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 8 }}>
         <span style={{ fontSize: 14, fontWeight: 700 }}>{t('settings.flipSpeed')}</span>

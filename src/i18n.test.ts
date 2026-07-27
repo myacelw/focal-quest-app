@@ -73,6 +73,9 @@ const GOAL_KEYS = [
   'train.finishRound',
 ]
 
+/** 设置页「📐 视标与时长」折叠卡（spec §7.7：影响训练量的两项降低可达性） */
+const TRAINING_LOAD_KEYS = ['settings.trainingLoad', 'settings.trainingLoadHint']
+
 describe('云同步与隐私政策文案', () => {
   it('云同步 44 个文案键在 zh 与 en 字典里都存在（漏一份就会在另一种语言下回退成中文）', () => {
     expect(SYNC_KEYS.length).toBe(44)
@@ -136,5 +139,13 @@ describe('云同步与隐私政策文案', () => {
     // 旧的「完成并打卡 🎊」已被 train.finishRound 顶替，两份字典都不该再留着它
     expect(hasKey('zh', 'train.finishCheckin'), 'train.finishCheckin 应已删除').toBe(false)
     expect(hasKey('en', 'train.finishCheckin'), 'train.finishCheckin 应已删除').toBe(false)
+  })
+
+  it('设置页折叠卡 2 个文案键在 zh 与 en 都存在', () => {
+    expect(TRAINING_LOAD_KEYS.length).toBe(2)
+    for (const k of TRAINING_LOAD_KEYS) {
+      expect(hasKey('zh', k), `zh 缺 ${k}`).toBe(true)
+      expect(hasKey('en', k), `en 缺 ${k}`).toBe(true)
+    }
   })
 })

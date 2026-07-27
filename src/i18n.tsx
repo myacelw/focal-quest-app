@@ -191,6 +191,9 @@ const ZH: Dict = {
   'settings.calibTodo': '未标定——用银行卡校准一次，视标尺寸才准（先做这步）',
   'settings.recalib': '重新标定',
   'settings.goCalib': '去标定',
+  // 折叠卡：把「影响训练量与难度」的两项（视标大小 / 单眼时长）收起来，孩子不会随手碰到
+  'settings.trainingLoad': '📐 视标与时长（家长设置）',
+  'settings.trainingLoadHint': '这两项直接决定训练量与难度，配一次就好，平时不用打开',
   'settings.optotype': '👁️ 视标大小',
   'settings.acuity': '（≈ {v} 视力）',
   'settings.optotypeHint': '调到孩子透过负镜片要努力才看清的大小——太大没训练强度，太小易放弃（实测约 0.7mm）',
@@ -695,6 +698,8 @@ const EN: Dict = {
   'settings.calibTodo': 'Not calibrated — align a bank card once so sizes are right (do this first)',
   'settings.recalib': 'Recalibrate',
   'settings.goCalib': 'Calibrate',
+  'settings.trainingLoad': '📐 Optotype & duration (parents)',
+  'settings.trainingLoadHint': 'These two set the training load and difficulty — set once, no need to open day to day',
   'settings.optotype': '👁️ Optotype size',
   'settings.acuity': ' (≈ {v} 20/20 equiv.)',
   'settings.optotypeHint': "Set it to a size your child has to really focus to see through the minus lens — too big skips the training, too small leads to giving up (about 0.7mm works well for most kids).",
