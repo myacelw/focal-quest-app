@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest'
 import {
   MONSTER_DEFS, TOTAL_MONSTERS, monstersOfWorld, reserveMonstersOfWorld, getMonsterDef,
+  WORLDS, emptyByWorld, isWorld,
   type World, type Rarity,
 } from './monster-defs'
 // 直接引用皮肤池里的 name slug，验证现役 12 只 id 与之对齐
@@ -61,5 +62,33 @@ describe('MONSTER_DEFS', () => {
       const prefix = m.world === 'space' ? 'space.enemy.' : 'shrine.guardian.'
       expect(m.nameKey.startsWith(prefix)).toBe(true)
     }
+  })
+})
+
+describe('WORLDS —— 加世界只改这一个数组', () => {
+  it('三个世界，顺序固定（图鉴分组按它渲染）', () => {
+    expect([...WORLDS]).toEqual(['space', 'shrine', 'forest'])
+  })
+
+  it('emptyByWorld 为每个世界建同样的初值，且键恰为 WORLDS', () => {
+    const zero = emptyByWorld(() => 0)
+    expect(Object.keys(zero).sort()).toEqual([...WORLDS].sort())
+    expect(Object.values(zero)).toEqual(WORLDS.map(() => 0))
+  })
+
+  it('emptyByWorld 每个世界拿到独立实例，不是共享同一个引用', () => {
+    // 若写成 Object.fromEntries(WORLDS.map(w => [w, []]))，三个世界会共享同一个数组，
+    // 往一个世界 push 会串到另外两个
+    const lists = emptyByWorld<string[]>(() => [])
+    lists.space.push('x')
+    expect(lists.shrine).toEqual([])
+    expect(lists.forest).toEqual([])
+  })
+
+  it('isWorld 只认这三个（皮肤 id 里 plain / random 不是世界）', () => {
+    expect(isWorld('space')).toBe(true)
+    expect(isWorld('forest')).toBe(true)
+    expect(isWorld('plain')).toBe(false)
+    expect(isWorld('random')).toBe(false)
   })
 })

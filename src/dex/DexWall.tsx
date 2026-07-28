@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { monstersOfWorld, TOTAL_MONSTERS, type MonsterDef, type World, type Rarity } from './monster-defs'
+import { monstersOfWorld, TOTAL_MONSTERS, WORLDS, type MonsterDef, type Rarity } from './monster-defs'
 import { MonsterImage } from './MonsterImage'
 import { getOwnedMonsters } from './dex-service'
 import { toDateStr } from '../data/date-utils'
@@ -16,9 +16,6 @@ const RARITY_GLOW: Record<Rarity, string> = {
   rare: 'rgba(124,108,240,0.42)',
   epic: 'rgba(255,180,0,0.48)',
 }
-
-// 世界名（含 emoji）在 i18n 的 dex.world.* 里，不再单独存 icon，避免重复
-const WORLDS: { key: World }[] = [{ key: 'space' }, { key: 'shrine' }]
 
 export function DexWall() {
   const t = useT()
@@ -64,8 +61,8 @@ export function DexWall() {
         )}
       </div>
 
-      {/* 按世界分组 */}
-      {WORLDS.map(({ key }) => {
+      {/* 跳过还没有怪兽的世界：先加世界类型、后补数据时不会多出一个空分组 */}
+      {WORLDS.filter((key) => monstersOfWorld(key).length > 0).map((key) => {
         const list = monstersOfWorld(key)
         const ownedInWorld = list.filter((d) => capturedMap[d.id] !== undefined).length
         return (

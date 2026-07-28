@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import type { MonsterDef } from './monster-defs'
 
 /**
@@ -5,28 +6,61 @@ import type { MonsterDef } from './monster-defs'
  * - 普通静态图：<img objectFit:contain>
  * - 精灵条素材（sprite）：用 background 只取第 0 帧，避免整条 8 帧胶片被拉伸成连环画。
  * 父容器负责尺寸/圆角/裁剪；filter 用于未捕获剪影（brightness(0)）。
+ *
+ * 缺图时回落到「渐变 + 🐾」，两个理由：
+ *  ① 让 monster def 可以先于美术落地（否则新加的 def 在图鉴里全是破图图标）；
+ *  ② 线上万一某张图没进 SW 预缓存，也不该给孩子看破图。
+ * 回落刻意不用 '?'——那是"未捕获神秘格"的视觉，两者混淆会让人以为怪没捕到。
+ * sprite 分支用 background-image，onError 不会触发，所以两条分支都挂一个隐藏的 <img> 探针。
  */
 export function MonsterImage({ def, filter }: { def: MonsterDef; filter?: string }) {
-  if (def.sprite) {
+  const [failed, setFailed] = useState(false)
+
+  if (failed) {
     return (
       <div
         style={{
           width: '100%',
           height: '100%',
-          backgroundImage: `url(${def.img})`,
-          backgroundSize: `${def.sprite.frames * 100}% 100%`,
-          backgroundPosition: '0 0',
-          backgroundRepeat: 'no-repeat',
-          imageRendering: 'pixelated',
+          display: 'grid',
+          placeItems: 'center',
+          background: 'linear-gradient(135deg, #f1ecfb, #e7f3ff)',
+          fontSize: '2em',
           filter,
         }}
-      />
+      >
+        🐾
+      </div>
     )
   }
+
+  const probe = <img src={def.img} alt="" onError={() => setFailed(true)} style={{ display: 'none' }} />
+
+  if (def.sprite) {
+    return (
+      <>
+        {probe}
+        <div
+          style={{
+            width: '100%',
+            height: '100%',
+            backgroundImage: `url(${def.img})`,
+            backgroundSize: `${def.sprite.frames * 100}% 100%`,
+            backgroundPosition: '0 0',
+            backgroundRepeat: 'no-repeat',
+            imageRendering: 'pixelated',
+            filter,
+          }}
+        />
+      </>
+    )
+  }
+
   return (
     <img
       src={def.img}
       alt=""
+      onError={() => setFailed(true)}
       style={{ width: '100%', height: '100%', objectFit: 'contain', filter }}
     />
   )

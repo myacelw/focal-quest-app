@@ -1,5 +1,5 @@
 import { db, type MonsterRow } from '../data/db'
-import { MONSTER_DEFS, type MonsterDef, type World } from './monster-defs'
+import { MONSTER_DEFS, emptyByWorld, type MonsterDef, type World } from './monster-defs'
 import { pickCapture, shouldDailyCapture, canEggCapture, type CaptureSource } from './capture'
 import { pushMonsters } from '../data/api'
 import { toDateStr } from '../data/date-utils'
@@ -40,8 +40,8 @@ export interface DexProgress {
 export async function getDexProgress(): Promise<DexProgress> {
   const rows = await db.monsters.toArray()
   const owned = new Set(rows.map((r) => r.id))
-  const byWorld: Record<World, number> = { space: 0, shrine: 0 }
-  const byWorldTotal: Record<World, number> = { space: 0, shrine: 0 }
+  const byWorld = emptyByWorld(() => 0)
+  const byWorldTotal = emptyByWorld(() => 0)
   for (const def of MONSTER_DEFS) {
     byWorldTotal[def.world]++
     if (owned.has(def.id)) byWorld[def.world]++
@@ -53,7 +53,7 @@ export async function getDexProgress(): Promise<DexProgress> {
 export async function getOwnedReserveIdsByWorld(): Promise<Record<World, string[]>> {
   const rows = await db.monsters.toArray()
   const owned = new Set(rows.map((r) => r.id))
-  const byWorld: Record<World, string[]> = { space: [], shrine: [] }
+  const byWorld = emptyByWorld<string[]>(() => [])
   for (const def of MONSTER_DEFS) {
     if (def.rarity !== 'common' && owned.has(def.id)) {
       byWorld[def.world].push(def.id)

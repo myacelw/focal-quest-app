@@ -20,6 +20,7 @@ import { getSkin, getSkinId, isSkinUnlocked, newlyUnlockedSkins, pickRandomSkin,
 import type { Skin } from '../skins/types'
 import { captureMonster, captureDailyOnCheckin, getOwnedReserveIdsByWorld } from '../dex/dex-service'
 import type { MonsterDef, World, Rarity } from '../dex/monster-defs'
+import { emptyByWorld, isWorld } from '../dex/monster-defs'
 import { MonsterImage } from '../dex/MonsterImage'
 
 const TRANSITION_MS = 900
@@ -60,7 +61,7 @@ export function TrainingPage({ onHome }: { onHome: () => void }) {
   const [eggCaptureFx, setEggCaptureFx] = useState<{ key: number } | null>(null)
   const [capturedThisSession, setCapturedThisSession] = useState<MonsterDef[]>([])
   // 皮肤池联动：按世界分组的已捕获储备怪 id，传给 Stage 扩展轮换池
-  const [capturedByWorld, setCapturedByWorld] = useState<Record<World, string[]>>({ space: [], shrine: [] })
+  const [capturedByWorld, setCapturedByWorld] = useState<Record<World, string[]>>(() => emptyByWorld<string[]>(() => []))
   // 选“随机皮肤”时，本节临时挑定的皮肤（每节只解析一次，避免每次渲染重掷）
   const [randomSkinId, setRandomSkinId] = useState<string | null>(null)
 
@@ -558,7 +559,7 @@ export function TrainingPage({ onHome }: { onHome: () => void }) {
           phase={session.phase === 'transitioning' ? 'transitioning' : 'showing'}
           lastAnswer={lastAnswer}
           isEgg={session.isEgg}
-          capturedReserveIds={effectiveSkinId === 'space' ? capturedByWorld.space : effectiveSkinId === 'shrine' ? capturedByWorld.shrine : []}
+          capturedReserveIds={isWorld(effectiveSkinId) ? capturedByWorld[effectiveSkinId] : []}
         />
         {comboFx && (
           <div

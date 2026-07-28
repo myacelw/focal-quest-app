@@ -1,7 +1,29 @@
 import { asset } from '../data/asset'
 
-export type World = 'space' | 'shrine'
+export type World = 'space' | 'shrine' | 'forest'
 export type Rarity = 'common' | 'rare' | 'epic'
+
+/**
+ * 世界清单。**加世界只改这一个数组**——下游的分世界 Record 与图鉴分组渲染全部由它派生。
+ *
+ * 曾经散落 6 处 `{ space: …, shrine: … }` 字面量，其中 TrainingPage 那条
+ * `=== 'space' ? … : === 'shrine' ? … : []` 三元链带 `: []` 兜底，漏改不报错，
+ * 只会让新皮肤永远吃不到储备怪、静默失效。
+ */
+export const WORLDS: readonly World[] = ['space', 'shrine', 'forest']
+
+/**
+ * 按世界建一个 Record，每个世界一个**独立**初值。
+ * `make` 是工厂而不是直接传值：传值的话 `emptyByWorld([])` 会让三个世界共享同一个数组。
+ */
+export function emptyByWorld<T>(make: () => T): Record<World, T> {
+  return Object.fromEntries(WORLDS.map((w) => [w, make()])) as Record<World, T>
+}
+
+/** 皮肤 id 是否同时是一个世界名（plain / random 不是），供按 id 取分世界数据用 */
+export function isWorld(id: string): id is World {
+  return (WORLDS as readonly string[]).includes(id)
+}
 
 export interface MonsterDef {
   /** 主键，如 'space-ufo'、'shrine-golem' */
