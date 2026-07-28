@@ -3,11 +3,13 @@ import { lsGet, lsSet } from '../data/storage'
 import { PlainStage } from './PlainStage'
 import { SpaceStage } from './space/SpaceStage'
 import { ShrineStage } from './shrine/ShrineStage'
+import { ForestStage } from './forest/ForestStage'
 
 export const SKINS: Skin[] = [
   { id: 'plain', name: '朴素', Stage: PlainStage },
   { id: 'space', name: '太空射击', Stage: SpaceStage },
   { id: 'shrine', name: '神庙勇者', Stage: ShrineStage },
+  { id: 'forest', name: '魔法森林', Stage: ForestStage },
 ]
 
 const STORAGE_KEY = 'fzp.skinId'
@@ -33,6 +35,7 @@ export const SKIN_UNLOCK_COST: Record<string, number> = {
   plain: 0,
   space: 1000,   // ≈ 练几天解锁（第一个奖励皮肤）
   shrine: 2500,  // ≈ 练两周解锁（进阶皮肤，比太空更难得）
+  forest: 4000,  // ≈ 练三周解锁（最新的一套）
 }
 
 export function skinUnlockCost(id: string): number {

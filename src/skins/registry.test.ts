@@ -1,9 +1,10 @@
 import { describe, it, expect } from 'vitest'
 import { SKINS, getSkin, skinUnlockCost, isSkinUnlocked, newlyUnlockedSkins, pickRandomSkin } from './registry'
+import { WORLDS } from '../dex/monster-defs'
 
 describe('skin registry', () => {
-  it('has plain, space and shrine', () => {
-    expect(SKINS.map((s) => s.id)).toEqual(['plain', 'space', 'shrine'])
+  it('has plain, space, shrine and forest', () => {
+    expect(SKINS.map((s) => s.id)).toEqual(['plain', 'space', 'shrine', 'forest'])
   })
   it('getSkin returns the matching skin', () => {
     expect(getSkin('space').name).toBe('太空射击')
@@ -31,6 +32,13 @@ describe('皮肤积分解锁（门槛派生）', () => {
   it('未知皮肤视为免费解锁（安全兜底）', () => {
     expect(skinUnlockCost('nope')).toBe(0)
     expect(isSkinUnlocked('nope', 0)).toBe(true)
+  })
+  it('森林 4000 分档，边界严格 >=', () => {
+    expect(skinUnlockCost('forest')).toBe(4000)
+    expect(isSkinUnlocked('forest', 3999)).toBe(false)
+    expect(isSkinUnlocked('forest', 4000)).toBe(true)
+    // 分档：到 2500 只解锁到神庙，森林仍锁
+    expect(isSkinUnlocked('forest', 2500)).toBe(false)
   })
 })
 
@@ -64,5 +72,17 @@ describe('pickRandomSkin — 随机只在已解锁游戏皮肤里选', () => {
   it('太空+神庙都解锁(2500+) → 按 rand 在两者间选', () => {
     expect(pickRandomSkin(3000, 0)).toBe('space')
     expect(pickRandomSkin(3000, 0.99)).toBe('shrine')
+  })
+})
+
+describe('皮肤 id 与世界 id 必须同名', () => {
+  it('每个非 plain 的皮肤都对应一个世界', () => {
+    // TrainingPage 用 capturedByWorld[skinId] 取该皮肤的储备怪，这条是它成立的前提。
+    // 从前那里是 === 'space' ? … : === 'shrine' ? … : [] 的三元链，带 : [] 兜底，
+    // 加了皮肤却忘了加分支不会报错，只会让新皮肤永远吃不到储备怪、静默失效。
+    for (const s of SKINS) {
+      if (s.id === 'plain') continue
+      expect(WORLDS, `皮肤 ${s.id} 没有同名世界`).toContain(s.id)
+    }
   })
 })

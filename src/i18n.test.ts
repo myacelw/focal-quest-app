@@ -92,6 +92,23 @@ const CARD_NAME_KEYS = ['pony', 'deep'].flatMap((set) =>
   Array.from({ length: 32 }, (_, i) => `card.${set}.${String(i + 1).padStart(2, '0')}`),
 )
 
+/** 魔法森林皮肤 + 三个世界的新怪名 */
+const FOREST_UI_KEYS = ['skin.forest', 'dex.world.forest', 'forest.counter', 'forest.reweaving']
+
+const NEW_MONSTER_KEYS = [
+  ...['sprout', 'mushroom', 'firefly', 'acorn', 'fawn', 'bluebird',
+      'moss_golem', 'vine_serpent', 'owl_sage', 'crystal_stag', 'fox_spirit', 'petal_fairy', 'bark_treant',
+      'elder_tree', 'moon_deer', 'forest_king'].map((s) => `forest.spirit.${s}`),
+  ...['star_whale', 'ion_moth', 'drone_swarm', 'meteor_hound', 'plasma_ray', 'void_crab',
+      'satellite_owl', 'comet_fox', 'nebula_slug', 'radar_bat',
+      'black_hole', 'star_forge', 'cosmic_titan', 'solar_dragon', 'quantum_king', 'galaxy_serpent']
+      .map((s) => `space.enemy.${s}`),
+  ...['bone_archer', 'cursed_knight', 'swamp_hag', 'shadow_wolf', 'ember_moth', 'tomb_spider',
+      'rune_sentinel', 'frost_shade', 'grave_bat', 'lantern_ghost',
+      'bone_dragon', 'shadow_king', 'stone_titan', 'flame_phoenix', 'spirit_warden', 'ancient_guardian']
+      .map((s) => `shrine.guardian.${s}`),
+]
+
 describe('云同步与隐私政策文案', () => {
   it('云同步 44 个文案键在 zh 与 en 字典里都存在（漏一份就会在另一种语言下回退成中文）', () => {
     expect(SYNC_KEYS.length).toBe(44)
@@ -176,6 +193,22 @@ describe('云同步与隐私政策文案', () => {
   it('64 个卡名在 zh 与 en 都齐全（缺了只会静默回落成「套名 #编号」，不报错）', () => {
     expect(CARD_NAME_KEYS.length).toBe(64)
     for (const k of CARD_NAME_KEYS) {
+      expect(hasKey('zh', k), `zh 缺 ${k}`).toBe(true)
+      expect(hasKey('en', k), `en 缺 ${k}`).toBe(true)
+    }
+  })
+
+  it('森林皮肤 4 个界面键在 zh 与 en 都存在', () => {
+    expect(FOREST_UI_KEYS.length).toBe(4)
+    for (const k of FOREST_UI_KEYS) {
+      expect(hasKey('zh', k), `zh 缺 ${k}`).toBe(true)
+      expect(hasKey('en', k), `en 缺 ${k}`).toBe(true)
+    }
+  })
+
+  it('48 个新怪名在 zh 与 en 都齐全（缺了只会显示成 key 本身）', () => {
+    expect(NEW_MONSTER_KEYS.length).toBe(48)
+    for (const k of NEW_MONSTER_KEYS) {
       expect(hasKey('zh', k), `zh 缺 ${k}`).toBe(true)
       expect(hasKey('en', k), `en 缺 ${k}`).toBe(true)
     }
