@@ -67,7 +67,7 @@ const SHRINE_COMMON: MonsterDef[] = [
   shrine('scorpion', 'common', '/skins/shrine/scorpion.webp'),
 ]
 
-/** 储备 22 只：每世界 8 稀有 + 3 史诗，slug 取自素材文件名。哪 3 只当史诗按素材观感定。 */
+/** 储备两个世界合计 54 只（每世界 18 稀有 + 9 史诗），slug 取自素材文件名。哪些当史诗按素材观感定。 */
 const SPACE_RARE: MonsterDef[] = [
   space('comet_rider', 'rare', '/skins/space/reserve/comet_rider.webp'),
   space('cyber_wasp', 'rare', '/skins/space/reserve/cyber_wasp.webp'),

@@ -27,7 +27,7 @@ const BASE_ENEMIES: Enemy[] = [
   { kind: 'img', src: asset('/skins/space/darkring.webp'), name: 'darkring' },
 ]
 
-/** 储备敌池：由图鉴定义派生（rare+epic 共 11 只），按 id 排序保持稳定；
+/** 储备敌池：由图鉴定义派生（rare+epic 共 27 只），按 id 排序保持稳定；
  *  仅当孩子已捕获对应怪兽时，对应项才进入实际轮换池。 */
 const RESERVE_ENEMIES: Enemy[] = reserveMonstersOfWorld('space').map((m) => ({
   kind: 'img' as const,

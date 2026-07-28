@@ -4,9 +4,10 @@ import {
   WORLDS, emptyByWorld, isWorld,
   type World, type Rarity,
 } from './monster-defs'
-// 直接引用皮肤池里的 name slug，验证现役 12 只 id 与之对齐
+// 直接引用皮肤池里的 name slug，验证现役 18 只 id 与之对齐
 import { enemyForSeq } from '../skins/space/SpaceStage'
 import { guardianForSeq } from '../skins/shrine/ShrineStage'
+import { spiritForSeq } from '../skins/forest/ForestStage'
 
 describe('MONSTER_DEFS', () => {
   it('共 82 只（space/shrine 各 33 = 6 普 + 18 稀 + 9 史，forest 16）', () => {
@@ -43,7 +44,7 @@ describe('MONSTER_DEFS', () => {
     expect(reserveMonstersOfWorld('shrine')).toHaveLength(27)
   })
 
-  it('现役 12 只 id 与皮肤池 slug 对齐（space-enemy / shrine-skeleton 等）', () => {
+  it('现役 18 只 id 与皮肤池 slug 对齐（space-enemy / shrine-skeleton / forest-sprout 等）', () => {
     // SpaceStage 的 enemy.name slug 应都在 MONSTER_DEFS 里以 space- 前缀存在
     const spaceNames: string[] = []
     for (let i = 0; i < 6; i++) spaceNames.push(enemyForSeq(i).name)
@@ -54,6 +55,12 @@ describe('MONSTER_DEFS', () => {
     for (let i = 0; i < 6; i++) shrineNames.push(guardianForSeq(i).name)
     for (const slug of shrineNames) {
       expect(getMonsterDef(`shrine-${slug}`)).toBeDefined()
+    }
+    // ForestStage 的 spirit.name slug 应都在 MONSTER_DEFS 里以 forest- 前缀存在
+    const forestNames: string[] = []
+    for (let i = 0; i < 6; i++) forestNames.push(spiritForSeq(i).name)
+    for (const slug of forestNames) {
+      expect(getMonsterDef(`forest-${slug}`)).toBeDefined()
     }
   })
 

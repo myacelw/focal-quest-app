@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest'
 import { hasKey } from './i18n'
+import { MONSTER_DEFS } from './dex/monster-defs'
 
 /** 云同步卡片用到的全部文案键 */
 const SYNC_KEYS = [
@@ -95,19 +96,13 @@ const CARD_NAME_KEYS = ['pony', 'deep'].flatMap((set) =>
 /** 魔法森林皮肤 + 三个世界的新怪名 */
 const FOREST_UI_KEYS = ['skin.forest', 'dex.world.forest', 'forest.counter', 'forest.reweaving']
 
-const NEW_MONSTER_KEYS = [
-  ...['sprout', 'mushroom', 'firefly', 'acorn', 'fawn', 'bluebird',
-      'moss_golem', 'vine_serpent', 'owl_sage', 'crystal_stag', 'fox_spirit', 'petal_fairy', 'bark_treant',
-      'elder_tree', 'moon_deer', 'forest_king'].map((s) => `forest.spirit.${s}`),
-  ...['star_whale', 'ion_moth', 'drone_swarm', 'meteor_hound', 'plasma_ray', 'void_crab',
-      'satellite_owl', 'comet_fox', 'nebula_slug', 'radar_bat',
-      'black_hole', 'star_forge', 'cosmic_titan', 'solar_dragon', 'quantum_king', 'galaxy_serpent']
-      .map((s) => `space.enemy.${s}`),
-  ...['bone_archer', 'cursed_knight', 'swamp_hag', 'shadow_wolf', 'ember_moth', 'tomb_spider',
-      'rune_sentinel', 'frost_shade', 'grave_bat', 'lantern_ghost',
-      'bone_dragon', 'shadow_king', 'stone_titan', 'flame_phoenix', 'spirit_warden', 'ancient_guardian']
-      .map((s) => `shrine.guardian.${s}`),
-]
+/**
+ * 全部怪兽名派生自 MONSTER_DEFS 本身（而非手抄一份 slug 清单）——
+ * 手抄清单是快照式的：下次扩池忘了加 i18n 键，手抄清单里没有新 slug，
+ * 这条测试照样绿。派生写法让覆盖面自动跟随扩池，参见 src/sync/kinds-parity.test.ts
+ * 同类教训。
+ */
+const NEW_MONSTER_KEYS = MONSTER_DEFS.map((m) => m.nameKey)
 
 describe('云同步与隐私政策文案', () => {
   it('云同步 44 个文案键在 zh 与 en 字典里都存在（漏一份就会在另一种语言下回退成中文）', () => {
@@ -206,8 +201,8 @@ describe('云同步与隐私政策文案', () => {
     }
   })
 
-  it('48 个新怪名在 zh 与 en 都齐全（缺了只会显示成 key 本身）', () => {
-    expect(NEW_MONSTER_KEYS.length).toBe(48)
+  it('全部 82 个怪名在 zh 与 en 都齐全（缺了只会显示成 key 本身）', () => {
+    expect(NEW_MONSTER_KEYS.length).toBe(82)
     for (const k of NEW_MONSTER_KEYS) {
       expect(hasKey('zh', k), `zh 缺 ${k}`).toBe(true)
       expect(hasKey('en', k), `en 缺 ${k}`).toBe(true)

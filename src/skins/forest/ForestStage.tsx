@@ -55,10 +55,10 @@ export function ForestStage({ target, heightPx, phase, lastAnswer, isEgg, captur
     if (!lastAnswer) return
     setFx({ correct: lastAnswer.correct, key: lastAnswer.seq })
     if (lastAnswer.correct) {
-      setLeaves((n) => {
-        if (n + 1 >= 10) { setTrees((s) => s + 1); return 0 }
-        return n + 1
-      })
+      // 不在 updater 里嵌套 setState——StrictMode 下 updater 会被调两次，
+      // 嵌套的 setTrees 会跟着多跑一次，导致计数偶尔跳 2。
+      const next = leaves + 1
+      if (next >= 10) { setLeaves(0); setTrees((s) => s + 1) } else { setLeaves(next) }
     }
     const timer = window.setTimeout(() => setFx(null), 800)
     return () => window.clearTimeout(timer)

@@ -29,7 +29,7 @@ const BASE_GUARDIANS: Guardian[] = [
   { kind: 'img', src: asset('/skins/shrine/scorpion.webp'), name: 'scorpion' },
 ]
 
-/** 储备守护者池：由图鉴定义派生（rare+epic 共 11 只，全部为静态图），按 id 排序保持稳定；
+/** 储备守护者池：由图鉴定义派生（rare+epic 共 27 只，全部为静态图），按 id 排序保持稳定；
  *  仅当孩子已捕获对应怪兽时，对应项才进入实际轮换池。 */
 const RESERVE_GUARDIANS: Guardian[] = reserveMonstersOfWorld('shrine').map((m) => ({
   kind: 'img' as const,
@@ -64,10 +64,10 @@ export function ShrineStage({ target, heightPx, phase, lastAnswer, isEgg, captur
     if (!lastAnswer) return
     setFx({ correct: lastAnswer.correct, key: lastAnswer.seq })
     if (lastAnswer.correct) {
-      setSpirits((n) => {
-        if (n + 1 >= 10) { setShrines((s) => s + 1); return 0 }
-        return n + 1
-      })
+      // 不在 updater 里嵌套 setState——StrictMode 下 updater 会被调两次，
+      // 嵌套的 setShrines 会跟着多跑一次，导致计数偶尔跳 2。
+      const next = spirits + 1
+      if (next >= 10) { setSpirits(0); setShrines((s) => s + 1) } else { setSpirits(next) }
     }
     const timer = window.setTimeout(() => setFx(null), 800)
     return () => window.clearTimeout(timer)

@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import type { MonsterDef } from './monster-defs'
 
 /**
@@ -15,6 +15,10 @@ import type { MonsterDef } from './monster-defs'
  */
 export function MonsterImage({ def, filter }: { def: MonsterDef; filter?: string }) {
   const [failed, setFailed] = useState(false)
+
+  // 三个现有调用点都靠 key 或整体卸载隔开不同 def，够不到这个状态复用问题；
+  // 但若将来有调用点跨 def 复用同一实例，不复位会让一张缺图把之后所有怪都变成 🐾。
+  useEffect(() => setFailed(false), [def.img])
 
   if (failed) {
     return (
@@ -34,9 +38,9 @@ export function MonsterImage({ def, filter }: { def: MonsterDef; filter?: string
     )
   }
 
-  const probe = <img src={def.img} alt="" onError={() => setFailed(true)} style={{ display: 'none' }} />
-
   if (def.sprite) {
+    // sprite 分支用 background-image，onError 不会触发，所以挂一个隐藏的 <img> 探针。
+    const probe = <img src={def.img} alt="" onError={() => setFailed(true)} style={{ display: 'none' }} />
     return (
       <>
         {probe}
