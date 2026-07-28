@@ -53,9 +53,10 @@ describe('pickCapture', () => {
   })
 
   it('池空归一化：抽光所有普通+稀有后，保底 rand=0 也只能抽史诗', () => {
-    // 太空 17 只：6 普 + 8 稀 + 3 史；神庙同。把所有 common+rare 全占满
+    // space/shrine 各 33 只（6 普 + 18 稀 + 9 史）、forest 16 只（6 普 + 7 稀 + 3 史）；
+    // 把三个世界的 common+rare 全占满，只剩 21 只 epic 未拥有
     const owned: string[] = []
-    for (const w of ['space', 'shrine'] as const) {
+    for (const w of ['space', 'shrine', 'forest'] as const) {
       for (const m of monstersOfWorld(w)) {
         if (m.rarity !== 'epic') owned.push(m.id)
       }
@@ -79,13 +80,13 @@ describe('pickCapture', () => {
 
   it('池内均匀：细扫 rand 能抽到每一只（不再固定偏置到池尾）', () => {
     // 旧实现复用 rand 取池内下标，史诗只能抽到最后 1~2 只、稀有只能抽到中段；
-    // 细扫 rand 应能覆盖全部 34 只，否则说明池内映射有偏置。
+    // 细扫 rand 应能覆盖全部 82 只，否则说明池内映射有偏置。
     const seen = new Set<string>()
     for (let i = 0; i < 2000; i++) {
       const picked = pickCapture([], 'daily', i / 2000)
       if (picked) seen.add(picked.id)
     }
-    expect(seen.size).toBe(34)
+    expect(seen.size).toBe(82)
   })
 })
 

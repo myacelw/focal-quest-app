@@ -17,9 +17,9 @@ describe('dex-service 的分世界统计从 WORLDS 派生', () => {
     expect(Object.keys(r).sort()).toEqual([...WORLDS].sort())
   })
 
-  it('还没有 forest 怪时，forest 的计数是 0 而不是 undefined（空世界不能炸）', async () => {
+  it('还没捕获 forest 怪时 byWorld 是 0；byWorldTotal 派生自 MONSTER_DEFS，随扩池自动变成 16（不再硬编码 0）', async () => {
     const p = await getDexProgress()
     expect(p.byWorld.forest).toBe(0)
-    expect(p.byWorldTotal.forest).toBe(0)
+    expect(p.byWorldTotal.forest).toBe(16)
   })
 })

@@ -9,22 +9,22 @@ import { enemyForSeq } from '../skins/space/SpaceStage'
 import { guardianForSeq } from '../skins/shrine/ShrineStage'
 
 describe('MONSTER_DEFS', () => {
-  it('共 34 只（每世界 17 = 6 普 + 8 稀 + 3 史）', () => {
-    expect(TOTAL_MONSTERS).toBe(34)
-    expect(MONSTER_DEFS).toHaveLength(34)
+  it('共 82 只（space/shrine 各 33 = 6 普 + 18 稀 + 9 史，forest 16）', () => {
+    expect(TOTAL_MONSTERS).toBe(82)
+    expect(MONSTER_DEFS).toHaveLength(82)
   })
 
   it('id 唯一', () => {
-    expect(new Set(MONSTER_DEFS.map((m) => m.id)).size).toBe(34)
+    expect(new Set(MONSTER_DEFS.map((m) => m.id)).size).toBe(82)
   })
 
-  it('每世界 17 只且稀有度结构正确', () => {
+  it('space/shrine 各 33 只且稀有度结构正确', () => {
     for (const w of ['space', 'shrine'] as World[]) {
       const list = monstersOfWorld(w)
-      expect(list).toHaveLength(17)
+      expect(list).toHaveLength(33)
       expect(list.filter((m) => m.rarity === 'common')).toHaveLength(6)
-      expect(list.filter((m) => m.rarity === 'rare')).toHaveLength(8)
-      expect(list.filter((m) => m.rarity === 'epic')).toHaveLength(3)
+      expect(list.filter((m) => m.rarity === 'rare')).toHaveLength(18)
+      expect(list.filter((m) => m.rarity === 'epic')).toHaveLength(9)
     }
   })
 
@@ -38,9 +38,9 @@ describe('MONSTER_DEFS', () => {
     }
   })
 
-  it('reserveMonstersOfWorld 排除现役（rarity !== common）每世界 11 只', () => {
-    expect(reserveMonstersOfWorld('space')).toHaveLength(11)
-    expect(reserveMonstersOfWorld('shrine')).toHaveLength(11)
+  it('reserveMonstersOfWorld 排除现役（rarity !== common）每世界 27 只', () => {
+    expect(reserveMonstersOfWorld('space')).toHaveLength(27)
+    expect(reserveMonstersOfWorld('shrine')).toHaveLength(27)
   })
 
   it('现役 12 只 id 与皮肤池 slug 对齐（space-enemy / shrine-skeleton 等）', () => {
@@ -58,9 +58,58 @@ describe('MONSTER_DEFS', () => {
   })
 
   it('所有 monster 的 nameKey 都以 world 前缀开头', () => {
+    const PREFIX: Record<World, string> = {
+      space: 'space.enemy.',
+      shrine: 'shrine.guardian.',
+      forest: 'forest.spirit.',
+    }
     for (const m of MONSTER_DEFS) {
-      const prefix = m.world === 'space' ? 'space.enemy.' : 'shrine.guardian.'
-      expect(m.nameKey.startsWith(prefix)).toBe(true)
+      expect(m.nameKey.startsWith(PREFIX[m.world]), m.nameKey).toBe(true)
+    }
+  })
+})
+
+describe('扩池后的图鉴规模', () => {
+  it('总数 82；分世界 33 / 33 / 16', () => {
+    expect(TOTAL_MONSTERS).toBe(82)
+    expect(monstersOfWorld('space').length).toBe(33)
+    expect(monstersOfWorld('shrine').length).toBe(33)
+    expect(monstersOfWorld('forest').length).toBe(16)
+  })
+
+  it('稀有度分布：普通 18 / 稀有 43 / 史诗 21', () => {
+    const n = { common: 0, rare: 0, epic: 0 }
+    for (const m of MONSTER_DEFS) n[m.rarity]++
+    expect(n).toEqual({ common: 18, rare: 43, epic: 21 })
+  })
+
+  it('太空与神庙的新增怪全部非普通 —— 否则会造出训练里永不出现的怪', () => {
+    // 储备池筛的是 rarity !== 'common'，而 6 只 BASE 写死在 Stage 里：
+    // 给这两个世界加 common，它就既不在 BASE 也不在储备，只存在于图鉴。
+    expect(monstersOfWorld('space').filter((m) => m.rarity === 'common').length).toBe(6)
+    expect(monstersOfWorld('shrine').filter((m) => m.rarity === 'common').length).toBe(6)
+    expect(reserveMonstersOfWorld('space').length).toBe(27)
+    expect(reserveMonstersOfWorld('shrine').length).toBe(27)
+  })
+
+  it('森林 6 只普通进 BASE、10 只非普通进储备', () => {
+    expect(monstersOfWorld('forest').filter((m) => m.rarity === 'common').length).toBe(6)
+    expect(reserveMonstersOfWorld('forest').length).toBe(10)
+  })
+
+  it('id 全局唯一', () => {
+    const ids = MONSTER_DEFS.map((m) => m.id)
+    expect(new Set(ids).size).toBe(ids.length)
+  })
+
+  it('id 不含冒号 —— 同步 uuid 反解靠"自然键侧不含冒号"', () => {
+    for (const m of MONSTER_DEFS) expect(m.id.includes(':'), m.id).toBe(false)
+  })
+
+  it('每条 def 的 world 都在 WORLDS 里，且 id 以世界名开头', () => {
+    for (const m of MONSTER_DEFS) {
+      expect(WORLDS).toContain(m.world)
+      expect(m.id.startsWith(`${m.world}-`), m.id).toBe(true)
     }
   })
 })
