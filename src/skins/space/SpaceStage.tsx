@@ -4,6 +4,7 @@ import type { StageProps } from '../types'
 import { asset } from '../../data/asset'
 import { useT } from '../../i18n'
 import { reserveMonstersOfWorld } from '../../dex/monster-defs'
+import { buildRotationPool, pickForSeq } from '../rotation'
 
 /**
  * 太空射击皮肤（真素材版）：NASA 星云背景 + Unlucky Studio CC0 战机/敌舰/爆炸帧
@@ -35,18 +36,15 @@ const RESERVE_ENEMIES: Enemy[] = reserveMonstersOfWorld('space').map((m) => ({
   name: m.id.replace('space-', ''),
 }))
 
-/** 实际轮换池 = 基础池 + 已捕获的本世界储备怪 */
+/** 实际轮换池 = 基础池 + 已捕获的本世界储备怪（逻辑与神庙/森林共用，见 ../rotation） */
 export function buildEnemyPool(capturedReserveIds: string[] = []): Enemy[] {
-  const extra = RESERVE_ENEMIES.filter((e) => capturedReserveIds.includes(`space-${e.name}`))
-  return [...BASE_ENEMIES, ...extra]
+  return buildRotationPool(BASE_ENEMIES, RESERVE_ENEMIES, 'space', capturedReserveIds)
 }
 
 /** 第 seq 道视标（=已答题数）对应的敌人，循环轮换整个池。
  *  不传 capturedReserveIds 时回退基础池（向后兼容现有单测）。 */
 export function enemyForSeq(seq: number, capturedReserveIds?: string[]): Enemy {
-  const pool = buildEnemyPool(capturedReserveIds)
-  const n = pool.length
-  return pool[((seq % n) + n) % n]
+  return pickForSeq(buildEnemyPool(capturedReserveIds), seq)
 }
 
 export function SpaceStage({ target, heightPx, phase, lastAnswer, isEgg, capturedReserveIds }: StageProps) {

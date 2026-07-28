@@ -4,6 +4,7 @@ import type { StageProps } from '../types'
 import { asset } from '../../data/asset'
 import { useT } from '../../i18n'
 import { reserveMonstersOfWorld } from '../../dex/monster-defs'
+import { buildRotationPool, pickForSeq } from '../rotation'
 
 /**
  * 神庙勇者皮肤（塞尔达风，像素艺术）：古神庙里火焰骷髅守护者的核心符文（视标 E）指示弱点。
@@ -36,18 +37,15 @@ const RESERVE_GUARDIANS: Guardian[] = reserveMonstersOfWorld('shrine').map((m) =
   name: m.id.replace('shrine-', ''),
 }))
 
-/** 实际轮换池 = 基础池 + 已捕获的本世界储备怪 */
+/** 实际轮换池 = 基础池 + 已捕获的本世界储备怪（逻辑与太空/森林共用，见 ../rotation） */
 export function buildGuardianPool(capturedReserveIds: string[] = []): Guardian[] {
-  const extra = RESERVE_GUARDIANS.filter((g) => capturedReserveIds.includes(`shrine-${g.name}`))
-  return [...BASE_GUARDIANS, ...extra]
+  return buildRotationPool(BASE_GUARDIANS, RESERVE_GUARDIANS, 'shrine', capturedReserveIds)
 }
 
 /** 第 seq 道视标（0-based，= 已答题数）对应的守护者，循环轮换整个池。
  *  不传 capturedReserveIds 时回退基础池（向后兼容现有单测）。 */
 export function guardianForSeq(seq: number, capturedReserveIds?: string[]): Guardian {
-  const pool = buildGuardianPool(capturedReserveIds)
-  const n = pool.length
-  return pool[((seq % n) + n) % n]
+  return pickForSeq(buildGuardianPool(capturedReserveIds), seq)
 }
 
 /** 勇者（下方角色）。换林克/四英杰只需替换这两张精灵图，或扩成英雄池按需切换。 */
