@@ -76,17 +76,21 @@ const GOAL_KEYS = [
 /** 设置页「📐 视标与时长」折叠卡（spec §7.7：影响训练量的两项降低可达性） */
 const TRAINING_LOAD_KEYS = ['settings.trainingLoad', 'settings.trainingLoadHint']
 
-/**
- * 卡册用到的界面文案键。
- * 64 个卡名**刻意不在此列**——它们随正式卡图一起补，缺失时 CardAlbum.cardName
- * 会回落到「套名 #编号」，所以不加也不会在界面上露出 'card.pony.07' 这种字样。
- */
-const CARD_KEYS = [
+/** 卡册的界面文案键（不含 64 个卡名，那些单独校验） */
+const CARD_UI_KEYS = [
   'card.pageTitle', 'card.homeCard', 'card.open', 'card.complete', 'card.allComplete',
   'card.notEnough', 'card.locked', 'card.progress', 'card.obtainedAt', 'card.got',
   'card.rarity.common', 'card.rarity.rare', 'card.rarity.shiny',
   'card.set.pony', 'card.set.deep',
 ]
+
+/**
+ * 64 个卡名。缺任何一条不会崩、只会回落到「套名 #编号」（CardAlbum.cardName），
+ * 正因为这个兜底太安静，才需要一条断言把"漏了一半卡名"这种事捅出来。
+ */
+const CARD_NAME_KEYS = ['pony', 'deep'].flatMap((set) =>
+  Array.from({ length: 32 }, (_, i) => `card.${set}.${String(i + 1).padStart(2, '0')}`),
+)
 
 describe('云同步与隐私政策文案', () => {
   it('云同步 44 个文案键在 zh 与 en 字典里都存在（漏一份就会在另一种语言下回退成中文）', () => {
@@ -161,9 +165,17 @@ describe('云同步与隐私政策文案', () => {
     }
   })
 
-  it('卡册 15 个文案键在 zh 与 en 都存在（漏一份就会在另一种语言下回退成中文）', () => {
-    expect(CARD_KEYS.length).toBe(15)
-    for (const k of CARD_KEYS) {
+  it('卡册 15 个界面文案键在 zh 与 en 都存在（漏一份就会在另一种语言下回退成中文）', () => {
+    expect(CARD_UI_KEYS.length).toBe(15)
+    for (const k of CARD_UI_KEYS) {
+      expect(hasKey('zh', k), `zh 缺 ${k}`).toBe(true)
+      expect(hasKey('en', k), `en 缺 ${k}`).toBe(true)
+    }
+  })
+
+  it('64 个卡名在 zh 与 en 都齐全（缺了只会静默回落成「套名 #编号」，不报错）', () => {
+    expect(CARD_NAME_KEYS.length).toBe(64)
+    for (const k of CARD_NAME_KEYS) {
       expect(hasKey('zh', k), `zh 缺 ${k}`).toBe(true)
       expect(hasKey('en', k), `en 缺 ${k}`).toBe(true)
     }
