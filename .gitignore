@@ -22,3 +22,6 @@ dist.zip
 
 # wrangler 本地开发的环境变量（含引导邀请码等本地密钥），绝不入库
 .dev.vars
+
+# SDD 执行期的 scratch（账本/任务简报/评审包），不入库
+.superpowers/
