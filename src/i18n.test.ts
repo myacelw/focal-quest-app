@@ -8,12 +8,14 @@ const SYNC_KEYS = [
   'sync.tab.login', 'sync.tab.register', 'sync.email', 'sync.password', 'sync.invite',
   'sync.consent', 'sync.privacyOpen', 'sync.register', 'sync.login', 'sync.logout',
   'sync.logoutConfirm', 'sync.logoutHint', 'sync.working', 'sync.account', 'sync.myInvite',
-  'sync.inviteHint', 'sync.copy', 'sync.copied', 'sync.syncNow', 'sync.lastSynced',
+  'sync.inviteHint', 'sync.inviteUsage', 'sync.inviteRotate', 'sync.inviteRotateConfirm',
+  'sync.copy', 'sync.copied', 'sync.syncNow', 'sync.lastSynced',
   'sync.neverSynced', 'sync.syncOk', 'sync.syncFailed', 'sync.pending', 'sync.pendingNone',
   'sync.needRelogin', 'sync.noteNoRecovery', 'sync.mergeConfirm',
   'sync.err.badEmail', 'sync.err.badPassword', 'sync.err.badInvite', 'sync.err.inviteUsedUp',
   'sync.err.emailTaken', 'sync.err.badCredentials', 'sync.err.tooMany', 'sync.err.retry',
   'sync.err.quota', 'sync.err.unauthorized', 'sync.err.rejected', 'sync.err.network',
+  'sync.err.forbidden',
 ]
 
 /** 隐私政策页用到的全部文案键（6 节各有标题与正文） */
@@ -118,8 +120,8 @@ const OPTOTYPE_AUTO_KEYS = [
 ]
 
 describe('云同步与隐私政策文案', () => {
-  it('云同步 44 个文案键在 zh 与 en 字典里都存在（漏一份就会在另一种语言下回退成中文）', () => {
-    expect(SYNC_KEYS.length).toBe(44)
+  it('云同步 48 个文案键在 zh 与 en 字典里都存在（漏一份就会在另一种语言下回退成中文）', () => {
+    expect(SYNC_KEYS.length).toBe(48)
     for (const k of SYNC_KEYS) {
       expect(hasKey('zh', k), `zh 缺 ${k}`).toBe(true)
       expect(hasKey('en', k), `en 缺 ${k}`).toBe(true)
