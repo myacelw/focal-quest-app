@@ -321,6 +321,11 @@ const ZH: Dict = {
   'dex.newCapture': '📖 新怪兽！',
   'dex.openBox': '🎁 本节捕获',
   'dex.empty': '继续训练，捕获更多怪兽吧！',
+  'dex.shiny': '闪光',
+  'dex.shinyProgress': '✨ 闪光 {n}/{total}',
+  'dex.shinyToggle': '看闪光版 ✨',
+  'dex.normalToggle': '看普通版',
+  'dex.baseComplete': '✅ 怪兽集齐！还差 {n} 只闪光 ✨',
   // 积分兑换 + 补签
   'reward.available': '可用积分',
   'reward.total': '累计积分',
@@ -895,6 +900,11 @@ const EN: Dict = {
   'dex.newCapture': '📖 New monster!',
   'dex.openBox': '🎁 Caught this session',
   'dex.empty': 'Keep training to catch more!',
+  'dex.shiny': 'Shiny',
+  'dex.shinyProgress': '✨ Shiny {n}/{total}',
+  'dex.shinyToggle': 'View shiny ✨',
+  'dex.normalToggle': 'View normal',
+  'dex.baseComplete': '✅ All monsters caught! {n} shinies to go ✨',
   // Points redemption + streak repair
   'reward.available': 'Available',
   'reward.total': 'Total earned',

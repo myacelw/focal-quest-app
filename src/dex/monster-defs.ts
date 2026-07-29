@@ -187,3 +187,34 @@ export function reserveMonstersOfWorld(world: World): MonsterDef[] {
 export function getMonsterDef(id: string): MonsterDef | undefined {
   return MONSTER_DEFS.find((m) => m.id === id)
 }
+
+/**
+ * 闪光变体的 id 后缀。**闪光是独立的 monster 行**（id 形如 'space-ufo~shiny'），
+ * 不是在原行上加字段。
+ *
+ * ⚠️ 为什么不能加字段：`merge.ts` 对 monster 的规则是「整行取最早 capturedAt」。
+ * 设备 A 有 `{capturedAt:100}`、设备 B 有 `{capturedAt:100, shinyAt:200}` 时两边
+ * capturedAt 相等 → 判 skip → **B 的闪光被静默丢掉**。独立行让每个收集品一行一
+ * uuid，capturedAt 取最早照常成立，同步层零改动。
+ *
+ * ⚠️ 用 '~' 而不是 '-'：slug 里可能出现连字符，用 '-' 无法可靠反解；而 '~' 不含
+ * 冒号，满足 naturalKeyFromUuid 的「自然键侧不含冒号」前提。
+ *
+ * ⚠️ 闪光 id **不进 MONSTER_DEFS**：图鉴仍是 82 格，而且轮换池靠「id 在
+ * MONSTER_DEFS 里」匹配，混进去会让闪光怪跑进训练画面。
+ */
+export const SHINY_SUFFIX = '~shiny'
+
+/** 本体 id → 闪光 id */
+export function shinyIdOf(id: string): string {
+  return `${id}${SHINY_SUFFIX}`
+}
+
+export function isShinyId(id: string): boolean {
+  return id.endsWith(SHINY_SUFFIX)
+}
+
+/** 闪光 id → 本体 id；传本体 id 原样返回（幂等） */
+export function baseIdOf(id: string): string {
+  return isShinyId(id) ? id.slice(0, -SHINY_SUFFIX.length) : id
+}

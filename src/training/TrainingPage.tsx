@@ -21,6 +21,7 @@ import type { Skin } from '../skins/types'
 import { captureMonster, captureDailyOnCheckin, getOwnedReserveIdsByWorld } from '../dex/dex-service'
 import type { MonsterDef, World, Rarity } from '../dex/monster-defs'
 import { emptyByWorld, isWorld } from '../dex/monster-defs'
+import type { CaptureResult } from '../dex/capture'
 import { MonsterImage } from '../dex/MonsterImage'
 
 const TRANSITION_MS = 900
@@ -59,7 +60,7 @@ export function TrainingPage({ onHome }: { onHome: () => void }) {
   const [comboFx, setComboFx] = useState<{ n: number; key: number } | null>(null)
   // 怪兽图鉴：训练中彩蛋答对触发捕获，结算页保底捕获；本节捕获列表用于开箱
   const [eggCaptureFx, setEggCaptureFx] = useState<{ key: number } | null>(null)
-  const [capturedThisSession, setCapturedThisSession] = useState<MonsterDef[]>([])
+  const [capturedThisSession, setCapturedThisSession] = useState<CaptureResult[]>([])
   // 皮肤池联动：按世界分组的已捕获储备怪 id，传给 Stage 扩展轮换池
   const [capturedByWorld, setCapturedByWorld] = useState<Record<World, string[]>>(() => emptyByWorld<string[]>(() => []))
   // 选“随机皮肤”时，本节临时挑定的皮肤（每节只解析一次，避免每次渲染重掷）
@@ -181,13 +182,14 @@ export function TrainingPage({ onHome }: { onHome: () => void }) {
     if (s.isEgg && right) {
       const todayStr = toDateStr(new Date())
       const now = Date.now()
-      void captureMonster('egg', todayStr, now).then((m) => {
-        if (!m) return
-        setCapturedThisSession((arr) => [...arr, m])
+      void captureMonster('egg', todayStr, now).then((r) => {
+        if (!r) return
+        setCapturedThisSession((arr) => [...arr, r])
         setEggCaptureFx({ key: seqRef.current })
-        // 储备怪（rarity !== common）加入对应世界的轮换池
-        if (m.rarity !== 'common') {
-          setCapturedByWorld((prev) => ({ ...prev, [m.world]: [...prev[m.world], m.id] }))
+        // 储备怪（rarity !== common）加入对应世界的轮换池。
+        // ⚠️ 闪光不进轮换池：这里用的是本体 def.id，闪光那一行只存在于图鉴。
+        if (!r.shiny && r.def.rarity !== 'common') {
+          setCapturedByWorld((prev) => ({ ...prev, [r.def.world]: [...prev[r.def.world], r.def.id] }))
         }
       })
     }
@@ -274,13 +276,14 @@ export function TrainingPage({ onHome }: { onHome: () => void }) {
     }
 
     // 保底捕获：当天首次完成训练打卡时必得 1 只新怪兽
-    let dailyCaptured: MonsterDef | null = null
+    let dailyCaptured: CaptureResult | null = null
     if (result.outcome === 'checked-in') {
       dailyCaptured = await captureDailyOnCheckin(false, roundDateRef.current, Date.now())
       if (dailyCaptured) {
-        setCapturedThisSession((arr) => [...arr, dailyCaptured!])
-        if (dailyCaptured.rarity !== 'common') {
-          setCapturedByWorld((prev) => ({ ...prev, [dailyCaptured!.world]: [...prev[dailyCaptured!.world], dailyCaptured!.id] }))
+        const d = dailyCaptured
+        setCapturedThisSession((arr) => [...arr, d])
+        if (!d.shiny && d.def.rarity !== 'common') {
+          setCapturedByWorld((prev) => ({ ...prev, [d.def.world]: [...prev[d.def.world], d.def.id] }))
         }
       }
     }
@@ -380,8 +383,8 @@ export function TrainingPage({ onHome }: { onHome: () => void }) {
           <div className="fq-card" style={{ marginTop: 14 }}>
             <p style={{ fontWeight: 700, marginBottom: 12 }}>{t('dex.openBox')}</p>
             <div style={{ display: 'flex', gap: 14, justifyContent: 'center', flexWrap: 'wrap' }}>
-              {capturedThisSession.map((m, i) => (
-                <CapturedMonsterReveal key={`${m.id}-${i}`} def={m} delayMs={i * 500} />
+              {capturedThisSession.map((r, i) => (
+                <CapturedMonsterReveal key={`${r.def.id}-${r.shiny}-${i}`} def={r.def} shiny={r.shiny} delayMs={i * 500} />
               ))}
             </div>
           </div>
@@ -442,8 +445,8 @@ export function TrainingPage({ onHome }: { onHome: () => void }) {
           <div className="fq-card" style={{ marginTop: 14 }}>
             <p style={{ fontWeight: 700, marginBottom: 12 }}>{t('dex.openBox')}</p>
             <div style={{ display: 'flex', gap: 14, justifyContent: 'center', flexWrap: 'wrap' }}>
-              {capturedThisSession.map((m, i) => (
-                <CapturedMonsterReveal key={`${m.id}-${i}`} def={m} delayMs={i * 500} />
+              {capturedThisSession.map((r, i) => (
+                <CapturedMonsterReveal key={`${r.def.id}-${r.shiny}-${i}`} def={r.def} shiny={r.shiny} delayMs={i * 500} />
               ))}
             </div>
             <p style={{ fontSize: 12, color: 'var(--muted)', marginTop: 12 }}>{t('dex.empty')}</p>
@@ -667,17 +670,18 @@ const RARITY_BORDER: Record<Rarity, string> = {
 }
 
 /** 结算页开箱：本节捕获的怪兽逐只翻牌揭晓，配音效 */
-function CapturedMonsterReveal({ def, delayMs }: { def: MonsterDef; delayMs: number }) {
+function CapturedMonsterReveal({ def, shiny, delayMs }: { def: MonsterDef; shiny: boolean; delayMs: number }) {
   const t = useT()
   const [revealed, setRevealed] = useState(false)
   useEffect(() => {
     const id = window.setTimeout(() => {
       setRevealed(true)
-      // 复用现有音效：史诗/稀有用 badge（金光感），普通用 egg（彩蛋感）
-      playSfx(def.rarity === 'common' ? 'egg' : 'badge')
+      // 闪光复用卡册那轮加的 'shiny' 音效——耳朵能立刻分出这次不一样；
+      // 否则界面刚用金边分出的稀有度，在听觉上等于没分（与"超时音不能沿用答错音"同理）
+      playSfx(shiny ? 'shiny' : def.rarity === 'common' ? 'egg' : 'badge')
     }, delayMs)
     return () => window.clearTimeout(id)
-  }, [delayMs, def.rarity])
+  }, [delayMs, def.rarity, shiny])
 
   return (
     <div style={{ textAlign: 'center' }}>
@@ -688,7 +692,8 @@ function CapturedMonsterReveal({ def, delayMs }: { def: MonsterDef; delayMs: num
           height: 96,
           margin: '0 auto',
           borderRadius: 14,
-          border: `2px solid ${RARITY_BORDER[def.rarity]}`,
+          border: `2px solid ${revealed && shiny ? '#ffc83c' : RARITY_BORDER[def.rarity]}`,
+          boxShadow: revealed && shiny ? '0 0 14px -2px rgba(255,200,60,0.9)' : undefined,
           background: revealed ? '#fff' : 'linear-gradient(135deg, var(--violet), var(--coral))',
           overflow: 'hidden',
           transition: 'transform 0.4s cubic-bezier(0.2,0.8,0.2,1)',
@@ -697,13 +702,14 @@ function CapturedMonsterReveal({ def, delayMs }: { def: MonsterDef; delayMs: num
         }}
       >
         {revealed ? (
-          <MonsterImage def={def} />
+          <MonsterImage def={def} shiny={shiny} />
         ) : (
           <div style={{ display: 'grid', placeItems: 'center', width: '100%', height: '100%', fontSize: 36, color: '#fff' }}>❓</div>
         )}
       </div>
       <div style={{ fontSize: 13, marginTop: 6, fontWeight: 700, color: 'var(--ink)' }}>
         {revealed ? t(def.nameKey) : '？？？'}
+        {revealed && shiny && <span style={{ color: '#e0a400', fontWeight: 800 }}> ✨</span>}
       </div>
       <div style={{ fontSize: 11, marginTop: 2, color: RARITY_BORDER[def.rarity] }}>
         {revealed ? t(`dex.rarity.${def.rarity}`) : ''}

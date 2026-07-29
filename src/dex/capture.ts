@@ -1,4 +1,4 @@
-import { MONSTER_DEFS, type MonsterDef, type Rarity } from './monster-defs'
+import { MONSTER_DEFS, type MonsterDef, type Rarity, shinyIdOf } from './monster-defs'
 import { pickWeighted } from '../data/pick-weighted'
 
 export type CaptureSource = 'daily' | 'egg'
@@ -15,17 +15,61 @@ const WEIGHTS: Record<CaptureSource, Record<Rarity, number>> = {
 const RARITY_LIST: readonly Rarity[] = ['common', 'rare', 'epic']
 
 /**
- * 从未拥有的怪兽中按 source 对应权重抽 1 只；全集返回 null。
- * 单 rand∈[0,1) 同时决定稀有度与池内位置，便于确定性测试。
+ * 闪光掷骰的门槛。**它只控制前期的惊喜密度，不控制总时长。**
+ *
+ * 因为普通桶抽空后所有掷骰都回落到闪光桶：前期普通桶还有货时闪光按 1/16 稀疏
+ * 撒入（82 只普通抽完约需 87 次捕获、约 35 天，期间约出 5 只闪光），之后进入
+ * 纯闪光收集期。合计约 68 天。想让闪光更稀有就调小它，不会拖长整体周期。
+ */
+export const SHINY_CHANCE = 1 / 16
+
+/** 抽中的怪兽本体，以及这次是不是闪光变体 */
+export interface CaptureResult {
+  def: MonsterDef
+  shiny: boolean
+}
+
+/**
+ * 两步掷骰：先掷是否闪光，再从对应的「未拥有」桶里按稀有度权重抽 1 只。
+ * 想要的桶空了就回落到另一个桶；两个都空返回 null（164 个收集品全集齐）。
+ *
+ * **「不出重复」的铁律照旧成立**——两个桶都只装未拥有的条目。
+ *
+ * `shinyRand` 与 `rand` 分开是为了可确定性测试：`rand` 决定抽哪只，
+ * `shinyRand` 决定闪不闪。生产两个都传 Math.random()。
  *
  * 抽取算法本身（含"某档池空则权重归一化到剩余档"与"池内位置不偏置"两条性质）
  * 已抽到 `src/data/pick-weighted.ts`，与卡包共用——两处各写一份必然漂移，
  * 而那里面"不能复用 rand 决定池内下标"是修过的 bug，尤其不能被抄错。
  */
-export function pickCapture(ownedIds: string[], source: CaptureSource, rand: number): MonsterDef | null {
+export function pickCapture(
+  ownedIds: string[],
+  source: CaptureSource,
+  rand: number,
+  shinyRand: number = Math.random(),
+): CaptureResult | null {
   const owned = new Set(ownedIds)
-  const remaining = MONSTER_DEFS.filter((m) => !owned.has(m.id))
-  return pickWeighted(remaining, (m) => m.rarity, WEIGHTS[source], RARITY_LIST, rand)
+  const normalPool = MONSTER_DEFS.filter((m) => !owned.has(m.id))
+  const shinyPool = MONSTER_DEFS.filter((m) => !owned.has(shinyIdOf(m.id)))
+
+  const wantShiny = shinyRand < SHINY_CHANCE
+  const primary = wantShiny ? shinyPool : normalPool
+  const usePrimary = primary.length > 0
+  const pool = usePrimary ? primary : (wantShiny ? normalPool : shinyPool)
+  if (pool.length === 0) return null
+
+  const def = pickWeighted(pool, (m) => m.rarity, WEIGHTS[source], RARITY_LIST, rand)
+  if (!def) return null
+  // 回落到另一个桶时 shiny 标记必须跟着翻转：pool 实际来自哪个桶（usePrimary）
+  // 才是这次抽到的东西是否闪光的真相，wantShiny 只是「原本想要哪桶」的意愿。
+  // 若简化成直接返回 wantShiny：普通桶抽空后（82 只本体集齐后），15/16 的掷骰
+  // 仍是 wantShiny=false，此时 primary=normalPool 已空 → usePrimary=false →
+  // pool 实际回落到 shinyPool，但简化写法仍会返回 shiny:false——调用方
+  // （captureMonster）于是拿 shinyPool 里那只怪的**本体 id**去 put，覆盖掉它
+  // 本已拥有的那行的 capturedAt，孩子每天开箱看到一只已经拥有的怪，图鉴永远
+  // 停在 82/82、闪光一只也拿不到。两条双向回落的场景都由 capture.test.ts 的
+  // 对应用例拦住。
+  return { def, shiny: usePrimary ? wantShiny : !wantShiny }
 }
 
 /** 保底捕获触发条件：当天首次完成训练打卡（alreadyCheckedIn === false）时必得 1 只 */

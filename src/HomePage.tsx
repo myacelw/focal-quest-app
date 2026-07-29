@@ -181,6 +181,9 @@ export function HomePage({ onStart, onOpenDex, onOpenRewards, onOpenCards, onOpe
             <div style={{ fontSize: 14, fontWeight: 800, marginTop: 4 }}>{t('dex.tab.dex').replace('📖 ', '')}</div>
             <div style={{ fontSize: 12, color: 'var(--violet)', fontWeight: 700, fontVariantNumeric: 'tabular-nums', marginTop: 2 }}>
               {dex ? `${dex.owned}/${dex.total}` : '—'}
+              {dex && dex.shinyOwned > 0 && (
+                <span style={{ marginLeft: 6, color: '#e0a400', fontWeight: 800 }}>✨{dex.shinyOwned}</span>
+              )}
             </div>
             <div className="fq-bar" style={{ marginTop: 8 }}>
               <i style={{ width: `${dex ? Math.round((dex.owned / dex.total) * 100) : 0}%` }} />
