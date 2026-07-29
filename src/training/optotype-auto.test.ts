@@ -210,6 +210,6 @@ describe('源文本契约', () => {
     }
     expect(trainingSrc).toMatch(/readSizeMm\(\)/)
     expect(challengeSrc).toMatch(/readSizeMm\(\)/)
-    expect(settingsSrc).toMatch(/readSizeMm\(\)/)
+    expect(settingsSrc).toMatch(/useState\(readSizeMm\)/)
   })
 })
