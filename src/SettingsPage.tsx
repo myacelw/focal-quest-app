@@ -1,8 +1,12 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { TumblingE } from './training/TumblingE'
 import { acuityFromHeightMm } from './training/optotype-size'
 import { getHomeStats } from './data/checkin'
 import { lsGet, lsSet } from './data/storage'
+import {
+  readSizeMm, LS_SIZE,
+  readAutoEnabled, writeAutoEnabled, readLastAdjust, writeLastAdjust, type OptotypeAdjust,
+} from './training/optotype-auto'
 import { toDateStr } from './data/date-utils'
 import { getSkin, getSkinId, setSkinId, isSkinUnlocked, skinUnlockCost, SKINS } from './skins/registry'
 import { useT, useLang, setLang, type Lang, Rich } from './i18n'
@@ -25,10 +29,11 @@ function readPxPerMm(): number | null {
 export function SettingsPage({ onReplayGuide, onOpenSpeech, onOpenCalib, onOpenPrivacy, onOpenAdmin }: { onReplayGuide: () => void; onOpenSpeech: () => void; onOpenCalib: () => void; onOpenPrivacy: () => void; onOpenAdmin: () => void }) {
   const t = useT()
   const lang = useLang()
-  const [sizeMm, setSizeMm] = useState(() => {
-    const v = lsGet('fzp.optotypeSizeMm')
-    return v ? Number(v) : 1
-  })
+  // 传函数引用做惰性初始化——只在挂载时调一次 readSizeMm()，不要写成 useState(readSizeMm())
+  // 那样每次渲染都会立即调用一次，白白多做一次 localStorage 读取。
+  const [sizeMm, setSizeMm] = useState(readSizeMm)
+  const [autoOn, setAutoOn] = useState(readAutoEnabled)
+  const [lastAdjust, setLastAdjust] = useState(readLastAdjust)
   // 时长口径只有一个出处：脏值（'abc'→NaN、'0'→0）在这里就被兜成默认 180，
   // 否则下面的门槛提示会显示成"× NaN 分钟"，四个档位按钮也会全都不高亮。
   // Number(null) 是 0，同样被 sanitize 兜成 180，与改动前行为一致。
@@ -54,7 +59,26 @@ export function SettingsPage({ onReplayGuide, onOpenSpeech, onOpenCalib, onOpenP
     void getHomeStats(toDateStr(new Date())).then((s) => setTotalPoints(s.totalPoints))
   }, [])
   useEffect(() => { void getAccount().then((a) => setIsAdmin(a?.isAdmin === true)) }, [accountRev])
-  useEffect(() => { lsSet('fzp.optotypeSizeMm', String(sizeMm)) }, [sizeMm])
+  // 手动改动要写一条 kind:'manual' 的记录——它不参与判据，只起"重置冷却"的作用：
+  // 家长刚把视标调大（比如孩子那天状态不好），自动逻辑第二天又压回去就是跟家长对着干。
+  //
+  // ⚠️ 这里用「与上次真实写入的值比较」而不是布尔首渲染标志：StrictMode 在开发环境下
+  // 会把挂载时的 effect setup 调两次，布尔标志只挡得住第一次，第二次就会写出一条虚假的
+  // manual 记录——而它会覆盖掉正在观察期里的 tighten 记录，把自愈回退的保险丝静默拆掉。
+  // 值比较天然幂等：两次调用看到的 sizeMm 完全相同，都会正确跳过。
+  const committedSizeRef = useRef(sizeMm)
+  useEffect(() => {
+    lsSet(LS_SIZE, String(sizeMm))
+    const prev = committedSizeRef.current
+    if (prev === sizeMm) return
+    committedSizeRef.current = sizeMm
+    const rec: OptotypeAdjust = {
+      from: prev, to: sizeMm,
+      atDate: toDateStr(new Date()), kind: 'manual', baselineReactionMs: 0,
+    }
+    writeLastAdjust(rec)
+    setLastAdjust(rec)
+  }, [sizeMm])
   useEffect(() => { lsSet('fzp.durationSec', String(durationSec)) }, [durationSec])
   useEffect(() => { lsSet('fzp.flipperD', String(flipperD)) }, [flipperD])
   useEffect(() => { lsSet('fzp.flipMs', String(flipMs)) }, [flipMs])
@@ -122,6 +146,39 @@ export function SettingsPage({ onReplayGuide, onOpenSpeech, onOpenCalib, onOpenP
             </>
           ) : (
             <p style={{ fontSize: 13, color: 'var(--muted)' }}>{t('settings.optotypeNeedCalib')}</p>
+          )}
+        </div>
+
+        <div style={{ marginTop: 14, paddingTop: 14, borderTop: '1px solid var(--line)' }}>
+          <label style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, cursor: 'pointer' }}>
+            <span style={{ fontSize: 14, fontWeight: 700 }}>{t('optoAuto.switch')}</span>
+            <input
+              type="checkbox"
+              checked={autoOn}
+              onChange={(e) => { setAutoOn(e.target.checked); writeAutoEnabled(e.target.checked) }}
+              style={{ width: 20, height: 20, accentColor: 'var(--violet)' }}
+            />
+          </label>
+          <p style={{ fontSize: 12, color: 'var(--muted)', marginTop: 6, lineHeight: 1.6 }}>{t('optoAuto.switchHint')}</p>
+
+          {lastAdjust && lastAdjust.kind !== 'manual' && (
+            <div style={{ marginTop: 10, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, flexWrap: 'wrap' }}>
+              <span style={{ fontSize: 12, color: 'var(--muted)' }}>
+                {t('optoAuto.lastAdjust', {
+                  date: lastAdjust.atDate, from: lastAdjust.from.toFixed(1), to: lastAdjust.to.toFixed(1),
+                })}
+              </span>
+              <button
+                onClick={() => { setSizeMm(lastAdjust.from) }}
+                style={{
+                  fontSize: 12, fontWeight: 700, padding: '5px 12px', borderRadius: 99,
+                  border: '1px solid var(--line)', background: 'transparent',
+                  color: 'var(--violet)', cursor: 'pointer',
+                }}
+              >
+                {t('optoAuto.undo')}
+              </button>
+            </div>
           )}
         </div>
 

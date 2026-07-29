@@ -3,6 +3,7 @@ import { db } from '../data/db'
 import { getHomeStats } from '../data/checkin'
 import { toDateStr } from '../data/date-utils'
 import { lsGet } from '../data/storage'
+import { readSizeMm } from '../training/optotype-auto'
 import { pickDirection } from '../training/session'
 import { dirForKey } from '../training/key-map'
 import { playSfx, setMuted } from '../training/sfx'
@@ -189,7 +190,7 @@ export function ChallengePage({ onBack }: { onBack: () => void }) {
   }
 
   // 视标尺寸链与正经训练完全一致：毫米设定 × 屏幕标定（不因挑战而变）
-  const sizeMm = Number(lsGet('fzp.optotypeSizeMm') ?? '1')
+  const sizeMm = readSizeMm()
   const heightPx = sizeMm * pxPerMm
   const storedSkinId = getSkinId()
   const skinId = storedSkinId === RANDOM_SKIN_ID ? (randomSkinId ?? 'plain') : storedSkinId

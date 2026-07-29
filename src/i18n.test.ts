@@ -107,6 +107,16 @@ const NEW_MONSTER_KEYS = MONSTER_DEFS.map((m) => m.nameKey)
 /** 闪光变体文案 */
 const SHINY_KEYS = ['dex.shiny', 'dex.shinyProgress', 'dex.shinyToggle', 'dex.normalToggle', 'dex.baseComplete']
 
+/** 视标自适应文案 */
+const OPTOTYPE_AUTO_KEYS = [
+  'optoAuto.tightened', 'optoAuto.tightenedHint',
+  'optoAuto.suggest', 'optoAuto.suggestHint', 'optoAuto.apply',
+  'optoAuto.reverted', 'optoAuto.revertedHint',
+  'optoAuto.suggestRevert', 'optoAuto.suggestRevertHint',
+  'optoAuto.switch', 'optoAuto.switchHint',
+  'optoAuto.lastAdjust', 'optoAuto.undo',
+]
+
 describe('云同步与隐私政策文案', () => {
   it('云同步 44 个文案键在 zh 与 en 字典里都存在（漏一份就会在另一种语言下回退成中文）', () => {
     expect(SYNC_KEYS.length).toBe(44)
@@ -215,6 +225,14 @@ describe('云同步与隐私政策文案', () => {
   it('闪光变体 5 个文案键在 zh 与 en 都存在', () => {
     expect(SHINY_KEYS.length).toBe(5)
     for (const k of SHINY_KEYS) {
+      expect(hasKey('zh', k), `zh 缺 ${k}`).toBe(true)
+      expect(hasKey('en', k), `en 缺 ${k}`).toBe(true)
+    }
+  })
+
+  it('视标自适应文案在 zh 与 en 都成对存在', () => {
+    expect(OPTOTYPE_AUTO_KEYS.length).toBe(13)
+    for (const k of OPTOTYPE_AUTO_KEYS) {
       expect(hasKey('zh', k), `zh 缺 ${k}`).toBe(true)
       expect(hasKey('en', k), `en 缺 ${k}`).toBe(true)
     }
