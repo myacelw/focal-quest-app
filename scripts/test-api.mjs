@@ -8,9 +8,9 @@
  * 注：本地 D1 是持久的，脚本用随机邮箱避免撞 email 唯一约束；BOOTSTRAP_INVITE_CODE
  * 通过 .dev.vars 提供（见 Task 5 Step 2）。
  *
- * 限速计数会跨运行累积（存在 counters 表、按时间窗口分桶），但两道注册额度都留了
- * 充裕余量（成功 20/日、失败 10/时，见 functions/lib/ratelimit.ts），本脚本每遍只成功
- * 建 2 个号、失败 2 次，同一天反复跑不会撞上限。
+ * 限速计数会跨运行累积（存在 counters 表、按时间窗口分桶）。本脚本每遍成功建 4 个号、
+ * 失败 3 次，而额度是成功 20/日、失败 10/时（见 functions/lib/ratelimit.ts）——
+ * 也就是**同一天最多跑 5 遍**就会撞上成功额度。撞了不是 bug，见下面的清理办法。
  *
  * 万一真撞了 429：**先停掉 wrangler pages dev**（它持有本地 D1 文件锁，不停的话下面这条
  * 命令会失败），再跑
@@ -82,6 +82,25 @@ r = await api('/api/auth/register', { method: 'POST', body: { email: email2, aut
 check('用站长的归属码可注册第二个账号', r.status === 201, `实际 ${r.status} ${JSON.stringify(r.json)}`)
 const token2 = r.json?.token
 check('第二个账号拿到自己的邀请码（且与站长不同）', r.json?.inviteCode && r.json.inviteCode !== myInvite)
+
+// ---- 邀请码状态 ----
+r = await api('/api/account/invite')
+check('无 token 读邀请码状态得 401', r.status === 401, `实际 ${r.status}`)
+
+r = await api('/api/account/invite', { token: token1 })
+check('登录用户可读自己的邀请码状态',
+  r.status === 200 && r.json?.inviteCode === myInvite && r.json?.quota === 5,
+  JSON.stringify(r.json))
+check('已用数与实际邀请人数一致（email2 正是用这个码注册的）',
+  r.json?.used === 1, JSON.stringify(r.json))
+
+r = await api('/api/account/invite', { method: 'POST' })
+check('无 token 换码得 401', r.status === 401, `实际 ${r.status}`)
+
+// token1 是用引导码注册的普通账号（register 一律写 is_admin=0）
+r = await api('/api/account/invite', { method: 'POST', token: token1 })
+check('非管理员换码得 403（而非 401，区分"没登录"与"没权限"）',
+  r.status === 403 && r.json?.error === 'forbidden', `实际 ${r.status} ${JSON.stringify(r.json)}`)
 
 // ---- 登录 ----
 r = await api('/api/auth/login', { method: 'POST', body: { email: email1, authKey: key1 } })
@@ -249,6 +268,39 @@ check('最近注册列表带出邀请人邮箱（invited_by 自连接）',
 check('邀请排行有行且每行 invited ≥ 1（只列真的邀请过人的账号）',
   Array.isArray(st?.inviters) && st.inviters.length > 0 && st.inviters.every((x) => x.invited >= 1),
   JSON.stringify(st?.inviters))
+
+// ---- 管理员换码（本迭代核心：换码即重置已用名额）----
+r = await api('/api/account/invite', { token: adminToken })
+const beforeCode = r.json?.inviteCode
+check('管理员可读自己的邀请码状态', r.status === 200 && !!beforeCode, JSON.stringify(r.json))
+
+// 先用管理员的码注册一个人，把"已用数"做上去——否则换码后的 used === 0 什么也证明不了
+const email3 = `s-${rnd()}@example.com`
+r = await api('/api/auth/register', {
+  method: 'POST', body: { email: email3, authKey: fakeAuthKey('feed'), inviteCode: beforeCode },
+})
+check('管理员的码可用于注册', r.status === 201, `实际 ${r.status} ${JSON.stringify(r.json)}`)
+
+r = await api('/api/account/invite', { token: adminToken })
+check('刚才那次注册计入当前码的已用数', r.json?.used >= 1, JSON.stringify(r.json))
+
+r = await api('/api/account/invite', { method: 'POST', token: adminToken })
+const afterCode = r.json?.inviteCode
+check('管理员换码成功且拿到新码',
+  r.status === 200 && !!afterCode && afterCode !== beforeCode,
+  `实际 ${r.status} ${JSON.stringify(r.json)}`)
+check('换码后已用名额归零（本迭代的核心口径）', r.json?.used === 0, JSON.stringify(r.json))
+
+r = await api('/api/auth/register', {
+  method: 'POST', body: { email: `t-${rnd()}@example.com`, authKey: fakeAuthKey('beef'), inviteCode: beforeCode },
+})
+check('旧码换掉后立刻失效', r.status === 400 && r.json?.error === 'bad_invite_code',
+  `实际 ${r.status} ${JSON.stringify(r.json)}`)
+
+r = await api('/api/auth/register', {
+  method: 'POST', body: { email: `u-${rnd()}@example.com`, authKey: fakeAuthKey('beef'), inviteCode: afterCode },
+})
+check('新码可用于注册', r.status === 201, `实际 ${r.status}`)
 
 console.log(`\n通过 ${passed}，失败 ${failed}`)
 // 注意：这里用 process.exitCode 而非 process.exit()——Windows + Node 24 下若有未关闭的
