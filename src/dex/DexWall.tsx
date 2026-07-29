@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { monstersOfWorld, TOTAL_MONSTERS, WORLDS, type MonsterDef, type Rarity } from './monster-defs'
+import { monstersOfWorld, TOTAL_MONSTERS, WORLDS, isShinyId, baseIdOf, type MonsterDef, type Rarity } from './monster-defs'
 import { MonsterImage } from './MonsterImage'
 import { getOwnedMonsters } from './dex-service'
 import { toDateStr } from '../data/date-utils'
@@ -22,12 +22,18 @@ export function DexWall() {
   // id → 捕获时间戳（用对象映射方便按 id 查）
   const [capturedMap, setCapturedMap] = useState<Record<string, number> | null>(null)
   const [zoom, setZoom] = useState<MonsterDef | null>(null)
+  const [shinySet, setShinySet] = useState<Set<string>>(new Set())
+  // 放大态里当前看的是哪一面；每次打开都从普通面开始
+  const [zoomShiny, setZoomShiny] = useState(false)
 
   useEffect(() => {
     void getOwnedMonsters().then((rows) => {
       const m: Record<string, number> = {}
       for (const r of rows) m[r.id] = r.capturedAt
       setCapturedMap(m)
+      const shiny = new Set<string>()
+      for (const r of rows) if (isShinyId(r.id)) shiny.add(baseIdOf(r.id))
+      setShinySet(shiny)
     })
   }, [])
 
@@ -41,7 +47,7 @@ export function DexWall() {
 
   if (capturedMap === null) return <div className="fq-page">{t('home.loading')}</div>
 
-  const ownedCount = Object.keys(capturedMap).length
+  const ownedCount = Object.keys(capturedMap).filter((id) => !isShinyId(id)).length
   const pct = Math.round((ownedCount / TOTAL_MONSTERS) * 100)
   const isComplete = ownedCount >= TOTAL_MONSTERS
 
@@ -51,6 +57,11 @@ export function DexWall() {
       <div className="fq-card" style={{ marginTop: 14 }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 14, fontWeight: 700, marginBottom: 10 }}>
           <span>{t('dex.progress', { n: ownedCount, total: TOTAL_MONSTERS })}</span>
+          {shinySet.size > 0 && (
+            <span style={{ color: '#e0a400' }}>
+              {t('dex.shinyProgress', { n: shinySet.size, total: TOTAL_MONSTERS })}
+            </span>
+          )}
           <span style={{ color: 'var(--violet)' }}>{pct}%</span>
         </div>
         <div className="fq-bar"><i style={{ width: `${pct}%` }} /></div>
@@ -83,7 +94,8 @@ export function DexWall() {
                     def={def}
                     owned={owned}
                     capturedAt={capturedAt}
-                    onClick={() => owned && setZoom(def)}
+                    shinyOwned={shinySet.has(def.id)}
+                    onClick={() => { if (owned) { setZoomShiny(false); setZoom(def) } }}
                   />
                 )
               })}
@@ -117,7 +129,7 @@ export function DexWall() {
               border: `2px solid ${RARITY_BORDER[zoom.rarity]}`,
               background: '#fff',
             }}>
-              <MonsterImage def={zoom} />
+              <MonsterImage def={zoom} shiny={zoomShiny} />
             </div>
             <div style={{ fontSize: 20, fontWeight: 800, marginTop: 14, color: 'var(--ink)' }}>
               {t(zoom.nameKey)}
@@ -129,6 +141,15 @@ export function DexWall() {
             }}>
               {t(`dex.rarity.${zoom.rarity}`)}
             </div>
+            {shinySet.has(zoom.id) && (
+              <button
+                className="fq-btn"
+                style={{ marginTop: 10 }}
+                onClick={() => setZoomShiny((v) => !v)}
+              >
+                {zoomShiny ? t('dex.normalToggle') : t('dex.shinyToggle')}
+              </button>
+            )}
             <div style={{ fontSize: 12, color: 'var(--muted)', marginTop: 12 }}>
               {t('dex.capturedAt', { date: toDateStr(new Date(capturedMap[zoom.id]!)) })}
             </div>
@@ -144,11 +165,12 @@ export function DexWall() {
 
 /** 图鉴格子：已捕获显示彩色图+名字+稀有度边框+捕获日期；未捕获显示统一的"神秘格"（？）+？？？ */
 function MonsterCard({
-  def, owned, capturedAt, onClick,
+  def, owned, capturedAt, shinyOwned, onClick,
 }: {
   def: MonsterDef
   owned: boolean
   capturedAt: number | undefined
+  shinyOwned: boolean
   onClick: () => void
 }) {
   const t = useT()
@@ -156,6 +178,7 @@ function MonsterCard({
     <div
       onClick={onClick}
       style={{
+        position: 'relative',
         flex: '1 1 108px',
         maxWidth: 132,
         padding: '10px 8px',
@@ -168,6 +191,14 @@ function MonsterCard({
       }}
       title={owned ? t(def.nameKey) : t('dex.locked')}
     >
+      {shinyOwned && (
+        <span
+          title={t('dex.shiny')}
+          style={{ position: 'absolute', top: 4, right: 6, fontSize: 13, filter: 'drop-shadow(0 0 3px rgba(255,200,60,0.9))' }}
+        >
+          ✨
+        </span>
+      )}
       {owned ? (
         <div style={{ width: 80, height: 80, margin: '0 auto', borderRadius: 12, overflow: 'hidden', background: '#fafaff' }}>
           <MonsterImage def={def} />

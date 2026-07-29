@@ -104,6 +104,9 @@ const FOREST_UI_KEYS = ['skin.forest', 'dex.world.forest', 'forest.counter', 'fo
  */
 const NEW_MONSTER_KEYS = MONSTER_DEFS.map((m) => m.nameKey)
 
+/** 闪光变体文案 */
+const SHINY_KEYS = ['dex.shiny', 'dex.shinyProgress', 'dex.shinyToggle', 'dex.normalToggle', 'dex.newShiny']
+
 describe('云同步与隐私政策文案', () => {
   it('云同步 44 个文案键在 zh 与 en 字典里都存在（漏一份就会在另一种语言下回退成中文）', () => {
     expect(SYNC_KEYS.length).toBe(44)
@@ -204,6 +207,14 @@ describe('云同步与隐私政策文案', () => {
   it('全部 82 个怪名在 zh 与 en 都齐全（缺了只会显示成 key 本身）', () => {
     expect(NEW_MONSTER_KEYS.length).toBe(82)
     for (const k of NEW_MONSTER_KEYS) {
+      expect(hasKey('zh', k), `zh 缺 ${k}`).toBe(true)
+      expect(hasKey('en', k), `en 缺 ${k}`).toBe(true)
+    }
+  })
+
+  it('闪光变体 5 个文案键在 zh 与 en 都存在', () => {
+    expect(SHINY_KEYS.length).toBe(5)
+    for (const k of SHINY_KEYS) {
       expect(hasKey('zh', k), `zh 缺 ${k}`).toBe(true)
       expect(hasKey('en', k), `en 缺 ${k}`).toBe(true)
     }
