@@ -1,6 +1,6 @@
 import { db, type MonsterRow } from '../data/db'
-import { MONSTER_DEFS, emptyByWorld, type MonsterDef, type World } from './monster-defs'
-import { pickCapture, shouldDailyCapture, canEggCapture, type CaptureSource } from './capture'
+import { MONSTER_DEFS, emptyByWorld, shinyIdOf, type World } from './monster-defs'
+import { pickCapture, shouldDailyCapture, canEggCapture, type CaptureSource, type CaptureResult } from './capture'
 import { pushMonsters } from '../data/api'
 import { toDateStr } from '../data/date-utils'
 
@@ -30,8 +30,11 @@ export async function getOwnedIds(): Promise<Set<string>> {
 }
 
 export interface DexProgress {
+  /** 已捕获的**本体**数（闪光是独立行，不计入这里） */
   owned: number
   total: number
+  /** 已捕获的闪光数，与 owned 同分母（total） */
+  shinyOwned: number
   byWorld: Record<World, number>
   /** 每世界总数（派生自 MONSTER_DEFS，扩池自动跟随，避免调用方硬编码） */
   byWorldTotal: Record<World, number>
@@ -39,14 +42,19 @@ export interface DexProgress {
 
 export async function getDexProgress(): Promise<DexProgress> {
   const rows = await db.monsters.toArray()
-  const owned = new Set(rows.map((r) => r.id))
+  const ids = new Set(rows.map((r) => r.id))
   const byWorld = emptyByWorld(() => 0)
   const byWorldTotal = emptyByWorld(() => 0)
+  let owned = 0
+  let shinyOwned = 0
+  // ⚠️ 必须遍历 MONSTER_DEFS 来数，不能用 ids.size —— 闪光是独立行，
+  // 用 size 会把「95/82」这种数字显示到首页上。
   for (const def of MONSTER_DEFS) {
     byWorldTotal[def.world]++
-    if (owned.has(def.id)) byWorld[def.world]++
+    if (ids.has(def.id)) { owned++; byWorld[def.world]++ }
+    if (ids.has(shinyIdOf(def.id))) shinyOwned++
   }
-  return { owned: owned.size, total: MONSTER_DEFS.length, byWorld, byWorldTotal }
+  return { owned, total: MONSTER_DEFS.length, shinyOwned, byWorld, byWorldTotal }
 }
 
 /** 按世界返回已捕获的储备怪 id（rarity !== common），用于扩展皮肤轮换池 */
@@ -72,17 +80,19 @@ export async function captureMonster(
   source: CaptureSource,
   todayStr: string,
   now: number,
-): Promise<MonsterDef | null> {
+): Promise<CaptureResult | null> {
   if (source === 'egg') {
     const todayEggCount = await getCaptureCountToday(todayStr, 'egg')
     if (!canEggCapture(todayEggCount)) return null
   }
 
   const owned = await getOwnedIds()
-  const picked = pickCapture([...owned], source, Math.random())
+  const picked = pickCapture([...owned], source, Math.random(), Math.random())
   if (!picked) return null
 
-  const row: MonsterRow = { id: picked.id, capturedAt: now, source }
+  // 闪光落的是独立行（id 带 ~shiny 后缀），与本体互不覆盖
+  const id = picked.shiny ? shinyIdOf(picked.def.id) : picked.def.id
+  const row: MonsterRow = { id, capturedAt: now, source }
   await db.monsters.put(row)
   pushMonsters([row])
   return picked
@@ -93,7 +103,7 @@ export async function captureDailyOnCheckin(
   alreadyCheckedIn: boolean,
   todayStr: string,
   now: number,
-): Promise<MonsterDef | null> {
+): Promise<CaptureResult | null> {
   if (!shouldDailyCapture(alreadyCheckedIn)) return null
   return captureMonster('daily', todayStr, now)
 }
