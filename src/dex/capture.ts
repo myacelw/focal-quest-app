@@ -60,6 +60,15 @@ export function pickCapture(
 
   const def = pickWeighted(pool, (m) => m.rarity, WEIGHTS[source], RARITY_LIST, rand)
   if (!def) return null
+  // 回落到另一个桶时 shiny 标记必须跟着翻转：pool 实际来自哪个桶（usePrimary）
+  // 才是这次抽到的东西是否闪光的真相，wantShiny 只是「原本想要哪桶」的意愿。
+  // 若简化成直接返回 wantShiny：普通桶抽空后（82 只本体集齐后），15/16 的掷骰
+  // 仍是 wantShiny=false，此时 primary=normalPool 已空 → usePrimary=false →
+  // pool 实际回落到 shinyPool，但简化写法仍会返回 shiny:false——调用方
+  // （captureMonster）于是拿 shinyPool 里那只怪的**本体 id**去 put，覆盖掉它
+  // 本已拥有的那行的 capturedAt，孩子每天开箱看到一只已经拥有的怪，图鉴永远
+  // 停在 82/82、闪光一只也拿不到。两条双向回落的场景都由 capture.test.ts 的
+  // 对应用例拦住。
   return { def, shiny: usePrimary ? wantShiny : !wantShiny }
 }
 

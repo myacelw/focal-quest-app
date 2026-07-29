@@ -36,4 +36,12 @@ describe('闪光视觉的源文本契约', () => {
     expect(dexWallSrc).toMatch(/\{owned && shinyOwned && \(/)
     expect(dexWallSrc).not.toMatch(/\{shinyOwned && \(/)
   })
+
+  it('DexWall 的「全部集齐」必须同时门控本体与闪光两个计数', () => {
+    // 只看 ownedCount 会在孩子约第 35 天把 82 只本体集齐、闪光才约 5 只时
+    // 就误报「🎉 全部集齐！」——本分支想供给的那 77 只闪光其实一只都还没开始，
+    // 等于本分支的存在理由被自己的 UI 掐掉。这个回归改回单条件不会报错，只是
+    // 悄悄把「全部集齐」的语义改错，只能靠源文本契约锚住双重门控本身还在。
+    expect(dexWallSrc).toMatch(/isComplete = ownedCount >= TOTAL_MONSTERS && shinyCount >= TOTAL_MONSTERS/)
+  })
 })

@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { monstersOfWorld, TOTAL_MONSTERS, WORLDS, isShinyId, baseIdOf, type MonsterDef, type Rarity } from './monster-defs'
+import { monstersOfWorld, TOTAL_MONSTERS, WORLDS, isShinyId, baseIdOf, MONSTER_DEFS, type MonsterDef, type Rarity } from './monster-defs'
 import { MonsterImage } from './MonsterImage'
 import { getOwnedMonsters } from './dex-service'
 import { toDateStr } from '../data/date-utils'
@@ -47,9 +47,19 @@ export function DexWall() {
 
   if (capturedMap === null) return <div className="fq-page">{t('home.loading')}</div>
 
-  const ownedCount = Object.keys(capturedMap).filter((id) => !isShinyId(id)).length
+  // 必须遍历 MONSTER_DEFS 来数，不能用 Object.keys(capturedMap).length /
+  // shinySet.size——那两个数的是「capturedMap/shinySet 里有多少行」，今天与
+  // MONSTER_DEFS 的定义数恒等价（历史上零退役零改名），但只要将来退役/改名一只
+  // 怪，或从更新版设备同步回一条本机不认识的 monster 行，行数会被算进去而
+  // dex-service.getDexProgress（首页用的那份）不会，两处数字就会打架，且行数可能
+  // 超过 TOTAL_MONSTERS 导致 pct > 100%。与首页同源，用法参考 dex-service.ts。
+  const ownedCount = MONSTER_DEFS.filter((d) => capturedMap[d.id] !== undefined).length
+  const shinyCount = MONSTER_DEFS.filter((d) => shinySet.has(d.id)).length
   const pct = Math.round((ownedCount / TOTAL_MONSTERS) * 100)
-  const isComplete = ownedCount >= TOTAL_MONSTERS
+  // 本体与闪光都集齐才算「全部集齐」——否则孩子约第 35 天把 82 只本体集齐、
+  // 闪光才约 5 只时，图鉴会同时显示「已收集 82/82」「100%」外加「🎉 全部集齐！」，
+  // 而本分支想供给的那 77 只闪光其实一只都还没开始，等于本分支的存在理由被自己的 UI 掐掉。
+  const isComplete = ownedCount >= TOTAL_MONSTERS && shinyCount >= TOTAL_MONSTERS
 
   return (
     <div className="fq-rise">
@@ -57,19 +67,23 @@ export function DexWall() {
       <div className="fq-card" style={{ marginTop: 14 }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 14, fontWeight: 700, marginBottom: 10 }}>
           <span>{t('dex.progress', { n: ownedCount, total: TOTAL_MONSTERS })}</span>
-          {shinySet.size > 0 && (
+          {shinyCount > 0 && (
             <span style={{ color: '#e0a400' }}>
-              {t('dex.shinyProgress', { n: shinySet.size, total: TOTAL_MONSTERS })}
+              {t('dex.shinyProgress', { n: shinyCount, total: TOTAL_MONSTERS })}
             </span>
           )}
           <span style={{ color: 'var(--violet)' }}>{pct}%</span>
         </div>
         <div className="fq-bar"><i style={{ width: `${pct}%` }} /></div>
-        {isComplete && (
+        {isComplete ? (
           <div style={{ marginTop: 10, fontSize: 14, fontWeight: 800, color: 'var(--lemon)', textAlign: 'center' }}>
             {t('dex.complete')}
           </div>
-        )}
+        ) : ownedCount >= TOTAL_MONSTERS ? (
+          <div style={{ marginTop: 10, fontSize: 14, fontWeight: 800, color: 'var(--lemon)', textAlign: 'center' }}>
+            {t('dex.baseComplete', { n: TOTAL_MONSTERS - shinyCount })}
+          </div>
+        ) : null}
       </div>
 
       {/* 跳过还没有怪兽的世界：先加世界类型、后补数据时不会多出一个空分组 */}
