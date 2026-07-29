@@ -112,6 +112,7 @@ const OPTOTYPE_AUTO_KEYS = [
   'optoAuto.tightened', 'optoAuto.tightenedHint',
   'optoAuto.suggest', 'optoAuto.suggestHint', 'optoAuto.apply',
   'optoAuto.reverted', 'optoAuto.revertedHint',
+  'optoAuto.suggestRevert', 'optoAuto.suggestRevertHint',
   'optoAuto.switch', 'optoAuto.switchHint',
   'optoAuto.lastAdjust', 'optoAuto.undo',
 ]
@@ -230,7 +231,7 @@ describe('云同步与隐私政策文案', () => {
   })
 
   it('视标自适应文案在 zh 与 en 都成对存在', () => {
-    expect(OPTOTYPE_AUTO_KEYS.length).toBe(11)
+    expect(OPTOTYPE_AUTO_KEYS.length).toBe(13)
     for (const k of OPTOTYPE_AUTO_KEYS) {
       expect(hasKey('zh', k), `zh 缺 ${k}`).toBe(true)
       expect(hasKey('en', k), `en 缺 ${k}`).toBe(true)
