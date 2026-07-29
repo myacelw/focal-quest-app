@@ -74,8 +74,22 @@ npm run db:migrate:remote   # 线上
 ### 邀请码
 
 注册需邀请码，每个账号有专属码（`users.invite_code`），新用户落库 `invited_by`，注册来源可追溯。
-配额 `invite_quota` 默认 5，用量由 `COUNT(invited_by)` 派生。封停某人的码：把配额改 0。
-站长开局用 `BOOTSTRAP_INVITE_CODE` secret，注册完应删掉它。
+
+**码 = 一张有 `invite_quota`（默认 5）次使用次数的券。** 已用数由
+`COUNT(invited_by) WHERE created_at >= invite_reset_at` 派生——只数**当前世代**。
+
+- **换码**：管理员在设置页「☁️ 云同步」卡点「换一个码」（`POST /api/account/invite`，
+  限速 5 次/日/用户）。同一条 UPDATE 写新码与 `invite_reset_at`，**旧码立刻失效、名额重新算起**。
+  普通用户没有这个按钮，服务端也会以 403 拒绝。
+- **看名额**：所有登录用户在同一张卡上看到「已邀 n/5」（`GET /api/account/invite`）。
+  离线时只显示快照码、不显示名额（显示 0/5 是撒谎）。
+- **管理后台的邀请排行**分「累计邀请」与「当前码 n/quota」两列：前者是跨世代的历史累计，
+  后者才是还能邀几个。合成一个数会出现「已邀 4 / 配额 5」这种误导（实际还剩 4 个）。
+- **封停某人的码**：把 `invite_quota` 改 0（无 UI，去 D1 Console 跑 SQL）。
+- **提额**：同样是手写 SQL 改 `invite_quota`，本版本刻意不做提额 UI。
+
+⚠️ `BOOTSTRAP_INVITE_CODE` secret **无限量且不可追溯**（`invited_by` 记 NULL），
+是系统里唯一绕过配额的路径。管理员能自助换码之后它已无存在理由——**站长注册完就该删掉**。
 
 ### 备份
 
