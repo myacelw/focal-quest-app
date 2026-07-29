@@ -161,7 +161,7 @@ export function AdminPage() {
                 <tr>
                   <th style={TH}>{t('admin.col.email')}</th>
                   <th style={TH}>{t('admin.col.invited')}</th>
-                  <th style={TH}>{t('admin.col.quota')}</th>
+                  <th style={TH}>{t('admin.col.currentUsed')}</th>
                 </tr>
               </thead>
               <tbody>
@@ -169,7 +169,7 @@ export function AdminPage() {
                   <tr key={x.email}>
                     <td style={TD}>{x.email}</td>
                     <td style={TD}>{x.invited}</td>
-                    <td style={TD}>{x.quota}</td>
+                    <td style={TD}>{x.currentUsed}/{x.quota}</td>
                   </tr>
                 ))}
               </tbody>

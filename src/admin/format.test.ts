@@ -17,6 +17,11 @@ describe('metricLabel', () => {
     })
   })
 
+  it('换码计数有专属文案（否则后台会原样显示 invite.rotate.ok 这串 metric）', () => {
+    expect(metricLabel('invite.rotate.ok')).toEqual({ key: 'admin.metric.invite.rotate.ok' })
+    expect(metricLabel('invite.rotate.ratelimit')).toEqual({ key: 'admin.metric.invite.rotate.ratelimit' })
+  })
+
   it('未知 metric 返回 null（界面直接显示原始 metric，不吞掉新指标）', () => {
     expect(metricLabel('something.new')).toBe(null)
   })

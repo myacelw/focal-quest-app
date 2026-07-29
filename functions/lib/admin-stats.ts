@@ -48,7 +48,14 @@ export interface RecentUser {
   invitedByEmail: string | null
   isAdmin: boolean
 }
-export interface InviterRow { email: string; invited: number; quota: number }
+export interface InviterRow {
+  email: string
+  /** 历史累计邀请人数（跨所有世代的码） */
+  invited: number
+  quota: number
+  /** **当前这个码**已用掉的名额（invite_reset_at 之后注册的人）——与注册端的配额判据同口径 */
+  currentUsed: number
+}
 export interface AbuseRow { metric: string; total: number }
 
 /** SQL 原样结果的集合，端点填好后交给 shapeAdminStats */
