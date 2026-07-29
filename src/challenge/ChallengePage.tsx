@@ -16,6 +16,7 @@ import {
   type ChallengeState,
 } from './challenge-session'
 import { readBest, writeBestIfHigher } from './challenge-storage'
+import { readPxPerMm } from '../calibration/px-per-mm'
 
 /** 计时步长：训练页那套「1 秒粒度」在这里不够——挑战要在 ms 级判超时 */
 const TICK_MS = 100
@@ -29,10 +30,6 @@ const DPAD: { dir: Direction; col: number; row: number }[] = [
   { dir: 'down', col: 2, row: 3 },
 ]
 
-function readPxPerMm(): number | null {
-  const v = lsGet('fzp.cssPxPerMm')
-  return v ? Number(v) : null
-}
 
 /**
  * 限时挑战页：30 秒冲分小游戏。与正经训练的关键区别——

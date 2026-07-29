@@ -1,13 +1,14 @@
-import { describe, it, expect } from 'vitest'
+import { describe, it, expect, beforeEach, afterEach } from 'vitest'
 import type { SessionRow } from '../data/db'
 import {
   AUTO_FLOOR_MM, AUTO_COOLDOWN_DAYS, AUTO_WINDOW_DAYS, DEFAULT_SIZE_MM, SIZE_MAX_MM,
-  sanitizeSizeMm, decideOptotypeAdjust, dayStats, type OptotypeAdjust,
+  sanitizeSizeMm, decideOptotypeAdjust, readAutoEnabled, atAutoFloor, LS_AUTO_ENABLED, dayStats, type OptotypeAdjust,
 } from './optotype-auto'
 import src from './optotype-auto.ts?raw'
 import settingsSrc from '../SettingsPage.tsx?raw'
 import trainingSrc from '../training/TrainingPage.tsx?raw'
 import challengeSrc from '../challenge/ChallengePage.tsx?raw'
+import calibSrc from '../calibration/CalibrationPage.tsx?raw'
 
 /** 造一天的节次：给定日期、正确率、若干节的反应时间 */
 function day(date: string, accuracy: number, reactions: number[]): SessionRow[] {
@@ -270,7 +271,11 @@ describe('源文本契约', () => {
     // 这条防的是"顺手把下限写死成 0.4 试试"这类绕过。SIZE_MIN_MM=0.3 是滑块的
     // 手动下限、允许出现；除它之外不该有 0.1~0.5 之间的裸小数（AUTO_STEP_MM=0.1 除外）。
     const allowed = new Set(['0.3', '0.1'])
-    const found = [...src.matchAll(/(?<![\d.])0\.[0-5]\d*/g)].map((m) => m[0])
+    // 先剥掉注释再匹配：这条契约要拦的是"绕过 AUTO_FLOOR_MM 的硬编码毫米值"，
+    // 而注释里为解释浮点余量而写出 0.5999999999999999 并不是绕过。不剥的话就只能
+    // 靠"注释里不许提这些数字"来满足它，那等于让文档给测试让路（hue-rotate 那次的教训）。
+    const code = src.replace(/\/\*[\s\S]*?\*\//g, '').replace(/\/\/.*$/gm, '')
+    const found = [...code.matchAll(/(?<![\d.])0\.[0-5]\d*/g)].map((m) => m[0])
     expect(found.filter((f) => !allowed.has(f))).toEqual([])
   })
 
@@ -287,6 +292,18 @@ describe('源文本契约', () => {
     expect(trainingSrc).toMatch(/readSizeMm\(\)/)
     expect(challengeSrc).toMatch(/readSizeMm\(\)/)
     expect(settingsSrc).toMatch(/useState\(readSizeMm\)/)
+  })
+
+  it('px/mm 乘数也一样收口 —— 视标尺寸 = 毫米 × 乘数，两个因子都得挡住 NaN', () => {
+    // 与上一条对称。少了这条的话，谁在任一页写回 `Number(lsGet('fzp.cssPxPerMm'))`
+    // 都能全绿通过，而 NaN 乘数同样让视标渲染不出来。
+    for (const [name, s] of [['Settings', settingsSrc], ['Training', trainingSrc], ['Challenge', challengeSrc]] as const) {
+      expect(s.includes('cssPxPerMm'), `${name} 应改为从 calibration/px-per-mm 取值`).toBe(false)
+      expect(s).toMatch(/readPxPerMm\(\)/)
+    }
+    // 标定页是脏值状态下唯一的康复路径，它自己也必须走同一个出口（否则渲染期抛异常、
+    // 被全局 ErrorBoundary 变成全屏 😵，孩子从此练不了、家长也无法重新标定）。
+    expect(calibSrc).toMatch(/useState<number \| null>\(readPxPerMm\)/)
   })
 
   it('撤回按钮只出现在设置页，绝不出现在结算页', () => {
@@ -312,5 +329,44 @@ describe('源文本契约', () => {
   it('开关关闭时才渲染「应用」按钮，打开时是既成事实', () => {
     expect(trainingSrc).toMatch(/optoAuto\.apply/)
     expect(trainingSrc).toMatch(/optoAuto\.tightened/)
+  })
+})
+
+describe('readAutoEnabled —— 严格白名单', () => {
+  const store = new Map<string, string>()
+  beforeEach(() => {
+    store.clear()
+    ;(globalThis as { localStorage?: unknown }).localStorage = {
+      getItem: (k: string) => store.get(k) ?? null,
+      setItem: (k: string, v: string) => void store.set(k, v),
+    }
+  })
+  afterEach(() => { delete (globalThis as { localStorage?: unknown }).localStorage })
+
+  it('没写过 → 开（用户选的就是"自动调、事后告知"）', () => {
+    expect(readAutoEnabled()).toBe(true)
+  })
+
+  it("'1' → 开，'0' → 关", () => {
+    store.set(LS_AUTO_ENABLED, '1'); expect(readAutoEnabled()).toBe(true)
+    store.set(LS_AUTO_ENABLED, '0'); expect(readAutoEnabled()).toBe(false)
+  })
+
+  it("含糊的值判为关 —— 'false'/'off' 这些字是想关的人写的，旧的 !== '0' 会把它们当成开", () => {
+    for (const v of ['false', 'off', 'no', '', 'abc']) {
+      store.set(LS_AUTO_ENABLED, v)
+      expect(readAutoEnabled(), v).toBe(false)
+    }
+  })
+})
+
+describe('atAutoFloor —— 下限判据只有一处', () => {
+  it('0.7 还能再调一档到 0.6（那个 1e-9 余量不能去掉：0.7-0.1 在浮点下是 0.5999999999999999）', () => {
+    expect(atAutoFloor(0.7)).toBe(false)
+  })
+
+  it('到了 0.6 就不能再调', () => {
+    expect(atAutoFloor(AUTO_FLOOR_MM)).toBe(true)
+    expect(atAutoFloor(0.5)).toBe(true)
   })
 })

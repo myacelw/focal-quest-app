@@ -1,6 +1,7 @@
 import type { SessionRow, RedemptionRow } from '../data/db'
 import { weekKey } from './period'
 import { addDays, toDateStr } from '../data/date-utils'
+import type { OptotypeAutoState } from '../training/optotype-auto'
 
 export interface WeeklyReport {
   thisWeekCount: number
@@ -26,7 +27,16 @@ function avgReactionMs(rows: SessionRow[]): number | null {
 }
 
 /** 生成家长周报：本周概览 + 反应时间趋势 + 一句话建议（难度进阶/鼓励/提醒） */
-export function weeklyReport(sessions: SessionRow[], today: string): WeeklyReport {
+/**
+ * `optoState` 决定高正确率那条建议怎么措辞。
+ *
+ * ⚠️ **刻意做成必传，不给默认值。** 给默认 'auto' 更省事（既有调用点与测试都不用改），
+ * 但那样"忘记传"的后果恰好就是本次要消灭的那句假话——开关关掉后周报仍宣称"会自动
+ * 调小"，而那时什么都不会发生，且 765 个测试会全绿。必传让编译器替我们挡住。
+ */
+export function weeklyReport(
+  sessions: SessionRow[], today: string, optoState: OptotypeAutoState,
+): WeeklyReport {
   const thisWk = weekKey(today)
   const lastWk = weekKey(addDays(today, -7))
   const tw = weekOf(sessions, thisWk)
@@ -48,7 +58,13 @@ export function weeklyReport(sessions: SessionRow[], today: string): WeeklyRepor
   if (tw.length === 0) {
     suggestionKey = 'suggest.noSessions'
   } else if (accuracy !== null && accuracy >= 0.9) {
-    suggestionKey = 'suggest.highAccuracy'
+    // ⚠️ 这条在正确率 ≥90% 就触发，而自动收紧还要求反应 ≤2000ms、冷却已过、未到下限。
+    // 所以文案必须是**条件式**的（"再快一些就会自动调小"），不能承诺"会自动调小"——
+    // 正确率 92% 但反应 3000ms 时它什么都不会做，写成承诺就是假话。
+    suggestionKey =
+      optoState === 'floor' ? 'suggest.highAccuracyFloor'
+      : optoState === 'manual' ? 'suggest.highAccuracyManual'
+      : 'suggest.highAccuracyAuto'
   } else if (reactionTrend === 'faster') {
     suggestionKey = 'suggest.reactionFaster'
   } else if (accuracy !== null && accuracy < 0.6) {

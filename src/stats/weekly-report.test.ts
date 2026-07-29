@@ -11,37 +11,52 @@ function s(date: string, correct: number, answered: number, avgReactionMs?: numb
 
 describe('weeklyReport', () => {
   it('本周无记录 → 提示开始', () => {
-    const r = weeklyReport([], TODAY)
+    const r = weeklyReport([], TODAY, 'auto')
     expect(r.thisWeekCount).toBe(0)
     expect(r.suggestionKey).toBe('suggest.noSessions')
   })
 
   it('统计本周/上周次数', () => {
-    const r = weeklyReport([s('2026-07-07', 5, 5), s('2026-07-08', 4, 5), s('2026-06-30', 3, 5)], TODAY)
+    const r = weeklyReport([s('2026-07-07', 5, 5), s('2026-07-08', 4, 5), s('2026-06-30', 3, 5)], TODAY, 'auto')
     expect(r.thisWeekCount).toBe(2)
     expect(r.lastWeekCount).toBe(1)
   })
 
-  it('高正确率 → 建议调小视标（难度进阶）', () => {
-    const r = weeklyReport([s('2026-07-07', 10, 10, 1500)], TODAY)
+  it('高正确率 → 建议调小视标（难度进阶），默认按"自动开"措辞', () => {
+    const r = weeklyReport([s('2026-07-07', 10, 10, 1500)], TODAY, 'auto')
     expect(r.accuracy).toBe(1)
-    expect(r.suggestionKey).toBe('suggest.highAccuracy')
+    expect(r.suggestionKey).toBe('suggest.highAccuracyAuto')
+  })
+
+  it('自适应三态各出各的文案 —— 这条建议在 ≥90% 就触发，而自动收紧还要求反应够快、冷却已过、未到下限，所以不能承诺"会自动调小"', () => {
+    const rows = [s('2026-07-07', 10, 10, 1500)]
+    expect(weeklyReport(rows, TODAY, 'auto').suggestionKey).toBe('suggest.highAccuracyAuto')
+    expect(weeklyReport(rows, TODAY, 'manual').suggestionKey).toBe('suggest.highAccuracyManual')
+    expect(weeklyReport(rows, TODAY, 'floor').suggestionKey).toBe('suggest.highAccuracyFloor')
+  })
+
+  it('自适应状态只影响高正确率那一条，不串到其它建议', () => {
+    // 低正确率时无论开关如何都该是 lowAccuracy——否则关掉自动会连"正确率偏低"都提示不出来
+    const low = [s('2026-07-07', 3, 10, 1500)]
+    for (const st of ['auto', 'manual', 'floor'] as const) {
+      expect(weeklyReport(low, TODAY, st).suggestionKey).toBe('suggest.lowAccuracy')
+    }
   })
 
   it('反应比上周快 → 进步鼓励', () => {
-    const r = weeklyReport([s('2026-07-07', 6, 10, 1200), s('2026-06-30', 6, 10, 2000)], TODAY)
+    const r = weeklyReport([s('2026-07-07', 6, 10, 1200), s('2026-06-30', 6, 10, 2000)], TODAY, 'auto')
     expect(r.reactionTrend).toBe('faster')
     expect(r.avgReactionSec).toBe(1.2)
     expect(r.suggestionKey).toBe('suggest.reactionFaster')
   })
 
   it('正确率偏低 → 提醒家长', () => {
-    const r = weeklyReport([s('2026-07-07', 3, 10, 1500)], TODAY)
+    const r = weeklyReport([s('2026-07-07', 3, 10, 1500)], TODAY, 'auto')
     expect(r.suggestionKey).toBe('suggest.lowAccuracy')
   })
 
   it('缺一周数据 → 趋势为 null', () => {
-    const r = weeklyReport([s('2026-07-07', 7, 10, 1500)], TODAY)
+    const r = weeklyReport([s('2026-07-07', 7, 10, 1500)], TODAY, 'auto')
     expect(r.reactionTrend).toBeNull()
   })
 })
