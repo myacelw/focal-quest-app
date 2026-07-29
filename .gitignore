@@ -25,3 +25,6 @@ dist.zip
 
 # SDD 执行期的 scratch（账本/任务简报/评审包），不入库
 .superpowers/
+
+# Playwright MCP 的调试产物（截图/快照/console 日志），只在本机排查时生成
+.playwright-mcp/
