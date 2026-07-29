@@ -226,4 +226,15 @@ describe('源文本契约', () => {
     expect(settingsSrc.indexOf('optoAuto.switch')).toBeGreaterThan(foldAt)
     expect(settingsSrc.indexOf('optoAuto.undo')).toBeGreaterThan(foldAt)
   })
+
+  it('结算页两个分支都渲染自适应卡（不达标页也要判——数据就是数据）', () => {
+    // 与 goal.ts 那条「门槛只决定今天算不算完成，不决定训练事实是否被记录」一致。
+    const hits = [...trainingSrc.matchAll(/<OptotypeAdjustCard/g)]
+    expect(hits.length, '不达标页与完成页各一处').toBe(2)
+  })
+
+  it('开关关闭时才渲染「应用」按钮，打开时是既成事实', () => {
+    expect(trainingSrc).toMatch(/optoAuto\.apply/)
+    expect(trainingSrc).toMatch(/optoAuto\.tightened/)
+  })
 })

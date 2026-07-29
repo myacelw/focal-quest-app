@@ -11,8 +11,12 @@ import { startVosk, type VoskController } from '../speech/vosk'
 import { parseAnswer, type Direction } from '../speech/answer-mapping'
 import { saveSession, doCheckIn, getHomeStats, type CheckinResult } from '../data/checkin'
 import { toDateStr } from '../data/date-utils'
-import { lsGet } from '../data/storage'
-import { readSizeMm } from './optotype-auto'
+import { lsGet, lsSet } from '../data/storage'
+import { db } from '../data/db'
+import {
+  decideOptotypeAdjust, readSizeMm, readAutoEnabled, readLastAdjust, writeLastAdjust, LS_SIZE,
+  type AdjustDecision,
+} from './optotype-auto'
 import { asset } from '../data/asset'
 import { useT } from '../i18n'
 import { syncBadges } from '../badges/badge-service'
@@ -66,6 +70,8 @@ export function TrainingPage({ onHome }: { onHome: () => void }) {
   const [capturedByWorld, setCapturedByWorld] = useState<Record<World, string[]>>(() => emptyByWorld<string[]>(() => []))
   // 选“随机皮肤”时，本节临时挑定的皮肤（每节只解析一次，避免每次渲染重掷）
   const [randomSkinId, setRandomSkinId] = useState<string | null>(null)
+  // 视标自适应：一轮结束时判一次，结算页两个分支都据此渲染告知卡
+  const [optoDecision, setOptoDecision] = useState<AdjustDecision>({ action: 'none' })
 
   const t = useT()
   const pxPerMm = readPxPerMm()
@@ -267,6 +273,15 @@ export function TrainingPage({ onHome }: { onHome: () => void }) {
     const unlocked = await syncBadges(Date.now())
     setNewBadges(unlocked)
 
+    // 视标自适应：一轮结束后判一次。⚠️ 放在这里而不是 checked-in 分支里——
+    // 不达标的日子照样有有效训练数据，判据不看打卡（spec §4.1）。
+    const rows = await db.sessions.toArray()
+    const decision = decideOptotypeAdjust(rows, readSizeMm(), readLastAdjust(), roundDateRef.current)
+    if (decision.action !== 'none' && readAutoEnabled()) {
+      applyOptotypeDecision(decision, roundDateRef.current)
+    }
+    setOptoDecision(decision)
+
     if (result.outcome === 'below-goal') {
       // 今天答对太少 = 今天不算完成：不打卡、不加分、不发保底怪、不算皮肤解锁、
       // 不放完成音（'finish' 在节结束时已经响过了）。只有勋章这个"累计事实"可以响。
@@ -390,6 +405,7 @@ export function TrainingPage({ onHome }: { onHome: () => void }) {
             </div>
           </div>
         )}
+        <OptotypeAdjustCard decision={optoDecision} dateStr={roundDateRef.current} />
         <button className="fq-cta coral" style={{ width: '100%', marginTop: 16 }} onClick={restartRound}>
           {t('goal.retry')}
         </button>
@@ -453,6 +469,7 @@ export function TrainingPage({ onHome }: { onHome: () => void }) {
             <p style={{ fontSize: 12, color: 'var(--muted)', marginTop: 12 }}>{t('dex.empty')}</p>
           </div>
         )}
+        <OptotypeAdjustCard decision={optoDecision} dateStr={roundDateRef.current} />
       </div>
     )
   }
@@ -668,6 +685,62 @@ const RARITY_BORDER: Record<Rarity, string> = {
   common: '#c7c0db',
   rare: '#7c6cf0',
   epic: '#ffb400',
+}
+
+/** 把决策写进 localStorage：视标值 + 一条审计记录。开关关闭时由「应用」按钮调同一个函数 */
+function applyOptotypeDecision(d: Exclude<AdjustDecision, { action: 'none' }>, dateStr: string): void {
+  lsSet(LS_SIZE, String(d.to))
+  writeLastAdjust({
+    from: d.from, to: d.to, atDate: dateStr, kind: d.action,
+    baselineReactionMs: d.action === 'tighten' ? d.baselineReactionMs : 0,
+  })
+}
+
+/**
+ * 视标自适应的结算页告知。
+ *
+ * ⚠️ 这里**只告知或提供「应用」，绝不提供「撤回」**。结算页主要是孩子在看，撤回按钮
+ * 摆在这儿等于给她一条每天一按、把训练调回容易的通道。方向不对称是安全的关键：
+ * 「应用」只会让训练变难，孩子不会去按；撤回只会让训练变容易，所以只在设置页家长区。
+ */
+function OptotypeAdjustCard({ decision, dateStr }: { decision: AdjustDecision; dateStr: string }) {
+  const t = useT()
+  const [applied, setApplied] = useState(false)
+  if (decision.action === 'none') return null
+
+  const auto = readAutoEnabled()
+  const isRevert = decision.action === 'revert'
+  const done = auto || applied
+  // ⚠️ 回退也有两种呈现，别只按 isRevert 选文案：开关关闭时回退**没有被执行**（下面
+  // 那个 if 里 readAutoEnabled() 为假就不写 localStorage），此时若标题用过去式的
+  // 「视标已退回」，就会和同一张卡上的「应用」按钮自相矛盾——文案说已经发生、按钮说还没。
+  const titleKey = isRevert
+    ? (done ? 'optoAuto.reverted' : 'optoAuto.suggestRevert')
+    : (done ? 'optoAuto.tightened' : 'optoAuto.suggest')
+  const hintKey = isRevert
+    ? (done ? 'optoAuto.revertedHint' : 'optoAuto.suggestRevertHint')
+    : (done ? 'optoAuto.tightenedHint' : 'optoAuto.suggestHint')
+
+  return (
+    <div className="fq-card fq-rise" style={{ marginTop: 14, textAlign: 'left', borderLeft: '4px solid var(--violet)' }}>
+      <div style={{ fontSize: 15, fontWeight: 800 }}>
+        {t(titleKey)}
+        <span style={{ marginLeft: 8, color: 'var(--violet)' }}>
+          {decision.from.toFixed(1)} → {decision.to.toFixed(1)}mm
+        </span>
+      </div>
+      <p style={{ fontSize: 13, color: 'var(--muted)', marginTop: 6, lineHeight: 1.6 }}>{t(hintKey)}</p>
+      {!done && (
+        <button
+          className="fq-btn"
+          style={{ marginTop: 10 }}
+          onClick={() => { applyOptotypeDecision(decision, dateStr); setApplied(true) }}
+        >
+          {t('optoAuto.apply')}
+        </button>
+      )}
+    </div>
+  )
 }
 
 /** 结算页开箱：本节捕获的怪兽逐只翻牌揭晓，配音效 */
