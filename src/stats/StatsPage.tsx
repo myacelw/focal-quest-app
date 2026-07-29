@@ -9,7 +9,7 @@ import { getOwnedMonsters } from '../dex/dex-service'
 import { listRedemptions } from '../rewards/rewards-service'
 import { toDateStr } from '../data/date-utils'
 import { useT } from '../i18n'
-import { readOptotypeAutoState } from '../training/optotype-auto'
+import { readOptotypeAutoState, AUTO_FLOOR_MM } from '../training/optotype-auto'
 
 export function StatsPage() {
   const t = useT()
@@ -100,7 +100,7 @@ export function StatsPage() {
           </div>
         </div>
         <div style={{ fontSize: 13, background: 'rgba(255,255,255,0.18)', borderRadius: 10, padding: '9px 12px' }}>
-          💡 {t(`stats.${report.suggestionKey}`)}
+          💡 {t(`stats.${report.suggestionKey}`, { mm: AUTO_FLOOR_MM.toFixed(1) })}
         </div>
         {(extras.monstersThisWeek > 0 || extras.redeemedTitlesThisWeek.length > 0) && (
           <div style={{ fontSize: 12, marginTop: 8, opacity: 0.92, display: 'flex', flexDirection: 'column', gap: 4 }}>

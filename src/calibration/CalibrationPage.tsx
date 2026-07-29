@@ -4,10 +4,11 @@ import {
   CARD_SHORT_MM, MIN_CARD_PX, maxCardPx, pickCardEdge,
   ratioFromCardPx, cardPxFromRatio, canSave,
 } from './calibration-fit'
-import { lsGet, lsSet } from '../data/storage'
+import { lsSet } from '../data/storage'
+import { readPxPerMm, LS_PX_PER_MM } from './px-per-mm'
 import { useT, Rich } from '../i18n'
 
-const STORAGE_KEY = 'fzp.cssPxPerMm'
+const STORAGE_KEY = LS_PX_PER_MM
 /** 银行卡 ISO/IEC 7810 ID-1：85.6 × 53.98 mm，宽高比约 1.586 */
 const CARD_ASPECT = CARD_WIDTH_MM / CARD_SHORT_MM
 /** 短边模式的参照带高度：卡片竖放比屏幕还高，只需对齐左右两边，故不画整张卡 */
@@ -18,10 +19,11 @@ export function CalibrationPage() {
   // 可用宽度（视口宽，排除滚动条）——滑块/拖拽上限随之，杜绝溢出裁切
   const [avail, setAvail] = useState(360)
   const [cardPx, setCardPx] = useState(300)
-  const [saved, setSaved] = useState<number | null>(() => {
-    const v = lsGet(STORAGE_KEY)
-    return v ? Number(v) : null
-  })
+  // ⚠️ 必须走 readPxPerMm 而不是自己 `Number(lsGet(...))`：脏值（'abc' → NaN、'0'、'1e6'）
+  // 会一路传到 `canSave` → `cardPxFromRatio`，那里 `if (!(ratio > 0)) throw`，整个标定页在
+  // 渲染期抛异常、被全局 ErrorBoundary 变成全屏 😵。而这一页正是其它三页在拿到脏值时
+  // 唯一推荐的康复路径——它自己崩掉的话，孩子就再也练不了、家长也无法重新标定。
+  const [saved, setSaved] = useState<number | null>(readPxPerMm)
 
   useEffect(() => {
     const measure = () => setAvail(document.documentElement.clientWidth)

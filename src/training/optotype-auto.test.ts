@@ -8,6 +8,7 @@ import src from './optotype-auto.ts?raw'
 import settingsSrc from '../SettingsPage.tsx?raw'
 import trainingSrc from '../training/TrainingPage.tsx?raw'
 import challengeSrc from '../challenge/ChallengePage.tsx?raw'
+import calibSrc from '../calibration/CalibrationPage.tsx?raw'
 
 /** 造一天的节次：给定日期、正确率、若干节的反应时间 */
 function day(date: string, accuracy: number, reactions: number[]): SessionRow[] {
@@ -291,6 +292,18 @@ describe('源文本契约', () => {
     expect(trainingSrc).toMatch(/readSizeMm\(\)/)
     expect(challengeSrc).toMatch(/readSizeMm\(\)/)
     expect(settingsSrc).toMatch(/useState\(readSizeMm\)/)
+  })
+
+  it('px/mm 乘数也一样收口 —— 视标尺寸 = 毫米 × 乘数，两个因子都得挡住 NaN', () => {
+    // 与上一条对称。少了这条的话，谁在任一页写回 `Number(lsGet('fzp.cssPxPerMm'))`
+    // 都能全绿通过，而 NaN 乘数同样让视标渲染不出来。
+    for (const [name, s] of [['Settings', settingsSrc], ['Training', trainingSrc], ['Challenge', challengeSrc]] as const) {
+      expect(s.includes('cssPxPerMm'), `${name} 应改为从 calibration/px-per-mm 取值`).toBe(false)
+      expect(s).toMatch(/readPxPerMm\(\)/)
+    }
+    // 标定页是脏值状态下唯一的康复路径，它自己也必须走同一个出口（否则渲染期抛异常、
+    // 被全局 ErrorBoundary 变成全屏 😵，孩子从此练不了、家长也无法重新标定）。
+    expect(calibSrc).toMatch(/useState<number \| null>\(readPxPerMm\)/)
   })
 
   it('撤回按钮只出现在设置页，绝不出现在结算页', () => {

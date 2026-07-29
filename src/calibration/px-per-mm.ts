@@ -30,7 +30,9 @@ export function sanitizePxPerMm(v: number | null): number | null {
   return v
 }
 
+export const LS_PX_PER_MM = 'fzp.cssPxPerMm'
+
 export function readPxPerMm(): number | null {
-  const raw = lsGet('fzp.cssPxPerMm')
+  const raw = lsGet(LS_PX_PER_MM)
   return sanitizePxPerMm(raw === null || raw === '' ? null : Number(raw))
 }

@@ -28,11 +28,14 @@ function avgReactionMs(rows: SessionRow[]): number | null {
 
 /** 生成家长周报：本周概览 + 反应时间趋势 + 一句话建议（难度进阶/鼓励/提醒） */
 /**
- * `optoState` 决定高正确率那条建议怎么措辞。默认 'auto' 是为了让既有调用点与测试不变，
- * 但 StatsPage 必须传真实状态——否则开关关掉后周报仍宣称"会自动调小"，而那时什么都不会发生。
+ * `optoState` 决定高正确率那条建议怎么措辞。
+ *
+ * ⚠️ **刻意做成必传，不给默认值。** 给默认 'auto' 更省事（既有调用点与测试都不用改），
+ * 但那样"忘记传"的后果恰好就是本次要消灭的那句假话——开关关掉后周报仍宣称"会自动
+ * 调小"，而那时什么都不会发生，且 765 个测试会全绿。必传让编译器替我们挡住。
  */
 export function weeklyReport(
-  sessions: SessionRow[], today: string, optoState: OptotypeAutoState = 'auto',
+  sessions: SessionRow[], today: string, optoState: OptotypeAutoState,
 ): WeeklyReport {
   const thisWk = weekKey(today)
   const lastWk = weekKey(addDays(today, -7))
