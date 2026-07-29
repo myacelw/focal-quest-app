@@ -2,6 +2,7 @@ import { useEffect, useState, type CSSProperties } from 'react'
 import { useT, Rich } from '../i18n'
 import { getAccount, clearAccount, registerAccount, loginAccount, getMeta, META, type Account } from './account'
 import { validateCredentials } from './credentials'
+import { fetchInviteState, rotateInviteCode } from './invite-api'
 import { syncNow } from './engine'
 import { db } from '../data/db'
 import { toDateStr } from '../data/date-utils'
@@ -39,6 +40,21 @@ export function CloudSyncCard({ onOpenPrivacy, onAccountChange }: {
   const [lastSyncedAt, setLastSyncedAt] = useState<number | null>(null)
   const [lastError, setLastError] = useState<string | null>(null)
   const [copied, setCopied] = useState(false)
+  const [inviteUsage, setInviteUsage] = useState<{ used: number; quota: number } | null>(null)
+  const [rotating, setRotating] = useState(false)
+
+  /**
+   * 拉一次服务端的权威邀请码状态。
+   * 失败（离线）时**什么都不改**——保留 syncMeta 里的快照码，只是不显示名额；
+   * 显示 "0/5" 是撒谎，清空成转圈或空白是退步。
+   */
+  async function loadInvite(): Promise<void> {
+    const r = await fetchInviteState()
+    if (!r.ok) return
+    setInviteUsage({ used: r.state.used, quota: r.state.quota })
+    setAcc((prev) => (prev === null ? prev : { ...prev, inviteCode: r.state.inviteCode, isAdmin: r.state.isAdmin }))
+    onAccountChange?.()
+  }
 
   async function refresh(): Promise<void> {
     const [a, n, at, err] = await Promise.all([
@@ -52,6 +68,7 @@ export function CloudSyncCard({ onOpenPrivacy, onAccountChange }: {
     setLastSyncedAt(at ? Number(at) : null)
     setLastError(err !== null && err !== '' ? err : null)
     onAccountChange?.()
+    if (a !== null) void loadInvite()
   }
 
   useEffect(() => { void refresh() }, [])
@@ -96,7 +113,25 @@ export function CloudSyncCard({ onOpenPrivacy, onAccountChange }: {
     if (!window.confirm(t('sync.logoutConfirm'))) return
     await clearAccount()
     setStatus('idle')
+    setInviteUsage(null)
     await refresh()
+  }
+
+  async function onRotate(): Promise<void> {
+    if (!window.confirm(t('sync.inviteRotateConfirm'))) return
+    setRotating(true)
+    const r = await rotateInviteCode()
+    setRotating(false)
+    if (!r.ok) {
+      setErrorKey(r.errorKey)
+      return
+    }
+    setErrorKey(null)
+    setInviteUsage({ used: r.state.used, quota: r.state.quota })
+    setAcc((prev) => (prev === null ? prev : { ...prev, inviteCode: r.state.inviteCode, isAdmin: r.state.isAdmin }))
+    // 码换掉了，"已复制 ✓" 必须收回——否则家长以为剪贴板里是新码，实际是刚作废的那个
+    setCopied(false)
+    onAccountChange?.()
   }
 
   if (acc !== null) {
@@ -114,6 +149,16 @@ export function CloudSyncCard({ onOpenPrivacy, onAccountChange }: {
           >
             {copied ? t('sync.copied') : t('sync.copy')}
           </button>
+          {inviteUsage !== null && (
+            <span style={{ color: 'var(--muted)' }}>
+              {t('sync.inviteUsage', { used: inviteUsage.used, quota: inviteUsage.quota })}
+            </span>
+          )}
+          {acc.isAdmin && (
+            <button className="fq-btn" disabled={rotating} onClick={() => void onRotate()}>
+              {rotating ? t('sync.working') : t('sync.inviteRotate')}
+            </button>
+          )}
         </div>
         <p style={{ fontSize: 12, color: 'var(--muted)', margin: '6px 0 0' }}>{t('sync.inviteHint')}</p>
 
@@ -132,6 +177,8 @@ export function CloudSyncCard({ onOpenPrivacy, onAccountChange }: {
         )}
         {status === 'ok' && <p style={{ fontSize: 13, color: '#1d9e75', marginTop: 8 }}>{t('sync.syncOk')}</p>}
         {status === 'failed' && <p style={{ fontSize: 13, color: '#e8590c', marginTop: 8 }}>{t('sync.syncFailed')}</p>}
+        {/* 已登录分支原本不渲染 errorKey，而它是换码失败的唯一出口 */}
+        {errorKey !== null && <p style={{ fontSize: 13, color: '#e8590c', marginTop: 8 }}>{t(errorKey)}</p>}
 
         <div style={{ display: 'flex', gap: 8, marginTop: 12, flexWrap: 'wrap' }}>
           <button className="fq-btn" disabled={status === 'working'} onClick={() => void onSyncNow()}>

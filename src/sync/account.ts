@@ -97,10 +97,16 @@ export async function setLastPulledSeq(n: number): Promise<void> {
   await setMeta(META.lastPulledSeq, String(n))
 }
 
-/** 服务端错误码（3b-1 已固定）→ i18n key；未知码兜底成网络错误，不显示空白 */
+/**
+ * 服务端错误码（3b-1 已固定）→ i18n key；未知码兜底成网络错误，不显示空白。
+ *
+ * forbidden 来自换码端点：客户端的 isAdmin 是快照，D1 里被撤掉管理员之后按钮还在，
+ * 点下去就是 403。落到默认的"连不上服务器"会把权限问题说成网络问题。
+ */
 export function authErrorKey(code: string): string {
   const MAP: Record<string, string> = {
     bad_email: 'sync.err.badEmail',
+    forbidden: 'sync.err.forbidden',
     bad_auth_key: 'sync.err.badPassword',
     bad_invite_code: 'sync.err.badInvite',
     invite_quota_exhausted: 'sync.err.inviteUsedUp',

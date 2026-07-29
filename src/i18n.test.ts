@@ -8,12 +8,14 @@ const SYNC_KEYS = [
   'sync.tab.login', 'sync.tab.register', 'sync.email', 'sync.password', 'sync.invite',
   'sync.consent', 'sync.privacyOpen', 'sync.register', 'sync.login', 'sync.logout',
   'sync.logoutConfirm', 'sync.logoutHint', 'sync.working', 'sync.account', 'sync.myInvite',
-  'sync.inviteHint', 'sync.copy', 'sync.copied', 'sync.syncNow', 'sync.lastSynced',
+  'sync.inviteHint', 'sync.inviteUsage', 'sync.inviteRotate', 'sync.inviteRotateConfirm',
+  'sync.copy', 'sync.copied', 'sync.syncNow', 'sync.lastSynced',
   'sync.neverSynced', 'sync.syncOk', 'sync.syncFailed', 'sync.pending', 'sync.pendingNone',
   'sync.needRelogin', 'sync.noteNoRecovery', 'sync.mergeConfirm',
   'sync.err.badEmail', 'sync.err.badPassword', 'sync.err.badInvite', 'sync.err.inviteUsedUp',
   'sync.err.emailTaken', 'sync.err.badCredentials', 'sync.err.tooMany', 'sync.err.retry',
   'sync.err.quota', 'sync.err.unauthorized', 'sync.err.rejected', 'sync.err.network',
+  'sync.err.forbidden',
 ]
 
 /** 隐私政策页用到的全部文案键（6 节各有标题与正文） */
@@ -42,12 +44,13 @@ const ADMIN_KEYS = [
   'admin.dau', 'admin.wau', 'admin.mau', 'admin.openTitle', 'admin.openHint',
   'admin.dailyTitle', 'admin.kindsTitle', 'admin.kindsHint', 'admin.recentTitle', 'admin.recentInviter',
   'admin.recentNoInviter', 'admin.invitersTitle', 'admin.abuseTitle', 'admin.empty', 'admin.caveat',
-  'admin.col.email', 'admin.col.at', 'admin.col.invited', 'admin.col.quota',
+  'admin.col.email', 'admin.col.at', 'admin.col.invited', 'admin.col.currentUsed',
   'admin.col.metric', 'admin.col.value',
   'admin.metric.register.ok', 'admin.metric.register.badcode', 'admin.metric.register.ratelimit',
   'admin.metric.register.quotaexhausted', 'admin.metric.login.ok', 'admin.metric.login.fail',
   'admin.metric.login.ratelimit', 'admin.metric.push.ok', 'admin.metric.active.user',
   'admin.metric.pushReject',
+  'admin.metric.invite.rotate.ok', 'admin.metric.invite.rotate.ratelimit',
   ...['session', 'checkin', 'badge', 'monster', 'reward', 'redemption', 'exam']
     .map((k) => `admin.kind.${k}`),
 ]
@@ -118,8 +121,8 @@ const OPTOTYPE_AUTO_KEYS = [
 ]
 
 describe('云同步与隐私政策文案', () => {
-  it('云同步 44 个文案键在 zh 与 en 字典里都存在（漏一份就会在另一种语言下回退成中文）', () => {
-    expect(SYNC_KEYS.length).toBe(44)
+  it('云同步 48 个文案键在 zh 与 en 字典里都存在（漏一份就会在另一种语言下回退成中文）', () => {
+    expect(SYNC_KEYS.length).toBe(48)
     for (const k of SYNC_KEYS) {
       expect(hasKey('zh', k), `zh 缺 ${k}`).toBe(true)
       expect(hasKey('en', k), `en 缺 ${k}`).toBe(true)
@@ -155,8 +158,8 @@ describe('云同步与隐私政策文案', () => {
     }
   })
 
-  it('管理后台 50 个文案键在 zh 与 en 都存在（漏一份就会在另一种语言下回退成中文）', () => {
-    expect(ADMIN_KEYS.length).toBe(50)
+  it('管理后台 52 个文案键在 zh 与 en 都存在（漏一份就会在另一种语言下回退成中文）', () => {
+    expect(ADMIN_KEYS.length).toBe(52)
     for (const k of ADMIN_KEYS) {
       expect(hasKey('zh', k), `zh 缺 ${k}`).toBe(true)
       expect(hasKey('en', k), `en 缺 ${k}`).toBe(true)

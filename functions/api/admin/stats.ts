@@ -1,8 +1,8 @@
 import type { Env } from '../../lib/db'
 import { json, errorJson } from '../../lib/http'
-import { requireUser } from '../../lib/auth'
+import { requireUser, adminGate } from '../../lib/auth'
 import {
-  ADMIN_DAYS, ADMIN_TZ_SQL, RECENT_DAYS, adminGate, dateList, shapeAdminStats, windowStartMs,
+  ADMIN_DAYS, ADMIN_TZ_SQL, RECENT_DAYS, dateList, shapeAdminStats, windowStartMs,
   type InviterRow, type RawAdminStats, type RecentUser,
 } from '../../lib/admin-stats'
 
@@ -105,13 +105,17 @@ export const onRequestGet: PagesFunction<Env> = async ({ request, env }) => {
       ).bind(LIST_LIMIT),
 
       // 邀请排行：只列真的邀请过人的账号，故用 INNER JOIN。
+      // invited 是**跨世代的历史累计**，currentUsed 只数当前这个码（invite_reset_at 之后
+      // 注册的人）——管理员换过码之后两者会不等，界面并排显示成"累计 7 · 当前码 2/5"。
+      // 合成一个数就会出现"已邀 7 / 配额 5"这种自相矛盾的界面。
       // 同邀请数时按邀请人注册时间倒序（"最近谁在拉人"），不按字母序——字母序会让
       // 本地 D1 里累积的历史测试账号把新账号挤出 LIMIT 20（u.id 已在 GROUP BY 里，
       // SQLite 允许 ORDER BY 里带同组的裸列）。
       env.DB.prepare(
-        `SELECT u.email AS email, u.invite_quota AS quota, COUNT(c.id) AS invited
+        `SELECT u.email AS email, u.invite_quota AS quota, COUNT(c.id) AS invited,
+                SUM(CASE WHEN c.created_at >= u.invite_reset_at THEN 1 ELSE 0 END) AS currentUsed
            FROM users u JOIN users c ON c.invited_by = u.id
-          GROUP BY u.id, u.email, u.invite_quota
+          GROUP BY u.id, u.email, u.invite_quota, u.invite_reset_at
           ORDER BY invited DESC, u.created_at DESC LIMIT ?1`,
       ).bind(LIST_LIMIT),
 
@@ -143,8 +147,10 @@ export const onRequestGet: PagesFunction<Env> = async ({ request, env }) => {
         invitedByEmail: r.inviterEmail,
         isAdmin: r.isAdmin === 1,
       })),
-    inviters: many<{ email: string; quota: number; invited: number }>(inviterRes)
-      .map((r): InviterRow => ({ email: r.email, invited: r.invited, quota: r.quota })),
+    inviters: many<{ email: string; quota: number; invited: number; currentUsed: number }>(inviterRes)
+      .map((r): InviterRow => ({
+        email: r.email, invited: r.invited, quota: r.quota, currentUsed: r.currentUsed ?? 0,
+      })),
     counterRows: many<{ metric: string; value: number }>(counterRes),
   }
 

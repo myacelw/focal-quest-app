@@ -1,0 +1,11 @@
+-- 邀请码「换码即重置已用名额」（spec 2026-07-29-邀请码配额与换码 §3）。
+--
+-- 语义：邀请码 = 一张有 invite_quota 次使用次数的券。管理员换码时把 invite_reset_at
+-- 写成当下，此后注册端只数「这一刻之后注册的人」，于是名额重新算起。
+--
+-- 选这个语义而不是「管理员不限量」，理由是安全：即使管理员的码泄露，最多被薅
+-- invite_quota 个注册就自动锁死，不是无限。
+--
+-- 零回填：存量行取默认值 0，而 users.created_at 恒 > 0，所以
+-- `c.created_at >= u.invite_reset_at` 对存量账号永真——计数行为与加这列之前完全一致。
+ALTER TABLE users ADD COLUMN invite_reset_at INTEGER NOT NULL DEFAULT 0;

@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest'
 import {
-  ADMIN_DAYS, RECENT_DAYS, adminGate, windowStartMs, dateList, tzDate, isAbuseMetric,
+  ADMIN_DAYS, RECENT_DAYS, windowStartMs, dateList, tzDate, isAbuseMetric,
   fillDailyCounts, fillKindCounts, sumAbuse, shapeAdminStats,
   type RawAdminStats,
 } from './admin-stats'
@@ -11,21 +11,7 @@ const DAY = 86_400_000
 // 固定一个时刻做基准：2026-07-26T10:30:00Z = 北京时间 18:30，同一天
 const NOW = Date.UTC(2026, 6, 26, 10, 30, 0)
 
-describe('adminGate', () => {
-  // 这三条是本计划唯一进 CI 质量门的鉴权锚点：deploy-cf.yml 只跑 npm test / typecheck / build，
-  // 从不跑 npm run test:api，所以集成断言拦不住"谁删掉 isAdmin 判断"这种回归。
-  it('没登录 → unauthorized（401）', () => {
-    expect(adminGate(null)).toBe('unauthorized')
-  })
-
-  it('登录了但不是管理员 → forbidden（403，与 401 刻意分开）', () => {
-    expect(adminGate({ isAdmin: false })).toBe('forbidden')
-  })
-
-  it('管理员 → ok', () => {
-    expect(adminGate({ isAdmin: true })).toBe('ok')
-  })
-})
+// adminGate 的三条鉴权锚点已随函数搬到 functions/lib/auth.test.ts
 
 describe('windowStartMs', () => {
   it('days=1 对齐到今天的东八区零点（= 前一天 16:00Z）', () => {
@@ -194,7 +180,7 @@ describe('shapeAdminStats', () => {
     sessionUsers: { d1: 1, d7: 2, d30: 3 },
     openUsers: { d1: 2, d7: 3, d30: 4 },
     recentUsers: [{ email: 'a@b.com', createdAt: 1_700_000_000_000, invitedByEmail: null, isAdmin: true }],
-    inviters: [{ email: 'a@b.com', invited: 2, quota: 5 }],
+    inviters: [{ email: 'a@b.com', invited: 2, quota: 5, currentUsed: 2 }],
     counterRows: [{ metric: 'register.ok', value: 3 }, { metric: 'rl.reg.1.2.3.4.487000', value: 8 }],
   }
 
@@ -203,8 +189,18 @@ describe('shapeAdminStats', () => {
     expect(s.totals).toEqual({ users: 4, records: 90, tokens: 6 })
     expect(s.active).toEqual({ dau: 1, wau: 2, mau: 3, openDau: 2, openWau: 3, openMau: 4 })
     expect(s.recentUsers[0].invitedByEmail).toBe(null)
-    expect(s.inviters[0]).toEqual({ email: 'a@b.com', invited: 2, quota: 5 })
+    expect(s.inviters[0]).toEqual({ email: 'a@b.com', invited: 2, quota: 5, currentUsed: 2 })
     expect(s.abuse).toEqual([{ metric: 'register.ok', total: 3 }])
+  })
+
+  // 管理员换过码之后 invited（跨世代累计）与 currentUsed（当前码）会不等。
+  // 整形层若把 currentUsed 丢掉，界面就只能显示 "已邀 7 / 配额 5" 这种自相矛盾的数字。
+  it('邀请排行透传 currentUsed（累计与当前码是两个口径，不能在整形层丢掉）', () => {
+    const s = shapeAdminStats(
+      { ...raw, inviters: [{ email: 'a@b.com', invited: 7, quota: 5, currentUsed: 2 }] },
+      NOW,
+    )
+    expect(s.inviters[0]).toEqual({ email: 'a@b.com', invited: 7, quota: 5, currentUsed: 2 })
   })
 
   // 省掉一整遍 records 全表扫：D1 免费层 500 万行读/日，而这张表和云同步共用一个 D1，

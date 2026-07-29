@@ -10,6 +10,7 @@ const KNOWN_METRICS = new Set([
   'register.ok', 'register.badcode', 'register.ratelimit', 'register.quotaexhausted',
   'login.ok', 'login.fail', 'login.ratelimit',
   'push.ok', 'active.user',
+  'invite.rotate.ok', 'invite.rotate.ratelimit',
 ])
 
 const PUSH_REJECT_PREFIX = 'push.reject.'
