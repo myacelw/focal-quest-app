@@ -3,6 +3,7 @@ import { TumblingE } from './training/TumblingE'
 import { acuityFromHeightMm } from './training/optotype-size'
 import { getHomeStats } from './data/checkin'
 import { lsGet, lsSet } from './data/storage'
+import { readSizeMm, LS_SIZE } from './training/optotype-auto'
 import { toDateStr } from './data/date-utils'
 import { getSkin, getSkinId, setSkinId, isSkinUnlocked, skinUnlockCost, SKINS } from './skins/registry'
 import { useT, useLang, setLang, type Lang, Rich } from './i18n'
@@ -25,10 +26,9 @@ function readPxPerMm(): number | null {
 export function SettingsPage({ onReplayGuide, onOpenSpeech, onOpenCalib, onOpenPrivacy, onOpenAdmin }: { onReplayGuide: () => void; onOpenSpeech: () => void; onOpenCalib: () => void; onOpenPrivacy: () => void; onOpenAdmin: () => void }) {
   const t = useT()
   const lang = useLang()
-  const [sizeMm, setSizeMm] = useState(() => {
-    const v = lsGet('fzp.optotypeSizeMm')
-    return v ? Number(v) : 1
-  })
+  // 传函数引用做惰性初始化——只在挂载时调一次 readSizeMm()，不要写成 useState(readSizeMm())
+  // 那样每次渲染都会立即调用一次，白白多做一次 localStorage 读取。
+  const [sizeMm, setSizeMm] = useState(readSizeMm)
   // 时长口径只有一个出处：脏值（'abc'→NaN、'0'→0）在这里就被兜成默认 180，
   // 否则下面的门槛提示会显示成"× NaN 分钟"，四个档位按钮也会全都不高亮。
   // Number(null) 是 0，同样被 sanitize 兜成 180，与改动前行为一致。
@@ -54,7 +54,7 @@ export function SettingsPage({ onReplayGuide, onOpenSpeech, onOpenCalib, onOpenP
     void getHomeStats(toDateStr(new Date())).then((s) => setTotalPoints(s.totalPoints))
   }, [])
   useEffect(() => { void getAccount().then((a) => setIsAdmin(a?.isAdmin === true)) }, [accountRev])
-  useEffect(() => { lsSet('fzp.optotypeSizeMm', String(sizeMm)) }, [sizeMm])
+  useEffect(() => { lsSet(LS_SIZE, String(sizeMm)) }, [sizeMm])
   useEffect(() => { lsSet('fzp.durationSec', String(durationSec)) }, [durationSec])
   useEffect(() => { lsSet('fzp.flipperD', String(flipperD)) }, [flipperD])
   useEffect(() => { lsSet('fzp.flipMs', String(flipMs)) }, [flipMs])

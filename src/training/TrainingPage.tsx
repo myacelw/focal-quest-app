@@ -12,6 +12,7 @@ import { parseAnswer, type Direction } from '../speech/answer-mapping'
 import { saveSession, doCheckIn, getHomeStats, type CheckinResult } from '../data/checkin'
 import { toDateStr } from '../data/date-utils'
 import { lsGet } from '../data/storage'
+import { readSizeMm } from './optotype-auto'
 import { asset } from '../data/asset'
 import { useT } from '../i18n'
 import { syncBadges } from '../badges/badge-service'
@@ -456,7 +457,7 @@ export function TrainingPage({ onHome }: { onHome: () => void }) {
     )
   }
 
-  const sizeMm = Number(lsGet('fzp.optotypeSizeMm') ?? '1')
+  const sizeMm = readSizeMm()
   sizeMmRef.current = sizeMm
   // “随机”存储值先解析成本节挑定的皮肤（未解析完时暂用 plain，加载极快）
   const storedSkinId = getSkinId()

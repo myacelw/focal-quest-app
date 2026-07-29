@@ -5,6 +5,9 @@ import {
   sanitizeSizeMm, decideOptotypeAdjust, type OptotypeAdjust,
 } from './optotype-auto'
 import src from './optotype-auto.ts?raw'
+import settingsSrc from '../SettingsPage.tsx?raw'
+import trainingSrc from '../training/TrainingPage.tsx?raw'
+import challengeSrc from '../challenge/ChallengePage.tsx?raw'
 
 /** 造一天的节次：给定日期、正确率、若干节的反应时间 */
 function day(date: string, accuracy: number, reactions: number[]): SessionRow[] {
@@ -197,5 +200,16 @@ describe('源文本契约', () => {
 
   it('回退必须是两天都破线（&&），不是任一天（||）', () => {
     expect(src).toMatch(/breached\(a, last\.baselineReactionMs\) && breached\(b, last\.baselineReactionMs\)/)
+  })
+
+  it('三个读取点全部走 sanitize，不许再有裸 Number(lsGet(...))', () => {
+    // Number('abc') 是 NaN，训练页 heightPx = NaN × pxPerMm 会让视标直接渲染不出来。
+    // 本迭代开始程序化写入这个键，脏值后果更严重，所以收口成唯一出口。
+    for (const [name, s] of [['Settings', settingsSrc], ['Training', trainingSrc], ['Challenge', challengeSrc]] as const) {
+      expect(s.includes('optotypeSizeMm'), `${name} 应改为从 optotype-auto 取值`).toBe(false)
+    }
+    expect(trainingSrc).toMatch(/readSizeMm\(\)/)
+    expect(challengeSrc).toMatch(/readSizeMm\(\)/)
+    expect(settingsSrc).toMatch(/readSizeMm\(\)/)
   })
 })
