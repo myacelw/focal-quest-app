@@ -191,7 +191,12 @@ function MonsterCard({
       }}
       title={owned ? t(def.nameKey) : t('dex.locked')}
     >
-      {shinyOwned && (
+      {/* 闪光可能先于本体被抽中（两个桶各自独立掷骰，见 capture.ts 的 pickCapture）：
+          此时格子仍是未捕获的「？？？」神秘格，不能挂 ✨——挂了会出现一个孩子点不开、
+          连名字都看不到的发光神秘格。奖励已经在捕获当下的结算页揭示卡（金边+金色微光+✨+
+          'shiny' 音效）里给足了，且顶部「✨ 闪光 N/82」计数立刻 +1，反馈不缺席；
+          等本体后来到手，格子会带着 ✨ 一起出现，反而是个惊喜。 */}
+      {owned && shinyOwned && (
         <span
           title={t('dex.shiny')}
           style={{ position: 'absolute', top: 4, right: 6, fontSize: 13, filter: 'drop-shadow(0 0 3px rgba(255,200,60,0.9))' }}

@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest'
 import monsterImageSrc from './MonsterImage.tsx?raw'
 import trainingSrc from '../training/TrainingPage.tsx?raw'
+import dexWallSrc from './DexWall.tsx?raw'
 
 describe('闪光视觉的源文本契约', () => {
   it('MonsterImage 不许用 hue-rotate 做闪光', () => {
@@ -25,5 +26,14 @@ describe('闪光视觉的源文本契约', () => {
     // 与"超时音不能沿用答错音"同理：界面刚用金边分出的稀有度，
     // 若耳朵里是同一个声音就等于没分。
     expect(trainingSrc).toMatch(/playSfx\(\s*shiny \? 'shiny'/)
+  })
+
+  it('图鉴格子的 ✨ 角标必须受 owned 门控，不能只看 shinyOwned', () => {
+    // 闪光可能先于本体被抽中（两个桶各自独立掷骰），此时格子仍是未捕获的
+    // 「？？？」神秘格。若角标渲染条件只写 `shinyOwned && (...)`，会出现一个
+    // 孩子点不开、连名字都看不到的发光神秘格——这个状态没有渲染基建可验
+    // （不加门控也不报错，只是悄悄变回误导态），只能靠源文本契约锚住。
+    expect(dexWallSrc).toMatch(/\{owned && shinyOwned && \(/)
+    expect(dexWallSrc).not.toMatch(/\{shinyOwned && \(/)
   })
 })
