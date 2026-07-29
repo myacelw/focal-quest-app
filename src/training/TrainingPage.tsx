@@ -344,6 +344,7 @@ export function TrainingPage({ onHome }: { onHome: () => void }) {
     setComboFx(null)
     setEggCaptureFx(null)
     setPaused(false)
+    setOptoDecision({ action: 'none' })
     // 新一轮重新定日期（上一轮可能是零点前开始的）
     roundDateRef.current = toDateStr(new Date())
     setSession(createSession('left', readDurationSec()))

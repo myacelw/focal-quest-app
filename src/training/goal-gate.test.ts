@@ -93,6 +93,7 @@ describe('训练完成门槛在训练页的接线契约', () => {
       'setComboFx(null)',
       'setEggCaptureFx(null)',
       'setPaused(false)',
+      "setOptoDecision({ action: 'none' })",
       'roundDateRef.current = toDateStr(new Date())',
       "createSession('left', readDurationSec())",
     ]) {

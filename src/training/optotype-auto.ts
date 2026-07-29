@@ -23,7 +23,15 @@ export const AUTO_WINDOW_DAYS = 3
 export const AUTO_MIN_ACCURACY = 0.95
 /** 窗口的「日中位数的中位数」要低于 */
 export const AUTO_MAX_REACTION_MS = 2000
-/** 距上次调整至少要再练满几个训练日 */
+/**
+ * 距上次调整至少要再练满几个训练日。
+ * ⚠️ **必须 ≥ AUTO_WINDOW_DAYS**，这是一条承重的隐性不变量（由下面的
+ * `AUTO_COOLDOWN_DAYS >= AUTO_WINDOW_DAYS` 测试锚定，别只改常量不看这条注释）：
+ * `since >= AUTO_COOLDOWN_DAYS` 通过时，判定窗口（从 `todayIdx - AUTO_WINDOW_DAYS + 1`
+ * 起）天然不会跨过上一次调整点，收紧判据因此永远只看"当前这个视标尺寸下"的数据。
+ * 若把这个值调小于窗口天数（比如觉得收紧太慢想调成 2），窗口会混进一个更大视标下
+ * 练出来的轻松日，收紧会在证据不足的情况下被加速触发。
+ */
 export const AUTO_COOLDOWN_DAYS = 3
 /** 一次调一档（与设置页滑块步进一致） */
 export const AUTO_STEP_MM = 0.1
@@ -137,6 +145,11 @@ function median(xs: readonly number[]): number {
  * ⚠️ 口径：缺 avgReactionMs 的节次不计入；整天都缺则该天不算有效训练日。
  * ⚠️ 口径：**不看是否打卡、不看门槛是否达标**。与 goal.ts 那条「门槛只决定今天算不算
  * 完成，不决定训练事实是否被记录」一致——她 07-13 那天没打卡但有 5 节有效数据。
+ * ⚠️ 口径：`avgReactionMs === 0` 不计入。0 是本仓「这一节没有反应数据」的哨兵值，不是
+ * 「0 毫秒反应」——`TrainingPage.tsx` 零个答对时落库 `0`（不是 undefined），`weekly-report.ts`
+ * 与 `challenge-pace.ts` 都按 `>0` 过滤同一个哨兵。若把 0 当真实反应时间计入中位数，
+ * 孩子被叫去吃饭、那一节挂机走满时会在该天中位数里掺进一个「0ms 反应」，把整天的中位
+ * 数腰斩，误判成「答得又快又准」。
  */
 export function dayStats(sessions: readonly SessionRow[]): DayStat[] {
   const byDate = new Map<string, { answered: number; correct: number; ms: number[] }>()
@@ -145,7 +158,7 @@ export function dayStats(sessions: readonly SessionRow[]): DayStat[] {
     if (!d) { d = { answered: 0, correct: 0, ms: [] }; byDate.set(s.date, d) }
     d.answered += s.answered
     d.correct += s.correct
-    if (typeof s.avgReactionMs === 'number' && Number.isFinite(s.avgReactionMs)) d.ms.push(s.avgReactionMs)
+    if (typeof s.avgReactionMs === 'number' && Number.isFinite(s.avgReactionMs) && s.avgReactionMs > 0) d.ms.push(s.avgReactionMs)
   }
   return [...byDate.entries()]
     .filter(([, d]) => d.ms.length > 0 && d.answered > 0)
@@ -179,14 +192,22 @@ export function decideOptotypeAdjust(
   if (todayIdx < 0) return { action: 'none' }          // 今天没有有效数据
   const mm = sanitizeSizeMm(currentMm)
 
-  const lastIdx = last ? days.findIndex((d) => d.date === last.atDate) : -1
-  const since = lastIdx >= 0 ? todayIdx - lastIdx : Infinity
+  // ⚠️ 用日期比较而不是「在 days 里找 last.atDate 的下标再作差」：manual 记录的 atDate 是
+  // 家长改设置那天（SettingsPage 用 new Date()），**未必是训练日**。找不到下标时旧写法
+  // 会得到 since = Infinity、冷却被静默放行——家长周日刚把视标调大，周一训练完就被自动
+  // 压回去，设计 §3.4「手动优先」在最典型的场景下完全失效。resetTrainingData / 备份恢复
+  // 换掉 sessions 后也会踩同一个洞，连自愈观察期一起失效。
+  const sinceDays = last ? days.filter((d) => d.date > last.atDate && d.date <= todayStr) : []
+  const since = last ? sinceDays.length : Infinity
 
   // ── ② 回退优先 ──────────────────────────────────────────────
-  if (last && last.kind === 'tighten' && lastIdx >= 0) {
-    const observed = days.slice(lastIdx + 1, todayIdx + 1)
-    // 观察期不足 2 个训练日 → 继续观察（spec §5.3.1）
-    if (observed.length >= 2) {
+  if (last && last.kind === 'tighten') {
+    const observed = sinceDays
+    // ⚠️ 必须是 === 2（而非 >=2）：观察期只在收紧后第 2 个训练日当天判一次。用 >=2
+    // 的话，开关关闭、家长没点应用时，这个判断会在之后每一天都重新算出同一个 true
+    // （observed 的前两个元素是固定的两天），"建议退回一档"的卡片会永久粘住，
+    // 而回退分支又永远抢在收紧分支前 return，导致收紧逻辑从此再也跑不到。
+    if (observed.length === 2) {
       const [a, b] = observed
       // ⚠️ **两天都破线**才回退，不是任一天。07-18 那个 22:43 开练的孤立疲劳日
       // （4341ms）若能单独触发回退，会把之后 4 个训练日全锁进 10 天长冷却。

@@ -1,8 +1,8 @@
 import { describe, it, expect } from 'vitest'
 import type { SessionRow } from '../data/db'
 import {
-  AUTO_FLOOR_MM, DEFAULT_SIZE_MM, SIZE_MAX_MM,
-  sanitizeSizeMm, decideOptotypeAdjust, type OptotypeAdjust,
+  AUTO_FLOOR_MM, AUTO_COOLDOWN_DAYS, AUTO_WINDOW_DAYS, DEFAULT_SIZE_MM, SIZE_MAX_MM,
+  sanitizeSizeMm, decideOptotypeAdjust, dayStats, type OptotypeAdjust,
 } from './optotype-auto'
 import src from './optotype-auto.ts?raw'
 import settingsSrc from '../SettingsPage.tsx?raw'
@@ -120,6 +120,22 @@ describe('decideOptotypeAdjust —— 边界', () => {
     expect(decideOptotypeAdjust(rows, 0.9, null, '2026-07-03').action).toBe('none')
   })
 
+  it('avgReactionMs === 0 是「无反应数据」的哨兵，不是「0 毫秒反应」：整天都是 0 → 该天不算有效训练日', () => {
+    // TrainingPage.tsx 零个答对时落库 avgReactionMs:0（不是 undefined）。若把 0 当真实
+    // 反应时间计入中位数，会比"直接不计入"更糟——它不是"数据缺失"，而是主动污染统计。
+    const rows = day('2026-07-01', 1, [0, 0])
+    expect(dayStats(rows)).toEqual([])
+  })
+
+  it('avgReactionMs === 0 不许拉低该天中位数：一节 0（孩子中途被叫走、计时器走满）不该腰斩整天', () => {
+    // 左眼正常练完落 1900ms，右眼孩子被叫去吃饭、计时器自己走满会落 0。若把 0 计入，
+    // 该天中位数从 1900 腰斩到 950，会让"只练了一半"的天被误判成"又快又准"。
+    const rows = day('2026-07-01', 1, [1900, 0])
+    const stats = dayStats(rows)
+    expect(stats).toHaveLength(1)
+    expect(stats[0].medianMs).toBe(1900)
+  })
+
   it('任一天正确率低于 0.95 → 不收紧', () => {
     const rows = [
       ...day('2026-07-01', 1, [1000]), ...day('2026-07-02', 0.9, [1000]), ...day('2026-07-03', 1, [1000]),
@@ -186,6 +202,66 @@ describe('decideOptotypeAdjust —— 边界', () => {
     }
     const d = decideOptotypeAdjust(three(1000), 1.2, last, '2026-07-03')
     expect(d).toEqual({ action: 'tighten', from: 1.2, to: 1.1, baselineReactionMs: 1000 })
+  })
+
+  it('manual 记录的 atDate 不是训练日时，冷却照常生效', () => {
+    // 07-02 是家长在设置页手动改动视标的那天（周日休息，没有训练），07-01/07-03/07-04
+    // 是三个训练日。旧实现用 findIndex 在 days 里找 07-02 会找不到（返回 -1），把
+    // since 记成 Infinity、冷却被无条件放行；此时窗口三天全是"调整前"又快又准的
+    // 数据，会当晚就把家长刚调大的视标自动压回去——CLAUDE.md 记录过的真实失败场景。
+    const rows = [
+      ...day('2026-07-01', 1, [1000]),
+      ...day('2026-07-03', 1, [1000]),
+      ...day('2026-07-04', 1, [1000]),
+    ]
+    const last: OptotypeAdjust = {
+      from: 0.7, to: 0.8, atDate: '2026-07-02', kind: 'manual', baselineReactionMs: 0,
+    }
+    expect(decideOptotypeAdjust(rows, 0.8, last, '2026-07-04').action).toBe('none')
+  })
+
+  it('last.atDate 在 days 里找不到（sessions 被清空过）时不会误放行——不能把 since 当 Infinity', () => {
+    // atDate='07-03' 是个"有调整记录但没有训练数据"的日子（比如 resetTrainingData
+    // 清空过那天的 session）。days 里真正存在的最近 3 个训练日是 07-02(atDate 之前)/
+    // 07-05/07-06——窗口检查会通过。旧实现 findIndex 找不到 07-03 会把 since 记成
+    // Infinity，冷却被无条件放行，实际上 07-03 之后只过了 2 个训练日就会被错误收紧。
+    const rows = [
+      ...day('2026-07-02', 1, [1000]),
+      ...day('2026-07-05', 1, [1000]),
+      ...day('2026-07-06', 1, [1000]),
+    ]
+    const last: OptotypeAdjust = {
+      from: 1.0, to: 0.9, atDate: '2026-07-03', kind: 'tighten', baselineReactionMs: 1000,
+    }
+    expect(decideOptotypeAdjust(rows, 0.9, last, '2026-07-06').action).toBe('none')
+  })
+
+  it('观察期已过（收紧后第 3 个训练日）不再建议回退，且收紧逻辑恢复可用', () => {
+    // 家长若在观察期第 2 天看到「建议退回一档」没有点，第 3 个训练日起观察期已经
+    // 翻篇：不再重复建议回退（哪怕重算出来还是两天都破线），收紧判据恢复正常运作。
+    // 这是防"回退分支永远抢在收紧分支前 return，导致开关关闭时收紧再也跑不到"。
+    const rows = [
+      ...day('2026-07-02', 0.5, [9000]), // 观察 1：破线
+      ...day('2026-07-03', 0.5, [9000]), // 观察 2：破线（若在这天判定，两天都破线该回退）
+      ...day('2026-07-04', 1, [1000]),   // 观察期已过，恢复正常
+      ...day('2026-07-05', 1, [1000]),
+      ...day('2026-07-06', 1, [1000]),
+    ]
+    const last: OptotypeAdjust = {
+      from: 0.8, to: 0.7, atDate: '2026-07-01', kind: 'tighten', baselineReactionMs: 1000,
+    }
+    const d = decideOptotypeAdjust(rows, 0.7, last, '2026-07-06')
+    expect(d).toEqual({ action: 'tighten', from: 0.7, to: 0.6, baselineReactionMs: 1000 })
+  })
+})
+
+describe('不变量', () => {
+  it('AUTO_COOLDOWN_DAYS 必须 >= AUTO_WINDOW_DAYS，否则判定窗口会跨过上一次调整点', () => {
+    // 今天 since >= AUTO_COOLDOWN_DAYS 时，窗口（从 todayIdx - AUTO_WINDOW_DAYS + 1 起）
+    // 天然不会早于上一次调整点，收紧判据因此永远只看"当前这个视标尺寸下"的数据。
+    // 若把 AUTO_COOLDOWN_DAYS 调小于窗口天数，窗口会混进一个更大视标下练出来的
+    // 轻松日，收紧会在证据不足的情况下被加速触发。
+    expect(AUTO_COOLDOWN_DAYS).toBeGreaterThanOrEqual(AUTO_WINDOW_DAYS)
   })
 })
 
