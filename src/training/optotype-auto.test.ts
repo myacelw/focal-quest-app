@@ -212,4 +212,18 @@ describe('源文本契约', () => {
     expect(challengeSrc).toMatch(/readSizeMm\(\)/)
     expect(settingsSrc).toMatch(/useState\(readSizeMm\)/)
   })
+
+  it('撤回按钮只出现在设置页，绝不出现在结算页', () => {
+    // 结算页主要是孩子在看。撤回按钮摆在那里等于给她一条每天一按、把训练调回容易的
+    // 通道——正是"把视标大小折叠进家长区"要防的那件事，而且比展开折叠更好按。
+    expect(settingsSrc).toMatch(/optoAuto\.undo/)
+    expect(trainingSrc.includes('optoAuto.undo'), 'TrainingPage 不许有撤回按钮').toBe(false)
+  })
+
+  it('开关与撤回都在已折叠的家长区内（settings.trainingLoad 之后）', () => {
+    const foldAt = settingsSrc.indexOf('settings.trainingLoad')
+    expect(foldAt).toBeGreaterThan(-1)
+    expect(settingsSrc.indexOf('optoAuto.switch')).toBeGreaterThan(foldAt)
+    expect(settingsSrc.indexOf('optoAuto.undo')).toBeGreaterThan(foldAt)
+  })
 })
