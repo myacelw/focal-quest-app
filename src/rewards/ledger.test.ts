@@ -114,8 +114,8 @@ describe('canRepair', () => {
 describe('补签定价（改这两个常量即可调价 / 调松紧）', () => {
   const target = { missedDate: '2026-07-19', phantomStreak: 3, phantomTotal: 100, fixTodayStreak: undefined }
 
-  it('补签 500 分、每月上限 3 次', () => {
-    expect(REPAIR_COST).toBe(500)
+  it('补签 2000 分、每月上限 3 次', () => {
+    expect(REPAIR_COST).toBe(2000)
     expect(REPAIR_MONTHLY_MAX).toBe(3)
   })
 

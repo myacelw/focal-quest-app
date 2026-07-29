@@ -18,8 +18,8 @@ const pony = cardSetById('pony')!
 const deep = cardSetById('deep')!
 
 describe('卡包', () => {
-  it('单价 500 分，权重闪卡最低', () => {
-    expect(PACK_COST).toBe(500)
+  it('单价 2000 分，权重闪卡最低', () => {
+    expect(PACK_COST).toBe(2000)
     expect(PACK_WEIGHTS).toEqual({ common: 65, rare: 28, shiny: 7 })
   })
 

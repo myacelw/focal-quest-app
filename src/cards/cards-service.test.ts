@@ -18,7 +18,8 @@ async function seedPoints(total: number): Promise<void> {
 }
 
 describe('openPack', () => {
-  beforeEach(async () => { await seedPoints(1000) })
+  // 从 PACK_COST 派生而不是写死分数：涨价时这些用例就不用跟着改，也不会悄悄失去覆盖力。
+  beforeEach(async () => { await seedPoints(PACK_COST * 2) })
   afterEach(() => { vi.restoreAllMocks() })
 
   it('余额够 → 给一张卡 + 记一条 pack 消耗', async () => {
@@ -48,7 +49,7 @@ describe('openPack', () => {
     expect(monthRepairCount(await db.redemptions.toArray(), month)).toBe(0)
   })
 
-  it('开包扣可用分：1000 分开两包后不够第三包', async () => {
+  it('开包扣可用分：够两包的分，开两包后不够第三包', async () => {
     expect((await openPack('pony', T, 0.1)).ok).toBe(true)
     expect((await openPack('pony', T + 1, 0.2)).ok).toBe(true)
     const third = await openPack('pony', T + 2, 0.3)
