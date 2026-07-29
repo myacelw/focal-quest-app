@@ -61,12 +61,19 @@ export function SettingsPage({ onReplayGuide, onOpenSpeech, onOpenCalib, onOpenP
   useEffect(() => { void getAccount().then((a) => setIsAdmin(a?.isAdmin === true)) }, [accountRev])
   // 手动改动要写一条 kind:'manual' 的记录——它不参与判据，只起"重置冷却"的作用：
   // 家长刚把视标调大（比如孩子那天状态不好），自动逻辑第二天又压回去就是跟家长对着干。
-  const firstSizeRender = useRef(true)
+  //
+  // ⚠️ 这里用「与上次真实写入的值比较」而不是布尔首渲染标志：StrictMode 在开发环境下
+  // 会把挂载时的 effect setup 调两次，布尔标志只挡得住第一次，第二次就会写出一条虚假的
+  // manual 记录——而它会覆盖掉正在观察期里的 tighten 记录，把自愈回退的保险丝静默拆掉。
+  // 值比较天然幂等：两次调用看到的 sizeMm 完全相同，都会正确跳过。
+  const committedSizeRef = useRef(sizeMm)
   useEffect(() => {
     lsSet(LS_SIZE, String(sizeMm))
-    if (firstSizeRender.current) { firstSizeRender.current = false; return }
+    const prev = committedSizeRef.current
+    if (prev === sizeMm) return
+    committedSizeRef.current = sizeMm
     const rec: OptotypeAdjust = {
-      from: lastAdjust?.to ?? sizeMm, to: sizeMm,
+      from: prev, to: sizeMm,
       atDate: toDateStr(new Date()), kind: 'manual', baselineReactionMs: 0,
     }
     writeLastAdjust(rec)
