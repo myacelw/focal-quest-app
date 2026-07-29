@@ -2,12 +2,13 @@ import { describe, it, expect } from 'vitest'
 import {
   MONSTER_DEFS, TOTAL_MONSTERS, monstersOfWorld, reserveMonstersOfWorld, getMonsterDef,
   WORLDS, emptyByWorld, isWorld,
+  SHINY_SUFFIX, shinyIdOf, isShinyId, baseIdOf,
   type World, type Rarity,
 } from './monster-defs'
 // 直接引用皮肤池里的 name slug，验证现役 18 只 id 与之对齐
-import { enemyForSeq } from '../skins/space/SpaceStage'
-import { guardianForSeq } from '../skins/shrine/ShrineStage'
-import { spiritForSeq } from '../skins/forest/ForestStage'
+import { enemyForSeq, buildEnemyPool } from '../skins/space/SpaceStage'
+import { guardianForSeq, buildGuardianPool } from '../skins/shrine/ShrineStage'
+import { spiritForSeq, buildSpiritPool } from '../skins/forest/ForestStage'
 
 describe('MONSTER_DEFS', () => {
   it('共 82 只（space/shrine 各 33 = 6 普 + 18 稀 + 9 史，forest 16）', () => {
@@ -146,5 +147,50 @@ describe('WORLDS —— 加世界只改这一个数组', () => {
     expect(isWorld('forest')).toBe(true)
     expect(isWorld('plain')).toBe(false)
     expect(isWorld('random')).toBe(false)
+  })
+})
+
+describe('闪光 id', () => {
+  it('后缀是 ~shiny，且不含冒号 —— 同步 uuid 反解靠"自然键侧不含冒号"', () => {
+    expect(SHINY_SUFFIX).toBe('~shiny')
+    expect(SHINY_SUFFIX.includes(':')).toBe(false)
+    for (const m of MONSTER_DEFS) expect(shinyIdOf(m.id).includes(':'), m.id).toBe(false)
+  })
+
+  it('三个函数互逆：对全部 82 只都有 baseIdOf(shinyIdOf(id)) === id', () => {
+    for (const m of MONSTER_DEFS) {
+      const s = shinyIdOf(m.id)
+      expect(isShinyId(s), s).toBe(true)
+      expect(baseIdOf(s), s).toBe(m.id)
+    }
+  })
+
+  it('baseIdOf 对本体 id 幂等，isShinyId 对本体 id 为 false', () => {
+    expect(baseIdOf('space-ufo')).toBe('space-ufo')
+    expect(baseIdOf(baseIdOf(shinyIdOf('space-ufo')))).toBe('space-ufo')
+    expect(isShinyId('space-ufo')).toBe(false)
+  })
+
+  it('MONSTER_DEFS 里不含任何闪光 id —— 图鉴仍是 82 格', () => {
+    for (const m of MONSTER_DEFS) expect(isShinyId(m.id), m.id).toBe(false)
+  })
+})
+
+describe('闪光不污染训练轮换池', () => {
+  // 这条锚住 spec §5.5 那个"天然被忽略"的性质。它现在是对的，但它是**巧合式正确**
+  // ——靠闪光 id 匹配不上 MONSTER_DEFS。没有测试的话，将来谁把匹配改成前缀匹配
+  // 或模糊匹配，闪光怪就会混进训练画面，而那是本轮明确不做的。
+  const allShiny = MONSTER_DEFS.map((m) => shinyIdOf(m.id))
+
+  it('把全部 82 个闪光 id 传进三个 Stage 的池构造，结果与不传时完全相同', () => {
+    expect(buildEnemyPool(allShiny)).toEqual(buildEnemyPool())
+    expect(buildGuardianPool(allShiny)).toEqual(buildGuardianPool())
+    expect(buildSpiritPool(allShiny)).toEqual(buildSpiritPool())
+  })
+
+  it('真实储备 id + 闪光 id 混着传，只有真实的那些生效', () => {
+    const real = 'shrine-golem'
+    expect(buildGuardianPool([real, ...allShiny])).toEqual(buildGuardianPool([real]))
+    expect(buildGuardianPool([real]).length).toBe(buildGuardianPool().length + 1)
   })
 })
