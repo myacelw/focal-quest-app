@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest'
 import {
-  ADMIN_DAYS, RECENT_DAYS, adminGate, windowStartMs, dateList, tzDate, isAbuseMetric,
+  ADMIN_DAYS, RECENT_DAYS, windowStartMs, dateList, tzDate, isAbuseMetric,
   fillDailyCounts, fillKindCounts, sumAbuse, shapeAdminStats,
   type RawAdminStats,
 } from './admin-stats'
@@ -11,21 +11,7 @@ const DAY = 86_400_000
 // 固定一个时刻做基准：2026-07-26T10:30:00Z = 北京时间 18:30，同一天
 const NOW = Date.UTC(2026, 6, 26, 10, 30, 0)
 
-describe('adminGate', () => {
-  // 这三条是本计划唯一进 CI 质量门的鉴权锚点：deploy-cf.yml 只跑 npm test / typecheck / build，
-  // 从不跑 npm run test:api，所以集成断言拦不住"谁删掉 isAdmin 判断"这种回归。
-  it('没登录 → unauthorized（401）', () => {
-    expect(adminGate(null)).toBe('unauthorized')
-  })
-
-  it('登录了但不是管理员 → forbidden（403，与 401 刻意分开）', () => {
-    expect(adminGate({ isAdmin: false })).toBe('forbidden')
-  })
-
-  it('管理员 → ok', () => {
-    expect(adminGate({ isAdmin: true })).toBe('ok')
-  })
-})
+// adminGate 的三条鉴权锚点已随函数搬到 functions/lib/auth.test.ts
 
 describe('windowStartMs', () => {
   it('days=1 对齐到今天的东八区零点（= 前一天 16:00Z）', () => {

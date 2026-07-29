@@ -1,8 +1,8 @@
 import type { Env } from '../../lib/db'
 import { json, errorJson } from '../../lib/http'
-import { requireUser } from '../../lib/auth'
+import { requireUser, adminGate } from '../../lib/auth'
 import {
-  ADMIN_DAYS, ADMIN_TZ_SQL, RECENT_DAYS, adminGate, dateList, shapeAdminStats, windowStartMs,
+  ADMIN_DAYS, ADMIN_TZ_SQL, RECENT_DAYS, dateList, shapeAdminStats, windowStartMs,
   type InviterRow, type RawAdminStats, type RecentUser,
 } from '../../lib/admin-stats'
 

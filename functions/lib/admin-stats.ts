@@ -78,21 +78,6 @@ export interface AdminStats {
   abuse: AbuseRow[]
 }
 
-/**
- * admin 端点的鉴权判定。
- *
- * 抽成纯函数不是为了好看：唯一能锚定"非管理员 403"的集成断言在 scripts/test-api.mjs，
- * 而 .github/workflows/deploy-cf.yml 的质量门**从不跑 npm run test:api**，且它是 push master
- * 即构建即部署。将来谁删掉 isAdmin 判断、或改了 requireUser 的返回结构，CI 会一路绿灯把
- * "登录即可读全站统计"发到线上。单测进 npm test = 进 CI。
- *
- * 401 与 403 刻意分开：合成一个码，排障时分不清"该重新登录"还是"该去 D1 里设 is_admin"。
- */
-export function adminGate(u: { isAdmin: boolean } | null): 'unauthorized' | 'forbidden' | 'ok' {
-  if (u === null) return 'unauthorized'
-  return u.isAdmin ? 'ok' : 'forbidden'
-}
-
 /** 毫秒 → 东八区的 'YYYY-MM-DD' */
 export function tzDate(ms: number): string {
   return new Date(ms + ADMIN_TZ_OFFSET_MS).toISOString().slice(0, 10)
