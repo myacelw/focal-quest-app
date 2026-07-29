@@ -59,11 +59,15 @@ export const onRequestPost: PagesFunction<Env> = async ({ request, env }) => {
   if (!isValidInviteCodeShape(codeRaw)) return await fail('register.badcode', 'bad_invite_code', 400)
   const code = normalizeInviteCode(codeRaw)
 
-  // 解析邀请码：先查归属码，再看引导码
+  // 解析邀请码：先查归属码，再看引导码。
+  // used 只数**当前世代**（invite_reset_at 之后注册的人）——管理员换码时会把
+  // invite_reset_at 写成当下，于是新码的名额重新算起。这个条件被
+  // functions/lib/invite-quota.test.ts 的源文本契约钉住，别删。
   let invitedBy: string | null = null
   const inviter = await env.DB.prepare(
     `SELECT id, invite_quota,
-            (SELECT COUNT(*) FROM users c WHERE c.invited_by = u.id) AS used
+            (SELECT COUNT(*) FROM users c
+              WHERE c.invited_by = u.id AND c.created_at >= u.invite_reset_at) AS used
        FROM users u WHERE invite_code = ?`,
   ).bind(code).first<{ id: string; invite_quota: number; used: number }>()
 
