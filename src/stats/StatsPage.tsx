@@ -9,6 +9,7 @@ import { getOwnedMonsters } from '../dex/dex-service'
 import { listRedemptions } from '../rewards/rewards-service'
 import { toDateStr } from '../data/date-utils'
 import { useT } from '../i18n'
+import { readOptotypeAutoState } from '../training/optotype-auto'
 
 export function StatsPage() {
   const t = useT()
@@ -48,7 +49,7 @@ export function StatsPage() {
   const avgAcc = Math.round(
     (sessions.reduce((a, s) => a + (s.answered ? s.correct / s.answered : 0), 0) / sessions.length) * 100,
   )
-  const report = weeklyReport(sessions, toDateStr(new Date()))
+  const report = weeklyReport(sessions, toDateStr(new Date()), readOptotypeAutoState())
   const trend = report.reactionTrend === 'faster' ? ' ⚡' : report.reactionTrend === 'slower' ? ' ·' : ''
 
   return (

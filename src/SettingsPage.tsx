@@ -19,11 +19,8 @@ import { Collapsible, SectionHeader } from './settings/Collapsible'
 import { CloudSyncCard } from './sync/CloudSyncCard'
 import { getAccount } from './sync/account'
 import { goalPerRound, sanitizeDurationSec, GOAL_CORRECT_PER_MIN } from './training/goal'
+import { readPxPerMm } from './calibration/px-per-mm'
 
-function readPxPerMm(): number | null {
-  const v = lsGet('fzp.cssPxPerMm')
-  return v ? Number(v) : null
-}
 
 /** 家长设置页：所有训练配置集中在此，配一次即可，孩子训练路径不再碰这些 */
 export function SettingsPage({ onReplayGuide, onOpenSpeech, onOpenCalib, onOpenPrivacy, onOpenAdmin }: { onReplayGuide: () => void; onOpenSpeech: () => void; onOpenCalib: () => void; onOpenPrivacy: () => void; onOpenAdmin: () => void }) {

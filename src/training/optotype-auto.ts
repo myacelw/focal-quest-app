@@ -95,9 +95,35 @@ export function readSizeMm(): number {
   return sanitizeSizeMm(v === null ? NaN : Number(v))
 }
 
+/**
+ * 已到自动收紧的下限（再调一档就会低于 `AUTO_FLOOR_MM`）。
+ *
+ * ⚠️ 那个 `- 1e-9` 是必须的：`0.7 - 0.1` 在浮点下是 `0.5999999999999999`，
+ * 去掉余量会让 0.7 这一档被误判成"已到下限"，自动收紧永远停在 0.7、到不了 0.6。
+ *
+ * 抽成谓词是因为周报文案也要判"已到最小档"——两处各写一份浮点比较必然漂移。
+ */
+export function atAutoFloor(mm: number): boolean {
+  return mm - AUTO_STEP_MM < AUTO_FLOOR_MM - 1e-9
+}
+
+/** 周报文案要按这三态分别措辞，否则"视标会自动调小"在后两种情形下是假话 */
+export type OptotypeAutoState = 'auto' | 'manual' | 'floor'
+
+/** 从 localStorage 读出当前的自适应状态。已到下限时无论开关如何都是 'floor' */
+export function readOptotypeAutoState(): OptotypeAutoState {
+  if (atAutoFloor(readSizeMm())) return 'floor'
+  return readAutoEnabled() ? 'auto' : 'manual'
+}
+
 export function readAutoEnabled(): boolean {
-  // 默认开：用户选的就是"自动调、事后告知"。只有显式写过 '0' 才算关。
-  return lsGet(LS_AUTO_ENABLED) !== '0'
+  // 默认开（没写过这个键时）：用户选的就是"自动调、事后告知"。
+  //
+  // ⚠️ 严格白名单，不用 `!== '0'`：那种写法会把 'false' / 'off' / 'no' 这类
+  // 手工写入的值当成"开"，而写这些字的人显然想关。这个开关是"会自己改动医学参数
+  // 的功能"的唯一急停闸门，宁可在含糊时判为关（更保守的那一侧）。
+  const v = lsGet(LS_AUTO_ENABLED)
+  return v === null || v === '1'
 }
 
 export function writeAutoEnabled(on: boolean): void {
@@ -218,7 +244,7 @@ export function decideOptotypeAdjust(
   }
 
   // ── 收紧 ────────────────────────────────────────────────────
-  if (mm - AUTO_STEP_MM < AUTO_FLOOR_MM - 1e-9) return { action: 'none' }   // 已到下限
+  if (atAutoFloor(mm)) return { action: 'none' }   // 已到下限
 
   const cooldown = last?.kind === 'revert' ? REVERT_COOLDOWN_DAYS : AUTO_COOLDOWN_DAYS
   if (since < cooldown) return { action: 'none' }

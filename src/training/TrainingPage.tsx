@@ -28,6 +28,7 @@ import type { MonsterDef, World, Rarity } from '../dex/monster-defs'
 import { emptyByWorld, isWorld } from '../dex/monster-defs'
 import type { CaptureResult } from '../dex/capture'
 import { MonsterImage } from '../dex/MonsterImage'
+import { readPxPerMm } from '../calibration/px-per-mm'
 
 const TRANSITION_MS = 900
 const VOSK_MODEL_URL = asset('/models/vosk-model-small-cn-0.22.tar.gz')
@@ -41,10 +42,6 @@ const DPAD: { dir: Direction; col: number; row: number }[] = [
   { dir: 'down', col: 2, row: 3 },
 ]
 
-function readPxPerMm(): number | null {
-  const v = lsGet('fzp.cssPxPerMm')
-  return v ? Number(v) : null
-}
 
 // 翻拍过渡时长（ms）：给孩子留出物理翻拍的时间，设置页可调（快/适中/慢）
 function readFlipMs(): number {

@@ -22,10 +22,25 @@ describe('weeklyReport', () => {
     expect(r.lastWeekCount).toBe(1)
   })
 
-  it('高正确率 → 建议调小视标（难度进阶）', () => {
+  it('高正确率 → 建议调小视标（难度进阶），默认按"自动开"措辞', () => {
     const r = weeklyReport([s('2026-07-07', 10, 10, 1500)], TODAY)
     expect(r.accuracy).toBe(1)
-    expect(r.suggestionKey).toBe('suggest.highAccuracy')
+    expect(r.suggestionKey).toBe('suggest.highAccuracyAuto')
+  })
+
+  it('自适应三态各出各的文案 —— 这条建议在 ≥90% 就触发，而自动收紧还要求反应够快、冷却已过、未到下限，所以不能承诺"会自动调小"', () => {
+    const rows = [s('2026-07-07', 10, 10, 1500)]
+    expect(weeklyReport(rows, TODAY, 'auto').suggestionKey).toBe('suggest.highAccuracyAuto')
+    expect(weeklyReport(rows, TODAY, 'manual').suggestionKey).toBe('suggest.highAccuracyManual')
+    expect(weeklyReport(rows, TODAY, 'floor').suggestionKey).toBe('suggest.highAccuracyFloor')
+  })
+
+  it('自适应状态只影响高正确率那一条，不串到其它建议', () => {
+    // 低正确率时无论开关如何都该是 lowAccuracy——否则关掉自动会连"正确率偏低"都提示不出来
+    const low = [s('2026-07-07', 3, 10, 1500)]
+    for (const st of ['auto', 'manual', 'floor'] as const) {
+      expect(weeklyReport(low, TODAY, st).suggestionKey).toBe('suggest.lowAccuracy')
+    }
   })
 
   it('反应比上周快 → 进步鼓励', () => {
