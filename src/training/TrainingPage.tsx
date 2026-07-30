@@ -7,6 +7,7 @@ import {
 import { playSfx, setMuted } from './sfx'
 import { dirForKey } from './key-map'
 import { readDurationSec, shortfall } from './goal'
+import { tickDeltaSec, TICK_MS } from './timer'
 import { startVosk, type VoskController } from '../speech/vosk'
 import { parseAnswer, type Direction } from '../speech/answer-mapping'
 import { saveSession, doCheckIn, getHomeStats, type CheckinResult } from '../data/checkin'
@@ -73,6 +74,9 @@ export function TrainingPage({ onHome }: { onHome: () => void }) {
   const t = useT()
   const pxPerMm = readPxPerMm()
   const flipMs = readFlipMs()
+  // 计时器只认「这一节是否在跑」：preparing→showing 翻一次、到点 finished 翻一次。
+  // 中间 showing↔transitioning 来回切多少次都不影响它，interval 因此不被重建。
+  const running = session.phase === 'showing' || session.phase === 'transitioning'
   const eyeLabel = session.eye === 'left' ? t('train.eyeLeft') : t('train.eyeRight')
   const sessionRef = useRef(session)
   const voskRef = useRef<VoskController | null>(null)
@@ -88,6 +92,8 @@ export function TrainingPage({ onHome }: { onHome: () => void }) {
    */
   const roundDateRef = useRef(toDateStr(new Date()))
   const sizeMmRef = useRef(1)
+  /** 上一跳的墙钟时刻（ms）；计时按它与 Date.now() 的差推进，见 ./timer */
+  const lastTickRef = useRef(0)
   const seqRef = useRef(0)
   const targetShownAtRef = useRef(0)
   const sumReactionRef = useRef(0)
@@ -122,12 +128,22 @@ export function TrainingPage({ onHome }: { onHome: () => void }) {
     void getOwnedReserveIdsByWorld().then(setCapturedByWorld)
   }, [])
 
+  // 计时：细步长 + **真实墙钟差**推进。
+  // ⚠️ deps 里只能有 running（一节里只翻两次），**绝不能放 session.phase**——每答一题
+  // phase 都在 showing↔transitioning 之间切两次，effect 跟着重建 interval，攒着的余量
+  // 全丢。而翻拍过渡 600/900ms、答得快时答题也不到 1s，两段各自都凑不满一格 →
+  // 倒计时直接冻住。lastTickRef 在 effect 挂载时设一次，之后只被 interval 自己推进。
   useEffect(() => {
-    if (paused) return
-    if (session.phase !== 'showing' && session.phase !== 'transitioning') return
-    const id = window.setInterval(() => setSession((s) => tick(s, 1)), 1000)
+    if (paused || !running) return
+    lastTickRef.current = Date.now()
+    const id = window.setInterval(() => {
+      const now = Date.now()
+      const deltaSec = tickDeltaSec(now, lastTickRef.current)
+      lastTickRef.current = now
+      setSession((s) => tick(s, deltaSec))
+    }, TICK_MS)
     return () => window.clearInterval(id)
-  }, [session.phase, paused])
+  }, [running, paused])
 
   // 节结束：落库一次（savedRef 防重复），并播结算音
   useEffect(() => {
@@ -550,7 +566,9 @@ export function TrainingPage({ onHome }: { onHome: () => void }) {
     : voskStatus === 'failed' ? t('train.voiceFailed')
     : t('train.voiceButtons')
 
-  const remainSec = Math.max(0, session.durationSec - session.elapsedSec)
+  // elapsedSec 现在是按墙钟差累加的小数秒，显示前向上取整：开局满打满算显示总时长，
+  // 走完才归 0:00（用 floor 会开局就少 1 秒）
+  const remainSec = Math.ceil(Math.max(0, session.durationSec - session.elapsedSec))
   const mmss = `${Math.floor(remainSec / 60)}:${String(remainSec % 60).padStart(2, '0')}`
 
   return (
