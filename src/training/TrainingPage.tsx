@@ -9,6 +9,7 @@ import { dirForKey } from './key-map'
 import { readDurationSec, shortfall } from './goal'
 import { tickDeltaSec, TICK_MS } from './timer'
 import { startVosk, type VoskController } from '../speech/vosk'
+import { readVoiceGate, noteLoadStart, noteLoadSettled, resetVoiceGuard } from '../speech/voice-guard'
 import { parseAnswer, type Direction } from '../speech/answer-mapping'
 import { saveSession, doCheckIn, getHomeStats, type CheckinResult } from '../data/checkin'
 import { toDateStr } from '../data/date-utils'
@@ -30,6 +31,9 @@ import { emptyByWorld, isWorld } from '../dex/monster-defs'
 import type { CaptureResult } from '../dex/capture'
 import { MonsterImage } from '../dex/MonsterImage'
 import { readPxPerMm } from '../calibration/px-per-mm'
+
+/** 语音状态。'guarded' = 上次加载途中进程被杀，本次不自动加载；'off' = 家长在设置里关了 */
+type VoiceStatus = 'idle' | 'loading' | 'ready' | 'failed' | 'guarded' | 'off'
 
 const TRANSITION_MS = 900
 const VOSK_MODEL_URL = asset('/models/vosk-model-small-cn-0.22.tar.gz')
@@ -58,7 +62,9 @@ export function TrainingPage({ onHome }: { onHome: () => void }) {
   const [newSkins, setNewSkins] = useState<Skin[]>([])
   const [lastAnswer, setLastAnswer] = useState<{ dir: Direction; correct: boolean; seq: number } | null>(null)
   const [totalPoints, setTotalPoints] = useState<number | null>(null)
-  const [voskStatus, setVoskStatus] = useState<'idle' | 'loading' | 'ready' | 'failed'>('idle')
+  const [voskStatus, setVoskStatus] = useState<VoiceStatus>('idle')
+  /** 模型分片下载进度；只在 loading 态显示，让"加载中"有个尽头 */
+  const [voiceProgress, setVoiceProgress] = useState<{ n: number; total: number } | null>(null)
   const [paused, setPaused] = useState(false)
   const [comboFx, setComboFx] = useState<{ n: number; key: number } | null>(null)
   // 怪兽图鉴：训练中彩蛋答对触发捕获，结算页保底捕获；本节捕获列表用于开箱
@@ -100,7 +106,7 @@ export function TrainingPage({ onHome }: { onHome: () => void }) {
   const reactionCountRef = useRef(0)
   const pausedRef = useRef(false)
   // beginSession 是普通函数，闭包里的 voskStatus 可能是旧值，用 ref 读当下真值
-  const voskStatusRef = useRef<'idle' | 'loading' | 'ready' | 'failed'>('idle')
+  const voskStatusRef = useRef<VoiceStatus>('idle')
   const handleAnswerRef = useRef<(d: Direction) => void>(() => {})
 
   useEffect(() => { sessionRef.current = session }, [session])
@@ -248,6 +254,15 @@ export function TrainingPage({ onHome }: { onHome: () => void }) {
     reactionCountRef.current = 0
     setPaused(false)
     setSession((s) => start(s, pickDirection(null, Math.random())))
+    startVoice(false)
+  }
+
+  /**
+   * 起语音。**训练本身从不等它**——视标立刻出、触控/键盘随时能答，语音只是加成。
+   *
+   * @param force 用户点了「重试语音」：清掉崩溃降级状态，这一次照常加载。
+   */
+  function startVoice(force: boolean) {
     if (voskRef.current) {
       setVoskStatus('ready')
       return
@@ -256,6 +271,16 @@ export function TrainingPage({ onHome }: { onHome: () => void }) {
     // 就换眼"这个窗口。startVosk 本身已单例化（见 speech/vosk-single.ts，那才是根治），
     // 这里是第二道：避免把 voskStatus 又打回 'loading' 让提示文案来回跳。
     if (voskStatusRef.current === 'loading') return
+    if (force) resetVoiceGuard()
+    // 崩溃自愈闸门：上次若是在加载模型途中被系统杀掉（白屏），这次不自动加载，
+    // 只在提示旁留一个「重试语音」。孩子照样能练，不会卡在"进去就白屏"的死循环里。
+    const gate = readVoiceGate()
+    if (gate !== 'start') {
+      setVoskStatus(gate === 'off' ? 'off' : 'guarded')
+      return
+    }
+    noteLoadStart() // 面包屑：进程若在下面这段里被杀，下次启动就能认出来
+    setVoiceProgress(null)
     setVoskStatus('loading')
     startVosk({
       modelUrl: VOSK_MODEL_URL,
@@ -264,12 +289,17 @@ export function TrainingPage({ onHome }: { onHome: () => void }) {
         const parsed = parseAnswer(text)
         if (parsed?.kind === 'direction') handleAnswer(parsed.value)
       },
+      onProgress: (n, total) => setVoiceProgress({ n, total }),
     })
       .then((c) => {
         voskRef.current = c
+        noteLoadSettled(true)
         setVoskStatus('ready')
       })
-      .catch(() => setVoskStatus('failed')) // 语音起不来不阻塞，触控兜底仍可用
+      .catch(() => {
+        noteLoadSettled(false)
+        setVoskStatus('failed') // 语音起不来不阻塞，触控兜底仍可用
+      })
   }
 
   async function nextEyeOrFinish() {
@@ -561,10 +591,18 @@ export function TrainingPage({ onHome }: { onHome: () => void }) {
   }
 
   const voskHint =
-    voskStatus === 'loading' ? t('train.voiceLoading')
+    voskStatus === 'loading'
+      ? (voiceProgress
+          ? t('train.voiceLoadingPart', { n: voiceProgress.n, total: voiceProgress.total })
+          : t('train.voiceLoading'))
     : voskStatus === 'ready' ? t('train.voiceReady')
     : voskStatus === 'failed' ? t('train.voiceFailed')
+    : voskStatus === 'guarded' ? t('train.voiceCrashGuard')
+    : voskStatus === 'off' ? t('train.voiceDisabled')
     : t('train.voiceButtons')
+  // 「重试语音」只在起不来时出现。**'off' 态刻意不给按钮**：那是家长在设置里关的，
+  // 在孩子面前摆一个一键打开等于把家长的决定架空（与结算页不给"撤回视标"同一条理由）。
+  const canRetryVoice = voskStatus === 'failed' || voskStatus === 'guarded'
 
   // elapsedSec 现在是按墙钟差累加的小数秒，显示前向上取整：开局满打满算显示总时长，
   // 走完才归 0:00（用 floor 会开局就少 1 秒）
@@ -663,7 +701,23 @@ export function TrainingPage({ onHome }: { onHome: () => void }) {
 
       {/* 宽屏：语音提示在方向盘左侧（不占整行）。手机窄屏：CSS 改成方向盘上方整行居中 */}
       <div className="fzp-answer">
-        <span className="fzp-voice-hint">{voskHint}</span>
+        <span className="fzp-voice-hint">
+          {/* 提示文字单独成块，重试按钮才稳稳落在下一行；两者都吃 .fzp-voice-hint 的
+              text-align（宽屏靠右、窄屏居中），不用为两种布局各写一套 */}
+          <span style={{ display: 'block' }}>{voskHint}</span>
+          {canRetryVoice && (
+            <button
+              onClick={() => startVoice(true)}
+              style={{
+                display: 'inline-block', marginTop: 4, padding: '3px 10px', borderRadius: 99,
+                border: '1px solid var(--line)', background: 'transparent',
+                color: 'var(--violet)', fontSize: 12, fontWeight: 700, cursor: 'pointer',
+              }}
+            >
+              {t('train.voiceRetry')}
+            </button>
+          )}
+        </span>
         {/* 上下左右按方位摆，与视标 E 朝向一一对应，"朝哪开点哪" */}
         <div className="fq-dpad">
           {DPAD.map(({ dir, col, row }) => (

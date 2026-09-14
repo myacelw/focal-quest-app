@@ -8,14 +8,27 @@ export interface StartVoskOpts {
   grammar: string[]
   onResult: (text: string) => void
   onError?: (err: Error) => void
+  /** 分片下载进度（done/total）。让"加载中"能报到第几片，而不是一句没有尽头的"加载中…" */
+  onProgress?: (done: number, total: number) => void
 }
 
 /**
- * 解析模型 URL。模型完整包 41MB 超 EdgeOne Pages 单文件 25MiB 上限，故切成分片部署；
- * 若同目录存在 `<model>.parts.json`（{count}），就把各分片拼回一个完整包的 blob URL
- * 喂给 createModel（vosk worker 用 fetch 读取，blob: URL 同源可读）。没有分片清单则用原始 URL。
+ * 解析模型 URL。模型完整包 44MB 超静态托管的单文件 25MiB 上限（EdgeOne 当年如此，
+ * Cloudflare Pages 同样是 25MiB），故切成分片部署；若同目录存在 `<model>.parts.json`
+ * （{count}），就把各分片拼回一个完整包的 blob URL 喂给 createModel（vosk worker 用
+ * fetch 读取，blob: URL 同源可读）。没有分片清单则用原始 URL。
+ *
+ * ⚠️ **分片一律用 `res.blob()` 收，绝不能用 `res.arrayBuffer()`**——这是白屏的直接诱因。
+ * arrayBuffer 会把 44MB 整个拉进页面的 JS 堆，`new Blob([ab, ab, ab])` 再复制一份，
+ * 峰值 88MB 全压在页面进程上；而 blob 拿到的是**引用底层存储的句柄**（大 blob 由浏览器
+ * 的存储层持有、不占 JS 堆），`new Blob([blobA, blobB, blobC])` 只是按引用拼接、不复制
+ * 数据。叠上 worker 解压模型本身的峰值，省下的这 88MB 正是 iPad 扛不扛得住的那一档。
+ * 对照 sw.ts 里同一个理由的 `cache.put` 改写（那里消掉的是 `res.clone()` 的 tee 缓冲）。
  */
-async function resolveModelUrl(modelUrl: string): Promise<{ url: string; revoke: () => void }> {
+async function resolveModelUrl(
+  modelUrl: string,
+  onProgress?: (done: number, total: number) => void,
+): Promise<{ url: string; revoke: () => void }> {
   const noop = { url: modelUrl, revoke: () => {} }
   let count = 0
   try {
@@ -29,14 +42,15 @@ async function resolveModelUrl(modelUrl: string): Promise<{ url: string; revoke:
   }
   if (count < 1) return noop
 
-  const buffers: ArrayBuffer[] = []
+  const parts: Blob[] = []
   for (let i = 0; i < count; i++) {
     const partUrl = `${modelUrl}.part${String(i).padStart(2, '0')}`
     const res = await fetch(partUrl)
     if (!res.ok) throw new Error(`模型分片加载失败：${partUrl} (${res.status})`)
-    buffers.push(await res.arrayBuffer())
+    parts.push(await res.blob())
+    onProgress?.(i + 1, count)
   }
-  const url = URL.createObjectURL(new Blob(buffers, { type: 'application/gzip' }))
+  const url = URL.createObjectURL(new Blob(parts, { type: 'application/gzip' }))
   return { url, revoke: () => URL.revokeObjectURL(url) }
 }
 
@@ -53,7 +67,7 @@ async function resolveModelUrl(modelUrl: string): Promise<{ url: string; revoke:
 async function startVoskUncached(opts: StartVoskOpts): Promise<VoskController> {
   // 动态 import：vosk-browser（含 wasm）只在真正开始训练时才加载，不拖累首屏
   const { createModel } = await import('vosk-browser')
-  const { url: resolvedModelUrl, revoke } = await resolveModelUrl(opts.modelUrl)
+  const { url: resolvedModelUrl, revoke } = await resolveModelUrl(opts.modelUrl, opts.onProgress)
   let model: Awaited<ReturnType<typeof createModel>>
   try {
     model = await createModel(resolvedModelUrl)
