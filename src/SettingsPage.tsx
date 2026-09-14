@@ -20,6 +20,7 @@ import { CloudSyncCard } from './sync/CloudSyncCard'
 import { getAccount } from './sync/account'
 import { goalPerRound, sanitizeDurationSec, GOAL_CORRECT_PER_MIN } from './training/goal'
 import { readPxPerMm } from './calibration/px-per-mm'
+import { readVoiceEnabled, writeVoiceEnabled, readVoiceCrashes, resetVoiceGuard, VOICE_CRASH_LIMIT } from './speech/voice-guard'
 
 
 /** 家长设置页：所有训练配置集中在此，配一次即可，孩子训练路径不再碰这些 */
@@ -30,6 +31,10 @@ export function SettingsPage({ onReplayGuide, onOpenSpeech, onOpenCalib, onOpenP
   // 那样每次渲染都会立即调用一次，白白多做一次 localStorage 读取。
   const [sizeMm, setSizeMm] = useState(readSizeMm)
   const [autoOn, setAutoOn] = useState(readAutoEnabled)
+  const [voiceOn, setVoiceOn] = useState(readVoiceEnabled)
+  // 上次是否在加载语音模型途中被系统杀掉（见 speech/voice-guard.ts）。家长得知道
+  // "语音怎么不响了"不是坏了，而是 App 自己躲开了一次白屏死循环。
+  const [voiceGuarded, setVoiceGuarded] = useState(() => readVoiceCrashes() >= VOICE_CRASH_LIMIT)
   const [lastAdjust, setLastAdjust] = useState(readLastAdjust)
   // 时长口径只有一个出处：脏值（'abc'→NaN、'0'→0）在这里就被兜成默认 180，
   // 否则下面的门槛提示会显示成"× NaN 分钟"，四个档位按钮也会全都不高亮。
@@ -196,6 +201,34 @@ export function SettingsPage({ onReplayGuide, onOpenSpeech, onOpenCalib, onOpenP
           </p>
         </div>
       </Collapsible>
+
+      {/* 语音开关：语音是「关键决策 #2」里的主交互，但它要加载 44MB 模型，内存紧张的旧
+          设备可能在加载途中被系统杀掉（纯白屏 + 状态栏转圈）。关掉后只用触控/键盘答题，
+          训练强度与医学参数一概不受影响——所以这是个安全的逃生阀，不进折叠区。 */}
+      <div className="fq-card" style={{ marginTop: 14 }}>
+        <label style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, cursor: 'pointer' }}>
+          <span style={{ fontSize: 14, fontWeight: 700 }}>{t('settings.voice')}</span>
+          <input
+            type="checkbox"
+            checked={voiceOn}
+            onChange={(e) => { setVoiceOn(e.target.checked); writeVoiceEnabled(e.target.checked) }}
+            style={{ width: 20, height: 20, accentColor: 'var(--violet)' }}
+          />
+        </label>
+        <p style={{ fontSize: 12, color: 'var(--muted)', marginTop: 6, lineHeight: 1.6 }}>{t('settings.voiceHint')}</p>
+        {voiceOn && voiceGuarded && (
+          <div style={{ marginTop: 10, paddingTop: 10, borderTop: '1px solid var(--line)' }}>
+            <p style={{ fontSize: 12, color: 'var(--coral)', lineHeight: 1.6, margin: 0 }}>{t('settings.voiceCrashed')}</p>
+            <button
+              className="fq-btn"
+              style={{ marginTop: 10 }}
+              onClick={() => { resetVoiceGuard(); setVoiceGuarded(false) }}
+            >
+              {t('settings.voiceRetryNow')}
+            </button>
+          </div>
+        )}
+      </div>
 
       <div className="fq-card" style={{ marginTop: 14, display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 8 }}>
         <span style={{ fontSize: 14, fontWeight: 700 }}>{t('settings.flipSpeed')}</span>

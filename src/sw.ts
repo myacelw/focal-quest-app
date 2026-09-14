@@ -107,6 +107,14 @@ sw.addEventListener('fetch', (event) => {
   }
 
   // vosk 模型/大文件：cache-first 存进跨版本保留的运行时缓存（首次联网下载，之后离线）
+  //
+  // ⚠️ 这里刻意**不用 `res.clone()`**。clone 会把同一个 body 分成两路（一路给页面、一路
+  // 给缓存），而两路的消费速度不同步，浏览器只能把落后的那一路整段缓冲在内存里——20MB
+  // 的模型分片就等于凭空多一份 20MB 拷贝，正好落在"语音加载中"那个最吃紧的窗口。
+  // 改成先 put（Cache API 边下边落盘）再从缓存读回：页面拿到的是从磁盘流出来的响应，
+  // 内存里不再有第二份。代价是多一次本地读，可忽略。
+  // 这条路径只有缓存**没命中**时才走，而缓存被 iOS 清掉（脚本可写存储 7 天未访问就清理）
+  // 之后的那一次重新下载，正是 2026-09-14 白屏的现场。
   if (isModelOrHeavy(url)) {
     event.respondWith(
       (async () => {
@@ -114,8 +122,16 @@ sw.addEventListener('fetch', (event) => {
         const cached = await cache.match(req)
         if (cached) return withCoiHeaders(cached)
         const res = await fetch(req)
-        if (res.ok) cache.put(req, res.clone())
-        return withCoiHeaders(res)
+        if (!res.ok) return withCoiHeaders(res)
+        try {
+          await cache.put(req, res) // body 被消费掉，之后只能从缓存读
+        } catch {
+          // 配额满/写盘失败：body 已废，只能重新取一次（不缓存）。宁可多花一次流量，
+          // 也不能返回一个空响应——那会让模型解压失败、语音彻底起不来。
+          return withCoiHeaders(await fetch(req))
+        }
+        const stored = await cache.match(req)
+        return withCoiHeaders(stored ?? (await fetch(req)))
       })(),
     )
     return
